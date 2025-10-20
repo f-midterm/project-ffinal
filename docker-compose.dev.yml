@@ -1,0 +1,25 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: devops-frontend-dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - app-network
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: devops-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.dev.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - app-network
