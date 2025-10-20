@@ -106,18 +106,17 @@ yarn-error.log*
 dist/
 build/
 
-# Java/Gradle (Backend)
-.gradle
-build/
-!gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**/build/
-!**/src/test/**/build/
-*.jar
-*.war
-*.ear
-*.zip
-*.tar.gz
-*.rar
+# # Java/Gradle (Backend)
+# build/
+# !gradle/wrapper/gradle-wrapper.jar
+# !**/src/main/**/build/
+# !**/src/test/**/build/
+# *.jar
+# *.war
+# *.ear
+# *.zip
+# *.tar.gz
+# *.rar
 
 # ===============================
 # IDE & EDITOR FILES
