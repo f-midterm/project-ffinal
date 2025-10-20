@@ -19,7 +19,6 @@
 # **/docker-compose.local.*
 
 
-
 # Development scripts
 **/dev-scripts/
 **/development/
@@ -85,7 +84,7 @@ develop-branch/
 !CHANGELOG.md
 !LICENSE.md
 !CONTRIBUTING.md
-!CODE_OF_CONDUCT.md
+!CODE_OFCONDUCT.md
 
 # Documentation directories
 docs/
@@ -96,6 +95,9 @@ documentation/
 # ===============================
 # DEPENDENCIES & BUILD ARTIFACTS
 # ===============================
+
+# Gradle build system
+.gradle/
 
 # Node.js (Frontend)
 node_modules/
@@ -278,4 +280,3 @@ config.local.*
 .build/
 dist-*/
 build-*/
-
