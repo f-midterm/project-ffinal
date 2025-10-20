@@ -280,3 +280,9 @@ config.local.*
 .build/
 dist-*/
 build-*/
+
+
+.gradle/
+build/
+!src/main/**/build/
+!src/test/**/build/
