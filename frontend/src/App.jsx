@@ -14,6 +14,8 @@ function App() {
             <Route index element={<HomePage />} />
           </Route>
 
+          <Route path="/signup" element={<SignupPage />} />
+          
         </Routes>
       </Router>
     </>
