@@ -1,6 +1,12 @@
-import HomePage from "./pages/home/page"
+// Route
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+
+// Layout
 import Layout from "./pages/layout";
+
+// Pages
+import HomePage from "./pages/home/page";
+import SignupPage from "./pages/signup/page";
 
 
 function App() {
@@ -15,7 +21,7 @@ function App() {
           </Route>
 
           <Route path="/signup" element={<SignupPage />} />
-          
+
         </Routes>
       </Router>
     </>
