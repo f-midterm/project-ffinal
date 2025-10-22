@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import AdminNavbar from '../../components/navbar/admin-navbar';
 import AdminSidebar from '../../components/sidebar/admin-sidebar';
-import Footer from '../../components/footer/footer';
 
 function AdminLayout() {
 
@@ -24,7 +23,6 @@ function AdminLayout() {
             <Outlet />
         </main>
 
-        <Footer />
     </div>
   )
 }
