@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import NavItem from './nav-items'
+
 function HomeNavbar() {
   const navLinks = [
     { to: '/application', label: 'Application' },
