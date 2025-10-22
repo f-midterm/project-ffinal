@@ -9,7 +9,7 @@ function Layout() {
       <header>
         <HomeNavbar />
       </header>
-
+        
       <main className='flex-1 w-full mx-auto'>
         <Outlet />
       </main>
