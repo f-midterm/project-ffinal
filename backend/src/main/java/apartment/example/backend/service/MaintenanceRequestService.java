@@ -1,0 +1,221 @@
+package apartment.example.backend.service;
+
+import apartment.example.backend.entity.MaintenanceRequest;
+import apartment.example.backend.entity.MaintenanceRequest.Priority;
+import apartment.example.backend.entity.MaintenanceRequest.Category;
+import apartment.example.backend.entity.MaintenanceRequest.RequestStatus;
+import apartment.example.backend.repository.MaintenanceRequestRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+@Service
+public class MaintenanceRequestService {
+
+    @Autowired
+    private MaintenanceRequestRepository maintenanceRequestRepository;
+
+    // Create a new maintenance request
+    public MaintenanceRequest createMaintenanceRequest(MaintenanceRequest request) {
+        request.setSubmittedDate(LocalDateTime.now());
+        request.setStatus(RequestStatus.SUBMITTED);
+        return maintenanceRequestRepository.save(request);
+    }
+
+    // Get all maintenance requests
+    public List<MaintenanceRequest> getAllMaintenanceRequests() {
+        return maintenanceRequestRepository.findAll();
+    }
+
+    // Get maintenance request by ID
+    public Optional<MaintenanceRequest> getMaintenanceRequestById(Long id) {
+        return maintenanceRequestRepository.findById(id);
+    }
+
+    // Get requests by tenant ID
+    public List<MaintenanceRequest> getRequestsByTenantId(Long tenantId) {
+        return maintenanceRequestRepository.findByTenantId(tenantId);
+    }
+
+    // Get requests by unit ID
+    public List<MaintenanceRequest> getRequestsByUnitId(Long unitId) {
+        return maintenanceRequestRepository.findByUnitId(unitId);
+    }
+
+    // Get requests by status
+    public List<MaintenanceRequest> getRequestsByStatus(RequestStatus status) {
+        return maintenanceRequestRepository.findByStatus(status);
+    }
+
+    // Get requests by priority
+    public List<MaintenanceRequest> getRequestsByPriority(Priority priority) {
+        return maintenanceRequestRepository.findByPriority(priority);
+    }
+
+    // Get requests by category
+    public List<MaintenanceRequest> getRequestsByCategory(Category category) {
+        return maintenanceRequestRepository.findByCategory(category);
+    }
+
+    // Get open requests
+    public List<MaintenanceRequest> getOpenRequests() {
+        return maintenanceRequestRepository.findOpenRequests();
+    }
+
+    // Get high priority requests
+    public List<MaintenanceRequest> getHighPriorityRequests() {
+        return maintenanceRequestRepository.findByPriorityOrderBySubmittedDateDesc(Priority.HIGH);
+    }
+
+    // Update maintenance request
+    // public MaintenanceRequest updateMaintenanceRequest(Long id, MaintenanceRequest updatedRequest) {
+    //     return maintenanceRequestRepository.findById(id)
+    //             .map(request -> {
+    //                 request.setTitle(updatedRequest.getTitle());
+    //                 request.setDescription(updatedRequest.getDescription());
+    //                 request.setPriority(updatedRequest.getPriority());
+    //                 request.setCategory(updatedRequest.getCategory());
+    //                 request.setPreferredTime(updatedRequest.getPreferredTime());
+    //                 request.setUrgency(updatedRequest.getUrgency());
+    //                 request.setUnitId(updatedRequest.getUnitId());
+    //                 return maintenanceRequestRepository.save(request);
+    //             })
+    //             .orElseThrow(() -> new RuntimeException("Maintenance request not found"));
+    // }
+    // ในไฟล์ MaintenanceRequestService.java
+
+public MaintenanceRequest updateMaintenanceRequest(Long id, MaintenanceRequest requestDetailsFromFrontend) {
+    
+    // 1. ดึงข้อมูลเก่าที่มีอยู่จาก Database ขึ้นมาก่อน
+    MaintenanceRequest existingRequest = maintenanceRequestRepository.findById(id)
+        .orElseThrow(() -> new RuntimeException("Request not found with id: " + id));
+
+    // 2. อัปเดตเฉพาะ field ที่ได้รับมาจากฟอร์มเท่านั้น
+    // ใช้ if ตรวจสอบเพื่อป้องกันการเขียนทับ field สำคัญด้วยค่า null
+    if (requestDetailsFromFrontend.getTitle() != null) {
+        existingRequest.setTitle(requestDetailsFromFrontend.getTitle());
+    }
+    if (requestDetailsFromFrontend.getDescription() != null) {
+        existingRequest.setDescription(requestDetailsFromFrontend.getDescription());
+    }
+    if (requestDetailsFromFrontend.getPriority() != null) {
+        existingRequest.setPriority(requestDetailsFromFrontend.getPriority());
+    }
+    if (requestDetailsFromFrontend.getCategory() != null) {
+        existingRequest.setCategory(requestDetailsFromFrontend.getCategory());
+    }
+    if (requestDetailsFromFrontend.getStatus() != null) {
+        existingRequest.setStatus(requestDetailsFromFrontend.getStatus());
+    }
+    if (requestDetailsFromFrontend.getPreferredTime() != null) {
+        existingRequest.setPreferredTime(requestDetailsFromFrontend.getPreferredTime());
+    }
+    // เพิ่ม field อื่นๆ ที่คุณอนุญาตให้แก้ไขได้จากฟอร์ม...
+
+    // 3. บันทึกอ็อบเจกต์ที่อัปเดตแล้วกลับลง Database
+    return maintenanceRequestRepository.save(existingRequest);
+}
+
+    // Assign maintenance request to a user
+    public MaintenanceRequest assignMaintenanceRequest(Long id, Long assignedToUserId) {
+        return maintenanceRequestRepository.findById(id)
+                .map(request -> {
+                    request.setAssignedToUserId(assignedToUserId);
+                    request.setStatus(RequestStatus.IN_PROGRESS);
+                    return maintenanceRequestRepository.save(request);
+                })
+                .orElseThrow(() -> new RuntimeException("Maintenance request not found"));
+    }
+
+    // Update status of maintenance request
+    public MaintenanceRequest updateRequestStatus(Long id, RequestStatus status, String notes) {
+        return maintenanceRequestRepository.findById(id)
+                .map(request -> {
+                    request.setStatus(status);
+                    if (notes != null && !notes.trim().isEmpty()) {
+                        request.setCompletionNotes(notes);
+                    }
+                    if (status == RequestStatus.COMPLETED) {
+                        request.setCompletedDate(LocalDateTime.now());
+                    }
+                    return maintenanceRequestRepository.save(request);
+                })
+                .orElseThrow(() -> new RuntimeException("Maintenance request not found"));
+    }
+
+    // Update priority of maintenance request
+    public MaintenanceRequest updateRequestPriority(Long id, Priority priority) {
+        return maintenanceRequestRepository.findById(id)
+                .map(request -> {
+                    request.setPriority(priority);
+                    return maintenanceRequestRepository.save(request);
+                })
+                .orElseThrow(() -> new RuntimeException("Maintenance request not found"));
+    }
+
+    // Complete maintenance request
+    public MaintenanceRequest completeMaintenanceRequest(Long id, String completionNotes) {
+        return maintenanceRequestRepository.findById(id)
+                .map(request -> {
+                    request.setStatus(RequestStatus.COMPLETED);
+                    request.setCompletedDate(LocalDateTime.now());
+                    request.setCompletionNotes(completionNotes);
+                    return maintenanceRequestRepository.save(request);
+                })
+                .orElseThrow(() -> new RuntimeException("Maintenance request not found"));
+    }
+
+    // Reject maintenance request
+    public MaintenanceRequest rejectMaintenanceRequest(Long id, String rejectionReason) {
+        return maintenanceRequestRepository.findById(id)
+                .map(request -> {
+                    request.setStatus(RequestStatus.CANCELLED);
+                    request.setCompletionNotes(rejectionReason);
+                    return maintenanceRequestRepository.save(request);
+                })
+                .orElseThrow(() -> new RuntimeException("Maintenance request not found"));
+    }
+
+    // Delete maintenance request
+    public void deleteMaintenanceRequest(Long id) {
+        maintenanceRequestRepository.deleteById(id);
+    }
+
+    // Get maintenance request statistics
+    public Map<String, Long> getMaintenanceRequestStats() {
+        Map<String, Long> stats = new HashMap<>();
+        stats.put("TOTAL", (long) maintenanceRequestRepository.findAll().size());
+        stats.put("NOT_SUBMITTED", maintenanceRequestRepository.countByStatus(RequestStatus.NOT_SUBMITTED));
+        stats.put("SUBMITTED", maintenanceRequestRepository.countByStatus(RequestStatus.SUBMITTED));
+        stats.put("WAITING_FOR_REPAIR", maintenanceRequestRepository.countByStatus(RequestStatus.WAITING_FOR_REPAIR));
+        stats.put("APPROVED", maintenanceRequestRepository.countByStatus(RequestStatus.APPROVED));
+        stats.put("IN_PROGRESS", maintenanceRequestRepository.countByStatus(RequestStatus.IN_PROGRESS));
+        stats.put("COMPLETED", maintenanceRequestRepository.countByStatus(RequestStatus.COMPLETED));
+        stats.put("CANCELLED", maintenanceRequestRepository.countByStatus(RequestStatus.CANCELLED));
+        return stats;
+    }
+
+    // Get statistics by priority
+    public Map<String, Long> getStatsByPriority() {
+        Map<String, Long> stats = new HashMap<>();
+        stats.put("LOW", maintenanceRequestRepository.countByPriority(Priority.LOW));
+        stats.put("MEDIUM", maintenanceRequestRepository.countByPriority(Priority.MEDIUM));
+        stats.put("HIGH", maintenanceRequestRepository.countByPriority(Priority.HIGH));
+        stats.put("URGENT", maintenanceRequestRepository.countByPriority(Priority.URGENT));
+        return stats;
+    }
+
+    // Get statistics by category
+    public Map<String, Long> getStatsByCategory() {
+        Map<String, Long> stats = new HashMap<>();
+        for (Category category : Category.values()) {
+            stats.put(category.name(), maintenanceRequestRepository.countByCategory(category));
+        }
+        return stats;
+    }
+}
