@@ -1,49 +1,149 @@
 package apartment.example.backend.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import apartment.example.backend.dto.TenantResponseDto;
+import apartment.example.backend.entity.Tenant;
+import apartment.example.backend.service.TenantService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.annotation.Transactional;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
+import java.util.Optional;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("test") // <-- บอกให้ Spring Boot ใช้ application-test.properties
-@Transactional // <-- ทำให้ข้อมูลที่สร้างในแต่ละเทสไม่ถูกบันทึกจริงหลังเทสจบ
-public class TenantControllerTest {
+class TenantControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc; // เครื่องมือสำหรับยิง HTTP request จำลอง
+    @Mock
+    private TenantService tenantService;
 
-    @Autowired
-    private ObjectMapper objectMapper; // เครื่องมือสำหรับแปลง Java Object เป็น JSON
+    @InjectMocks
+    private TenantController tenantController;
+
+    private Tenant tenant;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+        tenant = new Tenant();
+        tenant.setId(1L);
+        tenant.setFirstName("John");
+        tenant.setLastName("Doe");
+        tenant.setPhone("0123456789");
+        tenant.setEmail("john@example.com");
+    }
+
 
     @Test
-    void shouldCreateTenantSuccessfully() throws Exception {
-        // Arrange: เตรียมข้อมูลที่จะส่งไป
-        Map<String, Object> newTenant = new HashMap<>();
-        newTenant.put("firstName", "Apiwat");
-        newTenant.put("lastName", "Test");
-        newTenant.put("email", "apiwat.test@example.com");
-        newTenant.put("phone", "0812345678");
+    void testGetAllTenants() {
+        when(tenantService.getAllTenants()).thenReturn(List.of(tenant));
 
-        // Act & Assert: ยิง request และตรวจสอบผลลัพธ์
-        mockMvc.perform(post("/api/tenants") // สมมติว่า Endpoint ของคุณคือ /api/tenants
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(newTenant)))
-                .andExpect(status().isCreated()) // ตรวจสอบว่า HTTP Status คือ 201 Created
-                .andExpect(jsonPath("$.id").exists()) // ตรวจสอบว่า Response JSON มี id กลับมา
-                .andExpect(jsonPath("$.firstName").value("Apiwat"))
-                .andExpect(jsonPath("$.email").value("apiwat.test@example.com"));
+        ResponseEntity<List<TenantResponseDto>> response = tenantController.getAllTenants();
+
+        assertEquals(200, response.getStatusCodeValue());
+        assertEquals(1, response.getBody().size());
+        assertEquals("John", response.getBody().get(0).getFirstName());
+    }
+
+
+    @Test
+    void testGetAllTenantsPaged() {
+        Page<Tenant> page = new PageImpl<>(List.of(tenant));
+        when(tenantService.getAllTenants(any(Pageable.class))).thenReturn(page);
+
+        ResponseEntity<Page<TenantResponseDto>> response = tenantController.getAllTenants(mock(Pageable.class));
+
+        assertEquals(200, response.getStatusCodeValue());
+        assertEquals(1, response.getBody().getTotalElements());
+    }
+
+
+    @Test
+    void testGetTenantById_Found() {
+        when(tenantService.getTenantById(1L)).thenReturn(Optional.of(tenant));
+
+        ResponseEntity<TenantResponseDto> response = tenantController.getTenantById(1L);
+
+        assertEquals(200, response.getStatusCodeValue());
+        assertEquals("John", response.getBody().getFirstName());
+    }
+
+
+    @Test
+    void testGetTenantById_NotFound() {
+        when(tenantService.getTenantById(99L)).thenReturn(Optional.empty());
+
+        ResponseEntity<TenantResponseDto> response = tenantController.getTenantById(99L);
+
+        assertEquals(404, response.getStatusCodeValue());
+    }
+
+
+    @Test
+    void testCreateTenant_Success() {
+        when(tenantService.createTenant(any(Tenant.class))).thenReturn(tenant);
+
+        ResponseEntity<TenantResponseDto> response = tenantController.createTenant(tenant);
+
+        assertEquals(201, response.getStatusCodeValue());
+        assertEquals("John", response.getBody().getFirstName());
+    }
+
+
+    @Test
+    void testCreateTenant_BadRequest() {
+        when(tenantService.createTenant(any(Tenant.class)))
+                .thenThrow(new IllegalArgumentException("Invalid tenant data"));
+
+        ResponseEntity<TenantResponseDto> response = tenantController.createTenant(tenant);
+
+        assertEquals(400, response.getStatusCodeValue());
+    }
+
+
+    @Test
+    void testDeleteTenant_Success() {
+        doNothing().when(tenantService).deleteTenant(1L);
+
+        ResponseEntity<Void> response = tenantController.deleteTenant(1L);
+
+        assertEquals(204, response.getStatusCodeValue());
+    }
+
+
+    @Test
+    void testDeleteTenant_NotFound() {
+        doThrow(new RuntimeException("Tenant not found")).when(tenantService).deleteTenant(1L);
+
+        ResponseEntity<Void> response = tenantController.deleteTenant(1L);
+
+        assertEquals(404, response.getStatusCodeValue());
+    }
+
+
+    @Test
+    void testCheckTenantExists() {
+        when(tenantService.existsById(1L)).thenReturn(true);
+
+        ResponseEntity<Boolean> response = tenantController.checkTenantExists(1L);
+
+        assertTrue(response.getBody());
+    }
+
+
+    @Test
+    void testCheckEmailExists() {
+        when(tenantService.getTenantByEmail("john@example.com")).thenReturn(Optional.of(tenant));
+
+        ResponseEntity<Boolean> response = tenantController.checkEmailExists("john@example.com");
+
+        assertTrue(response.getBody());
     }
 }

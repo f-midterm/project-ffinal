@@ -4,293 +4,407 @@ import apartment.example.backend.dto.LoginRequest;
 import apartment.example.backend.dto.LoginResponse;
 import apartment.example.backend.dto.RegisterRequest;
 import apartment.example.backend.dto.RegisterResponse;
-import apartment.example.backend.entity.User;
-import apartment.example.backend.repository.UserRepository;
-import apartment.example.backend.security.JwtUtil;
+import apartment.example.backend.service.AuthService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.util.Collections;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+/**
+ * Unit tests for AuthController
+ * Tests login and registration endpoints
+ */
 @ExtendWith(MockitoExtension.class)
+@DisplayName("AuthController Unit Tests")
 class AuthControllerTest {
 
     @Mock
-    private AuthenticationManager authenticationManager;
-
-    @Mock
-    private UserDetailsService userDetailsService;
-
-    @Mock
-    private UserRepository userRepository;
-
-    @Mock
-    private PasswordEncoder passwordEncoder;
-
-    @Mock
-    private JwtUtil jwtUtil;
+    private AuthService authService;
 
     @InjectMocks
     private AuthController authController;
 
-    private User mockUser;
-    private LoginRequest loginRequest;
-    private RegisterRequest registerRequest;
+    private MockMvc mockMvc;
+    private ObjectMapper objectMapper;
+
+    /**
+     * Test Exception Handler for handling exceptions in tests
+     */
+    @RestControllerAdvice
+    static class TestExceptionHandler {
+        @ExceptionHandler(BadCredentialsException.class)
+        public ResponseEntity<String> handleBadCredentials(BadCredentialsException ex) {
+            return ResponseEntity.status(401).body(ex.getMessage());
+        }
+
+        @ExceptionHandler(IllegalArgumentException.class)
+        public ResponseEntity<String> handleIllegalArgument(IllegalArgumentException ex) {
+            return ResponseEntity.status(400).body(ex.getMessage());
+        }
+    }
 
     @BeforeEach
     void setUp() {
-        // สร้าง mock user
-        mockUser = new User();
-        mockUser.setUsername("testuser");
-        mockUser.setPassword("encodedPassword");
-        mockUser.setEmail("test@example.com");
-        mockUser.setRole(User.Role.USER);
+        mockMvc = MockMvcBuilders
+                .standaloneSetup(authController)
+                .setControllerAdvice(new TestExceptionHandler())
+                .build();
+        objectMapper = new ObjectMapper();
+    }
 
-        // สร้าง login request
-        loginRequest = new LoginRequest();
+    // ==================== LOGIN TESTS ====================
+
+    @Test
+    @DisplayName("Should successfully login with valid credentials")
+    void testLogin_Success() throws Exception {
+        // Arrange
+        LoginRequest loginRequest = new LoginRequest();
         loginRequest.setUsername("testuser");
         loginRequest.setPassword("password123");
 
-        // สร้าง register request
-        registerRequest = new RegisterRequest();
+        LoginResponse expectedResponse = new LoginResponse(
+                "jwt-token-123",
+                "USER",
+                "testuser"
+        );
+
+        when(authService.login(any(LoginRequest.class))).thenReturn(expectedResponse);
+
+        // Act & Assert
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value("jwt-token-123"))
+                .andExpect(jsonPath("$.role").value("USER"))
+                .andExpect(jsonPath("$.username").value("testuser"));
+
+        verify(authService, times(1)).login(any(LoginRequest.class));
+    }
+
+    @Test
+    @DisplayName("Should return 401 when login with invalid credentials")
+    void testLogin_InvalidCredentials() throws Exception {
+        // Arrange
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setUsername("testuser");
+        loginRequest.setPassword("wrongpassword");
+
+        when(authService.login(any(LoginRequest.class)))
+                .thenThrow(new BadCredentialsException("Invalid credentials"));
+
+        // Act & Assert
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(content().string("Invalid credentials"));
+
+        verify(authService, times(1)).login(any(LoginRequest.class));
+    }
+
+    @Test
+    @DisplayName("Should login admin user with ADMIN role")
+    void testLogin_AdminUser() throws Exception {
+        // Arrange
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setUsername("admin");
+        loginRequest.setPassword("adminpass");
+
+        LoginResponse expectedResponse = new LoginResponse(
+                "jwt-admin-token",
+                "ADMIN",
+                "admin"
+        );
+
+        when(authService.login(any(LoginRequest.class))).thenReturn(expectedResponse);
+
+        // Act & Assert
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.role").value("ADMIN"))
+                .andExpect(jsonPath("$.username").value("admin"));
+
+        verify(authService, times(1)).login(any(LoginRequest.class));
+    }
+
+    @Test
+    @DisplayName("Should test login controller direct method call - Success")
+    void testLogin_DirectMethodCall_Success() {
+        // Arrange
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setUsername("testuser");
+        loginRequest.setPassword("password123");
+
+        LoginResponse expectedResponse = new LoginResponse(
+                "jwt-token-123",
+                "USER",
+                "testuser"
+        );
+
+        when(authService.login(any(LoginRequest.class))).thenReturn(expectedResponse);
+
+        // Act
+        ResponseEntity<LoginResponse> response = authController.login(loginRequest);
+
+        // Assert
+        assertThat(response.getStatusCodeValue()).isEqualTo(200);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getToken()).isEqualTo("jwt-token-123");
+        assertThat(response.getBody().getRole()).isEqualTo("USER");
+        assertThat(response.getBody().getUsername()).isEqualTo("testuser");
+
+        verify(authService, times(1)).login(any(LoginRequest.class));
+    }
+
+    @Test
+    @DisplayName("Should throw exception when login with invalid credentials - Direct call")
+    void testLogin_DirectMethodCall_InvalidCredentials() {
+        // Arrange
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setUsername("testuser");
+        loginRequest.setPassword("wrongpassword");
+
+        when(authService.login(any(LoginRequest.class)))
+                .thenThrow(new BadCredentialsException("Invalid credentials"));
+
+        // Act & Assert
+        assertThatThrownBy(() -> authController.login(loginRequest))
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessage("Invalid credentials");
+
+        verify(authService, times(1)).login(any(LoginRequest.class));
+    }
+
+    // ==================== REGISTER TESTS ====================
+
+    @Test
+    @DisplayName("Should successfully register new user")
+    void testRegister_Success() throws Exception {
+        // Arrange
+        RegisterRequest registerRequest = new RegisterRequest();
         registerRequest.setUsername("newuser");
         registerRequest.setPassword("password123");
         registerRequest.setEmail("newuser@example.com");
-    }
 
-    // ========== Login Tests ==========
+        RegisterResponse expectedResponse = new RegisterResponse(
+                "User registered successfully",
+                "newuser"
+        );
 
-    @Test
-    void testLogin_Success() {
-        // Given
-        String expectedToken = "mock.jwt.token";
+        when(authService.register(any(RegisterRequest.class))).thenReturn(expectedResponse);
 
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenReturn(null);
-        when(userDetailsService.loadUserByUsername(loginRequest.getUsername()))
-                .thenReturn(mockUser);
-        when(jwtUtil.generateToken(mockUser))
-                .thenReturn(expectedToken);
+        // Act & Assert
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(registerRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("User registered successfully"))
+                .andExpect(jsonPath("$.username").value("newuser"));
 
-        // When
-        ResponseEntity<?> response = authController.login(loginRequest);
-
-        // Then
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertTrue(response.getBody() instanceof LoginResponse);
-
-        LoginResponse loginResponse = (LoginResponse) response.getBody();
-        assertEquals(expectedToken, loginResponse.getToken());
-        assertEquals("USER", loginResponse.getRole());
-        assertEquals("testuser", loginResponse.getUsername());
-
-        // Verify
-        verify(authenticationManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
-        verify(userDetailsService, times(1)).loadUserByUsername(loginRequest.getUsername());
-        verify(jwtUtil, times(1)).generateToken(mockUser);
+        verify(authService, times(1)).register(any(RegisterRequest.class));
     }
 
     @Test
-    void testLogin_BadCredentials() {
-        // Given
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenThrow(new BadCredentialsException("Bad credentials"));
+    @DisplayName("Should return 400 when username already exists")
+    void testRegister_UsernameExists() throws Exception {
+        // Arrange
+        RegisterRequest registerRequest = new RegisterRequest();
+        registerRequest.setUsername("existinguser");
+        registerRequest.setPassword("password123");
+        registerRequest.setEmail("user@example.com");
 
-        // When
-        ResponseEntity<?> response = authController.login(loginRequest);
+        when(authService.register(any(RegisterRequest.class)))
+                .thenThrow(new IllegalArgumentException("Username already exists"));
 
-        // Then
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals("Incorrect username or password", response.getBody());
+        // Act & Assert
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(registerRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Username already exists"));
 
-        // Verify
-        verify(authenticationManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
-        verify(userDetailsService, never()).loadUserByUsername(anyString());
-        verify(jwtUtil, never()).generateToken(any());
+        verify(authService, times(1)).register(any(RegisterRequest.class));
     }
 
     @Test
-    void testLogin_WithAdminRole() {
-        // Given
-        mockUser.setRole(User.Role.ADMIN);
-        String expectedToken = "mock.jwt.token";
+    @DisplayName("Should return 400 when email already exists")
+    void testRegister_EmailExists() throws Exception {
+        // Arrange
+        RegisterRequest registerRequest = new RegisterRequest();
+        registerRequest.setUsername("newuser");
+        registerRequest.setPassword("password123");
+        registerRequest.setEmail("existing@example.com");
 
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenReturn(null);
-        when(userDetailsService.loadUserByUsername(loginRequest.getUsername()))
-                .thenReturn(mockUser);
-        when(jwtUtil.generateToken(mockUser))
-                .thenReturn(expectedToken);
+        when(authService.register(any(RegisterRequest.class)))
+                .thenThrow(new IllegalArgumentException("Email already exists"));
 
-        // When
-        ResponseEntity<?> response = authController.login(loginRequest);
+        // Act & Assert
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(registerRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Email already exists"));
 
-        // Then
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        LoginResponse loginResponse = (LoginResponse) response.getBody();
-        assertEquals("ADMIN", loginResponse.getRole());
-    }
-
-    // ========== Register Tests ==========
-
-    @Test
-    void testRegister_Success() {
-        // Given
-        when(userRepository.findByUsername(registerRequest.getUsername()))
-                .thenReturn(Collections.emptyList());
-        when(userRepository.findByEmail(registerRequest.getEmail()))
-                .thenReturn(Optional.empty());
-        when(passwordEncoder.encode(registerRequest.getPassword()))
-                .thenReturn("encodedPassword");
-        when(userRepository.save(any(User.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-
-        // When
-        ResponseEntity<?> response = authController.register(registerRequest);
-
-        // Then
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertTrue(response.getBody() instanceof RegisterResponse);
-
-        RegisterResponse registerResponse = (RegisterResponse) response.getBody();
-        assertEquals("User registered successfully", registerResponse.getMessage());
-        assertEquals("newuser", registerResponse.getUsername());
-
-        // Verify
-        verify(userRepository, times(1)).findByUsername(registerRequest.getUsername());
-        verify(userRepository, times(1)).findByEmail(registerRequest.getEmail());
-        verify(passwordEncoder, times(1)).encode(registerRequest.getPassword());
-        verify(userRepository, times(1)).save(any(User.class));
+        verify(authService, times(1)).register(any(RegisterRequest.class));
     }
 
     @Test
-    void testRegister_UsernameAlreadyExists() {
-        // Given
-        when(userRepository.findByUsername(registerRequest.getUsername()))
-                .thenReturn(Collections.singletonList(mockUser));
+    @DisplayName("Should test register controller direct method call - Success")
+    void testRegister_DirectMethodCall_Success() {
+        // Arrange
+        RegisterRequest registerRequest = new RegisterRequest();
+        registerRequest.setUsername("newuser");
+        registerRequest.setPassword("password123");
+        registerRequest.setEmail("newuser@example.com");
 
-        // When
-        ResponseEntity<?> response = authController.register(registerRequest);
+        RegisterResponse expectedResponse = new RegisterResponse(
+                "User registered successfully",
+                "newuser"
+        );
 
-        // Then
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Username already exists", response.getBody());
+        when(authService.register(any(RegisterRequest.class))).thenReturn(expectedResponse);
 
-        // Verify
-        verify(userRepository, times(1)).findByUsername(registerRequest.getUsername());
-        verify(userRepository, never()).findByEmail(anyString());
-        verify(userRepository, never()).save(any(User.class));
+        // Act
+        ResponseEntity<RegisterResponse> response = authController.register(registerRequest);
+
+        // Assert
+        assertThat(response.getStatusCodeValue()).isEqualTo(200);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getMessage()).isEqualTo("User registered successfully");
+        assertThat(response.getBody().getUsername()).isEqualTo("newuser");
+
+        verify(authService, times(1)).register(any(RegisterRequest.class));
     }
 
     @Test
-    void testRegister_EmailAlreadyExists() {
-        // Given
-        when(userRepository.findByUsername(registerRequest.getUsername()))
-                .thenReturn(Collections.emptyList());
-        when(userRepository.findByEmail(registerRequest.getEmail()))
-                .thenReturn(Optional.of(mockUser));
+    @DisplayName("Should throw exception when username exists - Direct call")
+    void testRegister_DirectMethodCall_UsernameExists() {
+        // Arrange
+        RegisterRequest registerRequest = new RegisterRequest();
+        registerRequest.setUsername("existinguser");
+        registerRequest.setPassword("password123");
+        registerRequest.setEmail("user@example.com");
 
-        // When
-        ResponseEntity<?> response = authController.register(registerRequest);
+        when(authService.register(any(RegisterRequest.class)))
+                .thenThrow(new IllegalArgumentException("Username already exists"));
 
-        // Then
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Email already exists", response.getBody());
+        // Act & Assert
+        assertThatThrownBy(() -> authController.register(registerRequest))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Username already exists");
 
-        // Verify
-        verify(userRepository, times(1)).findByUsername(registerRequest.getUsername());
-        verify(userRepository, times(1)).findByEmail(registerRequest.getEmail());
-        verify(userRepository, never()).save(any(User.class));
+        verify(authService, times(1)).register(any(RegisterRequest.class));
     }
 
     @Test
-    void testRegister_DefaultRoleIsUser() {
-        // Given
-        when(userRepository.findByUsername(registerRequest.getUsername()))
-                .thenReturn(Collections.emptyList());
-        when(userRepository.findByEmail(registerRequest.getEmail()))
-                .thenReturn(Optional.empty());
-        when(passwordEncoder.encode(registerRequest.getPassword()))
-                .thenReturn("encodedPassword");
+    @DisplayName("Should throw exception when email exists - Direct call")
+    void testRegister_DirectMethodCall_EmailExists() {
+        // Arrange
+        RegisterRequest registerRequest = new RegisterRequest();
+        registerRequest.setUsername("newuser");
+        registerRequest.setPassword("password123");
+        registerRequest.setEmail("existing@example.com");
 
-        // Capture the user being saved
-        when(userRepository.save(any(User.class)))
-                .thenAnswer(invocation -> {
-                    User user = invocation.getArgument(0);
-                    assertEquals(User.Role.USER, user.getRole());
-                    return user;
-                });
+        when(authService.register(any(RegisterRequest.class)))
+                .thenThrow(new IllegalArgumentException("Email already exists"));
 
-        // When
+        // Act & Assert
+        assertThatThrownBy(() -> authController.register(registerRequest))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Email already exists");
+
+        verify(authService, times(1)).register(any(RegisterRequest.class));
+    }
+
+    @Test
+    @DisplayName("Should handle registration with all valid fields")
+    void testRegister_AllFieldsValid() throws Exception {
+        // Arrange
+        RegisterRequest registerRequest = new RegisterRequest();
+        registerRequest.setUsername("validuser");
+        registerRequest.setPassword("StrongP@ssw0rd");
+        registerRequest.setEmail("valid@example.com");
+
+        RegisterResponse expectedResponse = new RegisterResponse(
+                "User registered successfully",
+                "validuser"
+        );
+
+        when(authService.register(any(RegisterRequest.class))).thenReturn(expectedResponse);
+
+        // Act & Assert
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(registerRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").exists())
+                .andExpect(jsonPath("$.username").value("validuser"));
+
+        verify(authService, times(1)).register(any(RegisterRequest.class));
+    }
+
+    @Test
+    @DisplayName("Should verify login service is called with correct request")
+    void testLogin_VerifyServiceCall() {
+        // Arrange
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setUsername("testuser");
+        loginRequest.setPassword("password123");
+
+        LoginResponse expectedResponse = new LoginResponse("token", "USER", "testuser");
+        when(authService.login(any(LoginRequest.class))).thenReturn(expectedResponse);
+
+        // Act
+        authController.login(loginRequest);
+
+        // Assert
+        verify(authService).login(argThat(request ->
+                request.getUsername().equals("testuser") &&
+                        request.getPassword().equals("password123")
+        ));
+    }
+
+    @Test
+    @DisplayName("Should verify register service is called with correct request")
+    void testRegister_VerifyServiceCall() {
+        // Arrange
+        RegisterRequest registerRequest = new RegisterRequest();
+        registerRequest.setUsername("newuser");
+        registerRequest.setPassword("password123");
+        registerRequest.setEmail("new@example.com");
+
+        RegisterResponse expectedResponse = new RegisterResponse("Success", "newuser");
+        when(authService.register(any(RegisterRequest.class))).thenReturn(expectedResponse);
+
+        // Act
         authController.register(registerRequest);
 
-        // Then
-        verify(userRepository, times(1)).save(any(User.class));
-    }
-
-    @Test
-    void testRegister_Exception() {
-        // Given
-        when(userRepository.findByUsername(registerRequest.getUsername()))
-                .thenThrow(new RuntimeException("Database error"));
-
-        // When
-        ResponseEntity<?> response = authController.register(registerRequest);
-
-        // Then
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertTrue(response.getBody().toString().contains("Registration failed"));
-
-        // Verify
-        verify(userRepository, times(1)).findByUsername(registerRequest.getUsername());
-        verify(userRepository, never()).save(any(User.class));
-    }
-
-    @Test
-    void testRegister_PasswordIsEncoded() {
-        // Given
-        String rawPassword = "plainPassword123";
-        String encodedPassword = "encodedPassword123";
-        registerRequest.setPassword(rawPassword);
-
-        when(userRepository.findByUsername(registerRequest.getUsername()))
-                .thenReturn(Collections.emptyList());
-        when(userRepository.findByEmail(registerRequest.getEmail()))
-                .thenReturn(Optional.empty());
-        when(passwordEncoder.encode(rawPassword))
-                .thenReturn(encodedPassword);
-
-        when(userRepository.save(any(User.class)))
-                .thenAnswer(invocation -> {
-                    User user = invocation.getArgument(0);
-                    assertEquals(encodedPassword, user.getPassword());
-                    assertNotEquals(rawPassword, user.getPassword());
-                    return user;
-                });
-
-        // When
-        authController.register(registerRequest);
-
-        // Then
-        verify(passwordEncoder, times(1)).encode(rawPassword);
+        // Assert
+        verify(authService).register(argThat(request ->
+                request.getUsername().equals("newuser") &&
+                        request.getPassword().equals("password123") &&
+                        request.getEmail().equals("new@example.com")
+        ));
     }
 }

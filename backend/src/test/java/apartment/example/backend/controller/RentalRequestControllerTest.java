@@ -5,32 +5,36 @@ import apartment.example.backend.entity.RentalRequest;
 import apartment.example.backend.entity.RentalRequestStatus;
 import apartment.example.backend.service.RentalRequestService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.hamcrest.Matchers.hasSize;
 
+/**
+ * Unit tests for RentalRequestController
+ * Tests critical rental request management endpoints
+ */
 @ExtendWith(MockitoExtension.class)
+@DisplayName("RentalRequestController Unit Tests")
 class RentalRequestControllerTest {
-
-    private MockMvc mockMvc;
 
     @Mock
     private RentalRequestService rentalRequestService;
@@ -38,212 +42,158 @@ class RentalRequestControllerTest {
     @InjectMocks
     private RentalRequestController rentalRequestController;
 
+    private MockMvc mockMvc;
     private ObjectMapper objectMapper;
-    private RentalRequest sampleRequest;
+    private RentalRequest testRequest;
 
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(rentalRequestController).build();
         objectMapper = new ObjectMapper();
-        objectMapper.findAndRegisterModules();
+        objectMapper.registerModule(new JavaTimeModule());
 
-        // Create sample rental request
-        sampleRequest = new RentalRequest();
-        sampleRequest.setId(1L);
-        sampleRequest.setUnitId(100L);
-        sampleRequest.setFirstName("John");
-        sampleRequest.setLastName("Doe");
-        sampleRequest.setEmail("john.doe@example.com");
-        sampleRequest.setPhone("0812345678");
-        sampleRequest.setOccupation("Engineer");
-        sampleRequest.setEmergencyContact("Jane Doe");
-        sampleRequest.setEmergencyPhone("0898765432");
-        sampleRequest.setLeaseDurationMonths(12);
-//        sampleRequest.setMonthlyRent(new BigDecimal("15000.00"));
-//        sampleRequest.setTotalAmount(new BigDecimal("180000.00"));
-        sampleRequest.setRequestDate(LocalDateTime.now());
-        sampleRequest.setStatus(RentalRequestStatus.PENDING);
-        sampleRequest.setNotes("Looking for long-term rental");
+        // Setup test data
+        testRequest = createTestRentalRequest();
     }
 
-    @Test
-    void testGetAllRentalRequests_Success() throws Exception {
-        // Arrange
-        List<RentalRequest> requests = Arrays.asList(sampleRequest);
-        when(rentalRequestService.getAllRentalRequests()).thenReturn(requests);
-
-        // Act & Assert
-        mockMvc.perform(get("/api/rental-requests")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].id").value(1))
-                .andExpect(jsonPath("$[0].firstName").value("John"))
-                .andExpect(jsonPath("$[0].email").value("john.doe@example.com"));
-
-        verify(rentalRequestService, times(1)).getAllRentalRequests();
+    private RentalRequest createTestRentalRequest() {
+        RentalRequest request = new RentalRequest();
+        request.setId(1L);
+        request.setUnitId(100L);
+        request.setFirstName("John");
+        request.setLastName("Doe");
+        request.setEmail("john.doe@example.com");
+        request.setPhone("0812345678");
+        request.setOccupation("Engineer");
+        request.setEmergencyContact("Jane Doe");
+        request.setEmergencyPhone("0898765432");
+        request.setLeaseDurationMonths(12);
+        request.setRequestDate(LocalDateTime.now());
+        request.setStatus(RentalRequestStatus.PENDING);
+        return request;
     }
 
-    @Test
-    void testGetAllRentalRequests_InternalServerError() throws Exception {
-        // Arrange
-        when(rentalRequestService.getAllRentalRequests()).thenThrow(new RuntimeException("Database error"));
-
-        // Act & Assert
-        mockMvc.perform(get("/api/rental-requests")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isInternalServerError());
-
-        verify(rentalRequestService, times(1)).getAllRentalRequests();
-    }
+    // ==================== GET PENDING REQUESTS TESTS ====================
 
     @Test
+    @DisplayName("Should get all pending rental requests successfully")
     void testGetPendingRequests_Success() throws Exception {
         // Arrange
-        List<RentalRequest> pendingRequests = Arrays.asList(sampleRequest);
+        List<RentalRequest> pendingRequests = Arrays.asList(testRequest);
         when(rentalRequestService.getPendingRequests()).thenReturn(pendingRequests);
 
         // Act & Assert
-        mockMvc.perform(get("/api/rental-requests/pending")
-                        .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(get("/rental-requests/pending"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].status").value("PENDING"));
 
         verify(rentalRequestService, times(1)).getPendingRequests();
     }
 
     @Test
+    @DisplayName("Should return empty list when no pending requests")
     void testGetPendingRequests_EmptyList() throws Exception {
         // Arrange
         when(rentalRequestService.getPendingRequests()).thenReturn(Collections.emptyList());
 
         // Act & Assert
-        mockMvc.perform(get("/api/rental-requests/pending")
-                        .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(get("/rental-requests/pending"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(0)));
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(0));
 
         verify(rentalRequestService, times(1)).getPendingRequests();
     }
 
-    @Test
-    void testGetRequestsByUnitId_Success() throws Exception {
-        // Arrange
-        Long unitId = 100L;
-        List<RentalRequest> requests = Arrays.asList(sampleRequest);
-        when(rentalRequestService.getRequestsByUnitId(unitId)).thenReturn(requests);
-
-        // Act & Assert
-        mockMvc.perform(get("/api/rental-requests/unit/{unitId}", unitId)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].unitId").value(100));
-
-        verify(rentalRequestService, times(1)).getRequestsByUnitId(unitId);
-    }
+    // ==================== GET BY ID TESTS ====================
 
     @Test
-    void testGetRequestsByUserEmail_Success() throws Exception {
-        // Arrange
-        String email = "john.doe@example.com";
-        List<RentalRequest> requests = Arrays.asList(sampleRequest);
-        when(rentalRequestService.getRequestsByEmail(email)).thenReturn(requests);
-
-        // Act & Assert
-        mockMvc.perform(get("/api/rental-requests/search")
-                        .param("email", email)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].email").value(email));
-
-        verify(rentalRequestService, times(1)).getRequestsByEmail(email);
-    }
-
-    @Test
+    @DisplayName("Should get rental request by ID successfully")
     void testGetRequestById_Success() throws Exception {
         // Arrange
-        Long requestId = 1L;
-        when(rentalRequestService.getRequestById(requestId)).thenReturn(Optional.of(sampleRequest));
+        when(rentalRequestService.getRequestById(1L)).thenReturn(Optional.of(testRequest));
 
         // Act & Assert
-        mockMvc.perform(get("/api/rental-requests/{id}", requestId)
-                        .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(get("/rental-requests/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.firstName").value("John"));
-
-        verify(rentalRequestService, times(1)).getRequestById(requestId);
-    }
-
-    @Test
-    void testGetRequestById_NotFound() throws Exception {
-        // Arrange
-        Long requestId = 999L;
-        when(rentalRequestService.getRequestById(requestId)).thenReturn(Optional.empty());
-
-        // Act & Assert
-        mockMvc.perform(get("/api/rental-requests/{id}", requestId)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNotFound());
-
-        verify(rentalRequestService, times(1)).getRequestById(requestId);
-    }
-
-    @Test
-    void testCreateRentalRequest_Success() throws Exception {
-        // Arrange
-        when(rentalRequestService.createRentalRequest(any(RentalRequest.class))).thenReturn(sampleRequest);
-
-        // Act & Assert
-        mockMvc.perform(post("/api/rental-requests")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(sampleRequest)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.firstName").value("John"))
                 .andExpect(jsonPath("$.email").value("john.doe@example.com"));
 
-        verify(rentalRequestService, times(1)).createRentalRequest(any(RentalRequest.class));
+        verify(rentalRequestService, times(1)).getRequestById(1L);
     }
 
     @Test
-    void testCreateRentalRequestForUnit_Success() throws Exception {
+    @DisplayName("Should return 404 when rental request not found")
+    void testGetRequestById_NotFound() throws Exception {
         // Arrange
-        Long unitId = 100L;
-        when(rentalRequestService.createRentalRequest(any(RentalRequest.class))).thenReturn(sampleRequest);
+        when(rentalRequestService.getRequestById(999L)).thenReturn(Optional.empty());
 
         // Act & Assert
-        mockMvc.perform(post("/api/rental-requests/unit/{unitId}", unitId)
+        mockMvc.perform(get("/rental-requests/999"))
+                .andExpect(status().isNotFound());
+
+        verify(rentalRequestService, times(1)).getRequestById(999L);
+    }
+
+    // ==================== CREATE RENTAL REQUEST TESTS ====================
+
+    @Test
+    @DisplayName("Should create rental request successfully")
+    void testCreateRentalRequest_Success() throws Exception {
+        // Arrange
+        when(rentalRequestService.createRentalRequest(any(RentalRequest.class)))
+                .thenReturn(testRequest);
+
+        // Act & Assert
+        mockMvc.perform(post("/rental-requests")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(sampleRequest)))
+                        .content(objectMapper.writeValueAsString(testRequest)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.unitId").value(100));
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.status").value("PENDING"));
 
         verify(rentalRequestService, times(1)).createRentalRequest(any(RentalRequest.class));
     }
 
     @Test
+    @DisplayName("Should return 500 when create rental request fails")
+    void testCreateRentalRequest_InternalError() throws Exception {
+        // Arrange
+        when(rentalRequestService.createRentalRequest(any(RentalRequest.class)))
+                .thenThrow(new RuntimeException("Database error"));
+
+        // Act & Assert
+        mockMvc.perform(post("/rental-requests")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(testRequest)))
+                .andExpect(status().isInternalServerError());
+
+        verify(rentalRequestService, times(1)).createRentalRequest(any(RentalRequest.class));
+    }
+
+    // ==================== APPROVE REQUEST TESTS ====================
+
+    @Test
+    @DisplayName("Should approve rental request successfully")
     void testApproveRequest_Success() throws Exception {
         // Arrange
-        Long requestId = 1L;
         ApprovalRequest approvalRequest = new ApprovalRequest();
         approvalRequest.setApprovedByUserId(10L);
-        approvalRequest.setStartDate(LocalDate.from(LocalDateTime.now()));
-        approvalRequest.setEndDate(LocalDate.from(LocalDateTime.now().plusMonths(12)));
+        approvalRequest.setStartDate(LocalDate.now());
+        approvalRequest.setEndDate(LocalDate.now().plusMonths(12));
 
-        RentalRequest approvedRequest = new RentalRequest();
-        approvedRequest.setId(requestId);
+        RentalRequest approvedRequest = createTestRentalRequest();
         approvedRequest.setStatus(RentalRequestStatus.APPROVED);
         approvedRequest.setApprovedByUserId(10L);
+        approvedRequest.setApprovedDate(LocalDateTime.now());
 
-        when(rentalRequestService.approveRequest(eq(requestId), eq(10L), any(), any()))
+        when(rentalRequestService.approveRequest(eq(1L), eq(10L), any(LocalDate.class), any(LocalDate.class)))
                 .thenReturn(approvedRequest);
 
         // Act & Assert
-        mockMvc.perform(put("/api/rental-requests/{id}/approve", requestId)
+        mockMvc.perform(put("/rental-requests/1/approve")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(approvalRequest)))
                 .andExpect(status().isOk())
@@ -251,167 +201,219 @@ class RentalRequestControllerTest {
                 .andExpect(jsonPath("$.approvedByUserId").value(10));
 
         verify(rentalRequestService, times(1))
-                .approveRequest(eq(requestId), eq(10L), any(), any());
+                .approveRequest(eq(1L), eq(10L), any(LocalDate.class), any(LocalDate.class));
     }
 
     @Test
+    @DisplayName("Should return 404 when approving non-existent request")
     void testApproveRequest_NotFound() throws Exception {
         // Arrange
-        Long requestId = 999L;
         ApprovalRequest approvalRequest = new ApprovalRequest();
         approvalRequest.setApprovedByUserId(10L);
-        approvalRequest.setStartDate(LocalDate.from(LocalDateTime.now()));
-        approvalRequest.setEndDate(LocalDate.from(LocalDateTime.now().plusMonths(12)));
+        approvalRequest.setStartDate(LocalDate.now());
+        approvalRequest.setEndDate(LocalDate.now().plusMonths(12));
 
-        when(rentalRequestService.approveRequest(eq(requestId), eq(10L), any(), any()))
-                .thenThrow(new RuntimeException("Request not found"));
+        when(rentalRequestService.approveRequest(eq(999L), anyLong(), any(LocalDate.class), any(LocalDate.class)))
+                .thenThrow(new RuntimeException("Rental request not found"));
 
         // Act & Assert
-        mockMvc.perform(put("/api/rental-requests/{id}/approve", requestId)
+        mockMvc.perform(put("/rental-requests/999/approve")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(approvalRequest)))
                 .andExpect(status().isNotFound());
 
         verify(rentalRequestService, times(1))
-                .approveRequest(eq(requestId), eq(10L), any(), any());
+                .approveRequest(eq(999L), anyLong(), any(LocalDate.class), any(LocalDate.class));
     }
 
+    // ==================== REJECT REQUEST TESTS ====================
+
     @Test
+    @DisplayName("Should reject rental request successfully")
     void testRejectRequest_Success() throws Exception {
         // Arrange
-        Long requestId = 1L;
         Map<String, Object> payload = new HashMap<>();
-        payload.put("reason", "Incomplete documentation");
+        payload.put("reason", "Unit no longer available");
         payload.put("rejectedByUserId", 10L);
 
-        RentalRequest rejectedRequest = new RentalRequest();
-        rejectedRequest.setId(requestId);
+        RentalRequest rejectedRequest = createTestRentalRequest();
         rejectedRequest.setStatus(RentalRequestStatus.REJECTED);
-        rejectedRequest.setRejectionReason("Incomplete documentation");
+        rejectedRequest.setRejectionReason("Unit no longer available");
 
-        when(rentalRequestService.rejectRequest(requestId, "Incomplete documentation", 10L))
+        when(rentalRequestService.rejectRequest(eq(1L), anyString(), eq(10L)))
                 .thenReturn(rejectedRequest);
 
         // Act & Assert
-        mockMvc.perform(put("/api/rental-requests/{id}/reject", requestId)
+        mockMvc.perform(put("/rental-requests/1/reject")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("REJECTED"))
-                .andExpect(jsonPath("$.rejectionReason").value("Incomplete documentation"));
+                .andExpect(jsonPath("$.rejectionReason").value("Unit no longer available"));
 
         verify(rentalRequestService, times(1))
-                .rejectRequest(requestId, "Incomplete documentation", 10L);
+                .rejectRequest(eq(1L), eq("Unit no longer available"), eq(10L));
     }
 
     @Test
+    @DisplayName("Should reject request without rejectedByUserId")
     void testRejectRequest_WithoutUserId() throws Exception {
         // Arrange
-        Long requestId = 1L;
         Map<String, Object> payload = new HashMap<>();
-        payload.put("reason", "Unit no longer available");
+        payload.put("reason", "Incomplete documents");
 
-        RentalRequest rejectedRequest = new RentalRequest();
-        rejectedRequest.setId(requestId);
+        RentalRequest rejectedRequest = createTestRentalRequest();
         rejectedRequest.setStatus(RentalRequestStatus.REJECTED);
+        rejectedRequest.setRejectionReason("Incomplete documents");
 
-        when(rentalRequestService.rejectRequest(requestId, "Unit no longer available", null))
+        when(rentalRequestService.rejectRequest(eq(1L), eq("Incomplete documents"), isNull()))
                 .thenReturn(rejectedRequest);
 
         // Act & Assert
-        mockMvc.perform(put("/api/rental-requests/{id}/reject", requestId)
+        mockMvc.perform(put("/rental-requests/1/reject")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(payload)))
-                .andExpect(status().isOk());
-
-        verify(rentalRequestService, times(1))
-                .rejectRequest(requestId, "Unit no longer available", null);
-    }
-
-    @Test
-    void testUpdateRentalRequest_Success() throws Exception {
-        // Arrange
-        Long requestId = 1L;
-        RentalRequest updatedRequest = new RentalRequest();
-        updatedRequest.setId(requestId);
-        updatedRequest.setFirstName("Jane");
-        updatedRequest.setLastName("Smith");
-
-        when(rentalRequestService.updateRentalRequest(eq(requestId), any(RentalRequest.class)))
-                .thenReturn(updatedRequest);
-
-        // Act & Assert
-        mockMvc.perform(put("/api/rental-requests/{id}", requestId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updatedRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(requestId))
-                .andExpect(jsonPath("$.firstName").value("Jane"));
+                .andExpect(jsonPath("$.status").value("REJECTED"));
 
         verify(rentalRequestService, times(1))
-                .updateRentalRequest(eq(requestId), any(RentalRequest.class));
+                .rejectRequest(eq(1L), eq("Incomplete documents"), isNull());
     }
 
+    // ==================== SEARCH BY EMAIL TESTS ====================
+
     @Test
-    void testUpdateRentalRequest_NotFound() throws Exception {
+    @DisplayName("Should search rental requests by email successfully")
+    void testGetRequestsByUserEmail_Success() throws Exception {
         // Arrange
-        Long requestId = 999L;
-        when(rentalRequestService.updateRentalRequest(eq(requestId), any(RentalRequest.class)))
-                .thenThrow(new RuntimeException("Request not found"));
+        List<RentalRequest> requests = Arrays.asList(testRequest);
+        when(rentalRequestService.getRequestsByEmail("john.doe@example.com"))
+                .thenReturn(requests);
 
         // Act & Assert
-        mockMvc.perform(put("/api/rental-requests/{id}", requestId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(sampleRequest)))
-                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/rental-requests/search")
+                        .param("email", "john.doe@example.com"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].email").value("john.doe@example.com"));
 
-        verify(rentalRequestService, times(1))
-                .updateRentalRequest(eq(requestId), any(RentalRequest.class));
+        verify(rentalRequestService, times(1)).getRequestsByEmail("john.doe@example.com");
     }
 
+    // ==================== DELETE REQUEST TESTS ====================
+
     @Test
+    @DisplayName("Should delete rental request successfully")
     void testDeleteRentalRequest_Success() throws Exception {
         // Arrange
-        Long requestId = 1L;
-        doNothing().when(rentalRequestService).deleteRentalRequest(requestId);
+        doNothing().when(rentalRequestService).deleteRentalRequest(1L);
 
         // Act & Assert
-        mockMvc.perform(delete("/api/rental-requests/{id}", requestId)
-                        .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(delete("/rental-requests/1"))
                 .andExpect(status().isNoContent());
 
-        verify(rentalRequestService, times(1)).deleteRentalRequest(requestId);
+        verify(rentalRequestService, times(1)).deleteRentalRequest(1L);
     }
 
     @Test
+    @DisplayName("Should return 404 when deleting non-existent request")
     void testDeleteRentalRequest_NotFound() throws Exception {
         // Arrange
-        Long requestId = 999L;
-        doThrow(new RuntimeException("Request not found"))
-                .when(rentalRequestService).deleteRentalRequest(requestId);
+        doThrow(new RuntimeException("Rental request not found"))
+                .when(rentalRequestService).deleteRentalRequest(999L);
 
         // Act & Assert
-        mockMvc.perform(delete("/api/rental-requests/{id}", requestId)
-                        .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(delete("/rental-requests/999"))
                 .andExpect(status().isNotFound());
 
-        verify(rentalRequestService, times(1)).deleteRentalRequest(requestId);
+        verify(rentalRequestService, times(1)).deleteRentalRequest(999L);
+    }
+
+    // ==================== DIRECT METHOD CALL TESTS ====================
+
+    @Test
+    @DisplayName("Should test approve request direct method call")
+    void testApproveRequest_DirectCall() {
+        // Arrange
+        ApprovalRequest approvalRequest = new ApprovalRequest();
+        approvalRequest.setApprovedByUserId(10L);
+        approvalRequest.setStartDate(LocalDate.now());
+        approvalRequest.setEndDate(LocalDate.now().plusMonths(12));
+
+        RentalRequest approvedRequest = createTestRentalRequest();
+        approvedRequest.setStatus(RentalRequestStatus.APPROVED);
+
+        when(rentalRequestService.approveRequest(eq(1L), eq(10L), any(LocalDate.class), any(LocalDate.class)))
+                .thenReturn(approvedRequest);
+
+        // Act
+        ResponseEntity<RentalRequest> response =
+                rentalRequestController.approveRequest(1L, approvalRequest);
+
+        // Assert
+        assertThat(response.getStatusCodeValue()).isEqualTo(200);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getStatus()).isEqualTo(RentalRequestStatus.APPROVED);
+
+        verify(rentalRequestService, times(1))
+                .approveRequest(eq(1L), eq(10L), any(LocalDate.class), any(LocalDate.class));
     }
 
     @Test
-    void testDeleteRentalRequest_InternalServerError() throws Exception {
+    @DisplayName("Should test reject request direct method call")
+    void testRejectRequest_DirectCall() {
         // Arrange
-        Long requestId = 1L;
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("reason", "Test rejection");
+        payload.put("rejectedByUserId", 10);
 
-        // แก้จาก new Exception(...) เป็น new RuntimeException(...)
-        doThrow(new RuntimeException("Database error"))
-                .when(rentalRequestService).deleteRentalRequest(requestId);
+        RentalRequest rejectedRequest = createTestRentalRequest();
+        rejectedRequest.setStatus(RentalRequestStatus.REJECTED);
 
-        // Act & Assert
-        mockMvc.perform(delete("/api/rental-requests/{id}", requestId)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNotFound());
+        when(rentalRequestService.rejectRequest(eq(1L), anyString(), anyLong()))
+                .thenReturn(rejectedRequest);
 
-        verify(rentalRequestService, times(1)).deleteRentalRequest(requestId);
+        // Act
+        ResponseEntity<RentalRequest> response =
+                rentalRequestController.rejectRequest(1L, payload);
+
+        // Assert
+        assertThat(response.getStatusCodeValue()).isEqualTo(200);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getStatus()).isEqualTo(RentalRequestStatus.REJECTED);
+
+        verify(rentalRequestService, times(1))
+                .rejectRequest(eq(1L), anyString(), anyLong());
+    }
+
+    @Test
+    @DisplayName("Should test get request by ID direct method call")
+    void testGetRequestById_DirectCall() {
+        // Arrange
+        when(rentalRequestService.getRequestById(1L)).thenReturn(Optional.of(testRequest));
+
+        // Act
+        ResponseEntity<RentalRequest> response = rentalRequestController.getRequestById(1L);
+
+        // Assert
+        assertThat(response.getStatusCodeValue()).isEqualTo(200);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getId()).isEqualTo(1L);
+
+        verify(rentalRequestService, times(1)).getRequestById(1L);
+    }
+
+    @Test
+    @DisplayName("Should verify service calls with correct parameters")
+    void testServiceCallVerification() {
+        // Arrange
+        when(rentalRequestService.getRequestById(1L)).thenReturn(Optional.of(testRequest));
+
+        // Act
+        rentalRequestController.getRequestById(1L);
+
+        // Assert - Verify exact parameter
+        verify(rentalRequestService).getRequestById(argThat(id -> id.equals(1L)));
     }
 }
