@@ -38,12 +38,12 @@ PRODUCTION_DEPLOYMENT_ROADMAP.md
 # ENVIRONMENT & SECRETS
 # ===============================
 # CRITICAL: Never commit actual environment files with secrets!
-.env
+# .env
 .env.local
 .env.*.local
 .env.prod
 *.env.prod
-**/.env
+# **/.env
 **/.env.local
 **/.env.prod
 
@@ -120,12 +120,14 @@ dist/
 build/
 
 # Java/Gradle (Backend)
-.gradle
+# .gradle
 build/
-!gradle/wrapper/gradle-wrapper.jar
+!**/gradle/wrapper/gradle-wrapper.jar
+!**/gradle/wrapper/gradle-wrapper.properties
+!**/gradle/wrapper/**
 !**/src/main/**/build/
 !**/src/test/**/build/
-*.jar
+# *.jar
 *.war
 *.ear
 *.zip
@@ -272,7 +274,8 @@ private/
 backend/caches/
 backend/daemon/
 backend/native/
-wrapper/
+# Do not ignore Gradle Wrapper; only ignore a top-level /wrapper if present
+#/wrapper/
 
 docs/SECRETS_SETUP.md
 
