@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
-import AdminNavbar from '../../components/navbar/admin_navbar'
-import AdminSidebar from '../../components/sidebar/admin_sidebar';
-import Footer from '../../components/footer/Footer';
+import AdminNavbar from '../../components/navbar/admin-navbar'
+import AdminSidebar from '../../components/sidebar/admin-sidebar';
+import Footer from '../../components/footer/footer';
 
 function AdminLayout() {
 
