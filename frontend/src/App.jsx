@@ -8,6 +8,7 @@ import AdminDashboard from "./pages/admin/dashboard/page";
 import TenantsPage from "./pages/admin/tenants/page";
 import PaymentsPage from "./pages/admin/payments/page";
 import MaintenancePage from "./pages/admin/maintenance/page";
+import CreateProfilePage from "./pages/create-profile/page";
 
 function App() {
 
@@ -29,6 +30,7 @@ function App() {
 
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          <Route path="/create-profile" element={<CreateProfilePage />} />
         </Routes>
       </Router>
     </>

@@ -63,9 +63,9 @@ function SignupForm() {
             });
         
             // After successful registration, redirect to login
-            navigate('/login', { 
+            navigate('/create-profile', { 
                 state: { 
-                    message: 'Registration successful! Please log in with your new account.' 
+                    message: 'Registration successful! Please create your profile.' 
                 }
             });
 
@@ -77,7 +77,7 @@ function SignupForm() {
     }, [formData, navigate]);
 
     return (
-        <div className='flex flex-col justify-center items-center'>
+        <div className='flex flex-col justify-center items-cente w-[500px]'>
 
             {/* Header */}
             <h1 className='lg:text-5xl sm:text-3xl text-3xl font-medium lg:mb-6 mb-4 sm:mb-4 bg-gradient-to-r from-[#0076D4] to-[#303841] bg-clip-text text-transparent '>
@@ -179,7 +179,7 @@ function SignupForm() {
                 )}
 
                 {/* Remember and Forget Password */}
-                {/* <div className="flex flex-col sm:flex-row sm:justify-between gap-3 sm:gap-0">
+                {/* <div className="flex flex-col sm:flex-row sm:justify-.jsxbetween gap-3 sm:gap-0">
                     <label className="remember-me text-sm sm:text-sm lg:text-lg">
                         <input type="checkbox" className="mr-1" /> Remember me
                     </label>
@@ -192,8 +192,7 @@ function SignupForm() {
                 <button
                     type="submit"
                     disabled={loading}
-                    className={`w-full py-2 sm:py-3 lg:py-4 text-white border-none rounded-2xl bg-gradient-to-r from-gray-700 via-blue-500 to-blue-300 text-md sm:text-lg lg:text-xl shadow-md duration-200 cursor-pointer hover:translate-y-[-2px]`}
-                >
+                    className={`w-full py-2 sm:py-3 lg:py-4 text-white border-none rounded-2xl bg-gradient-to-r from-gray-700 via-blue-500 to-blue-300 text-md sm:text-lg lg:text-xl shadow-md duration-200 cursor-pointer hover:translate-y-[-2px]`}                >
                     {loading ? 'Creating Account...' : 'Create Account'}
                 </button>
                 
