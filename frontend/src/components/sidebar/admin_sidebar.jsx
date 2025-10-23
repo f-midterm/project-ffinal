@@ -1,4 +1,5 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { logout } from "../../api";
 
 const navLinks = [
   { name: "Dashboard", path: "/admin" },
@@ -16,6 +17,12 @@ const settingsLinks = [
 
 function AdminSidebar({ isOpen, setIsOpen }) {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   const NavLink = ({ children, to, active }) => (
     <Link
@@ -83,7 +90,10 @@ function AdminSidebar({ isOpen, setIsOpen }) {
             </NavLink>
           ))}
 
-          <button className="w-full mt-4 py-2.5 px-4 rounded-md text-center text-gray-300 bg-gray-700 border-none cursor-pointer transition-colors duration-200 hover:bg-red-700 hover:text-white">
+          <button
+            onClick={handleLogout}
+            className="w-full mt-4 py-2.5 px-4 rounded-md text-center text-gray-300 bg-gray-700 border-none cursor-pointer transition-colors duration-200 hover:bg-red-700 hover:text-white"
+          >
             Log out
           </button>
         </div>
