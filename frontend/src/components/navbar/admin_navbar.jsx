@@ -4,7 +4,7 @@ import { FiMenu, FiBell, FiUser } from "react-icons/fi";
 
 function AdminNavbar({ toggleSidebar }) {
   return (
-    <div className='fixed top-0 left-0 right-0 z-1'>
+    <div className='fixed top-0 left-0 right-0 z-10'>
         <div className='w-full transition-colors duration-300 shadow-md'>
             <div className='flex justify-between py-4 px-32 bg-white'>
 
@@ -16,7 +16,7 @@ function AdminNavbar({ toggleSidebar }) {
                     >
                         <FiMenu size={24} />
                     </button>
-                    <Link to="/admin" className='logo text-4xl font-semibold'>BeLiv</Link>
+                    <Link to="/" className='logo text-4xl font-semibold'>BeLiv</Link>
                 </div>
                 
                 {/* Right Side */}
