@@ -59,7 +59,7 @@ function LoginForm() {
     }, [formData.username, formData.password, navigate]);
 
     return (
-        <div className="flex flex-col justify-center items-center">
+        <div className="flex flex-col justify-center items-center w-[500px]">
             {/* Header */}
             <h1 className='lg:text-5xl sm:text-3xl text-3xl font-medium lg:mb-6 mb-4 sm:mb-4 bg-gradient-to-r from-[#0076D4] to-[#303841] bg-clip-text text-transparent '>
                 Welcome Back
