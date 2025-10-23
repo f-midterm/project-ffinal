@@ -2,12 +2,12 @@ import React, { useState, useCallback, useMemo } from 'react'
 import { useNavigate, Link } from 'react-router-dom';
 
 function CreateProfileForm() {
-
+    
     const [formData, setFormData] = useState({
         firstname: '',
         lastname: '',
-        phone: '',
-        emergency: '',
+        phoneNumber: '',
+        emergencyNumber: '',
     });
 
     const [error, setError] = useState('');
@@ -22,6 +22,33 @@ function CreateProfileForm() {
         }));
     }, []);
 
+    const handleSubmit = useCallback(async (e) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+
+        try {
+            await createProfile({
+                firstname: formData.firstname,
+                lastname: formData.lastname,
+                phone: formData.phoneNumber,
+                emergency: formData.emergencyNumber
+            });
+        
+            // After successful registration, redirect to login
+            navigate('/login', { 
+                state: { 
+                    message: 'Create Profile successful! Thank you for using our service.' 
+                }
+            });
+
+        } catch (err) {
+            setError(err.message || 'Create your profile failed. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    }, [formData, navigate]);
+
     return (
         <div className='flex flex-col justify-center items-center w-[500px]'>
 
@@ -32,10 +59,10 @@ function CreateProfileForm() {
             <p className='lg:text-xl sm:text-md mb-6 lg:mb-8 sm:mb-6'>Please, Enter Your Information below.</p>
             
             {/* Input Section */}
-            <form className='space-y-4 lg:space-y-6 sm:space-y-4 w-full'>
+            <form className='space-y-4 lg:space-y-6 sm:space-y-4 w-full' onSubmit={handleSubmit}>
                 {/* Firstname */}
                 <div>
-                    <label htmlFor="username" className='block lg:text-xl sm:text-md text-md lg:mb-3 mb-2'>
+                    <label htmlFor="firstname" className='block lg:text-xl sm:text-md text-md lg:mb-3 mb-2'>
                         Firstname
                     </label>
                     <input 
@@ -52,7 +79,7 @@ function CreateProfileForm() {
                 
                 {/* Lastname */}
                 <div>
-                    <label htmlFor="username" className='block lg:text-xl sm:text-md text-md lg:mb-3 mb-2'>
+                    <label htmlFor="lastname" className='block lg:text-xl sm:text-md text-md lg:mb-3 mb-2'>
                         Lastname
                     </label>
                     <input 
@@ -69,14 +96,14 @@ function CreateProfileForm() {
 
                 {/* Phone number */}
                 <div>
-                    <label htmlFor="username" className='block lg:text-xl sm:text-md text-md lg:mb-3 mb-2'>
+                    <label htmlFor="phoneNumber" className='block lg:text-xl sm:text-md text-md lg:mb-3 mb-2'>
                         Phone Number
                     </label>
                     <input 
                         type="text"
-                        id='phone-number'
-                        name='phone-number'
-                        value={formData.phone}
+                        id='phoneNumber'
+                        name='phoneNumber'
+                        value={formData.phoneNumber}
                         onChange={handleChange}
                         className='w-full px-3 py-3 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base'
                         placeholder="123-123-1234"
@@ -86,14 +113,14 @@ function CreateProfileForm() {
 
                 {/* Phone number */}
                 <div>
-                    <label htmlFor="username" className='block lg:text-xl sm:text-md text-md lg:mb-3 mb-2'>
+                    <label htmlFor="emergencyNumber" className='block lg:text-xl sm:text-md text-md lg:mb-3 mb-2'>
                         Emergency Phone Number
                     </label>
                     <input 
                         type="text"
-                        id='emergency-number'
-                        name='emergency-number'
-                        value={formData.emergency}
+                        id='emergencyNumber'
+                        name='emergencyNumber'
+                        value={formData.emergencyNumber}
                         onChange={handleChange}
                         className='w-full px-3 py-3 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base'
                         placeholder="123-123-1234"
