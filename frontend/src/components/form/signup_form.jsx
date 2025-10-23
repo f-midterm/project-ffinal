@@ -77,7 +77,7 @@ function SignupForm() {
     }, [formData, navigate]);
 
     return (
-        <div className='flex flex-col justify-center items-cente w-[500px]'>
+        <div className='flex flex-col justify-center items-center w-[560px]'>
 
             {/* Header */}
             <h1 className='lg:text-5xl sm:text-3xl text-3xl font-medium lg:mb-6 mb-4 sm:mb-4 bg-gradient-to-r from-[#0076D4] to-[#303841] bg-clip-text text-transparent '>
