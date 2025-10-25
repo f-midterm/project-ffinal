@@ -52,10 +52,18 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints - no authentication required
                         .requestMatchers("/auth/**", "/health/**", "/ready").permitAll()
+                        
+                        // Units - Read access for authenticated users, Write access for ADMIN only
+                        .requestMatchers(HttpMethod.GET, "/units/**").authenticated()  // Any authenticated user can view
+                        .requestMatchers("/units/**").hasAnyRole("ADMIN")  // Only ADMIN can create/update/delete
+                        
+                        // Rental Requests - Users can POST (submit booking), ADMIN can manage
+                        .requestMatchers(HttpMethod.POST, "/rental-requests", "/rental-requests/unit/**").authenticated()  // Users can submit
+                        .requestMatchers("/rental-requests/**").hasAnyRole("ADMIN")  // ADMIN can view/approve/reject
+                        
                         // Admin-only endpoints
-                        .requestMatchers("/units/**", "/tenants/**", "/leases/**", 
-                                       "/payments/**", "/maintenance-requests/**", 
-                                       "/rental-requests/**").hasAnyRole("ADMIN")
+                        .requestMatchers("/tenants/**", "/leases/**", 
+                                       "/payments/**", "/maintenance-requests/**").hasAnyRole("ADMIN")
                         // Villager endpoints (villagers can access their own data)
                         .requestMatchers("/villager/**").hasAnyRole("VILLAGER", "ADMIN")
                         // All other requests must be authenticated

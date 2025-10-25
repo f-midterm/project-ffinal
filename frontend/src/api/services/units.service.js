@@ -14,7 +14,7 @@ import apiClient from '../client/apiClient';
  * 
  * @async
  * @function getAllUnits
- * @returns {Promise<Array<{id: number, unitNumber: string, floor: number, rent: number, status: string}>>} Array of all units
+ * @returns {Promise<Array<{id: number, roomNumber: string, floor: number, rentAmount: number, status: string, type: string, sizeSqm: number}>>} Array of all units
  * @throws {Error} When fetching units fails
  * 
  * @example
@@ -31,12 +31,12 @@ export const getAllUnits = async () => {
  * @async
  * @function getUnitById
  * @param {number} id - Unit ID
- * @returns {Promise<{id: number, unitNumber: string, floor: number, rent: number, status: string}>} Unit details
+ * @returns {Promise<{id: number, roomNumber: string, floor: number, rentAmount: number, status: string, type: string, sizeSqm: number, description: string}>} Unit details
  * @throws {Error} When unit not found or request fails
  * 
  * @example
  * const unit = await getUnitById(1);
- * console.log(`Unit ${unit.unitNumber} on floor ${unit.floor}`);
+ * console.log(`Unit ${unit.roomNumber} on floor ${unit.floor}`);
  */
 export const getUnitById = async (id) => {
   return await apiClient.get(`/units/${id}`);
@@ -48,18 +48,23 @@ export const getUnitById = async (id) => {
  * @async
  * @function createUnit
  * @param {object} unitData - Unit creation data
- * @param {string} unitData.unitNumber - Unit number (e.g., "101", "A-205")
+ * @param {string} unitData.roomNumber - Room number (e.g., "101", "A-205")
  * @param {number} unitData.floor - Floor number
- * @param {number} unitData.rent - Monthly rent amount
+ * @param {number} unitData.rentAmount - Monthly rent amount
+ * @param {string} unitData.type - Unit type (Standard, Deluxe, Premium)
+ * @param {number} [unitData.sizeSqm] - Size in square meters
+ * @param {string} [unitData.description] - Unit description
  * @param {string} [unitData.status='AVAILABLE'] - Unit status (AVAILABLE, OCCUPIED, MAINTENANCE)
- * @returns {Promise<{id: number, unitNumber: string, floor: number, rent: number, status: string}>} Created unit
- * @throws {Error} When creation fails (e.g., duplicate unit number)
+ * @returns {Promise<{id: number, roomNumber: string, floor: number, rentAmount: number, status: string, type: string}>} Created unit
+ * @throws {Error} When creation fails (e.g., duplicate room number)
  * 
  * @example
  * const newUnit = await createUnit({
- *   unitNumber: '301',
+ *   roomNumber: '301',
  *   floor: 3,
- *   rent: 1500,
+ *   rentAmount: 1500,
+ *   type: 'Standard',
+ *   sizeSqm: 25.0,
  *   status: 'AVAILABLE'
  * });
  */
@@ -74,16 +79,19 @@ export const createUnit = async (unitData) => {
  * @function updateUnit
  * @param {number} id - Unit ID to update
  * @param {object} unitData - Updated unit data
- * @param {string} [unitData.unitNumber] - Updated unit number
+ * @param {string} [unitData.roomNumber] - Updated room number
  * @param {number} [unitData.floor] - Updated floor number
- * @param {number} [unitData.rent] - Updated rent amount
+ * @param {number} [unitData.rentAmount] - Updated rent amount
+ * @param {string} [unitData.type] - Updated unit type
+ * @param {number} [unitData.sizeSqm] - Updated size
+ * @param {string} [unitData.description] - Updated description
  * @param {string} [unitData.status] - Updated status
- * @returns {Promise<{id: number, unitNumber: string, floor: number, rent: number, status: string}>} Updated unit
+ * @returns {Promise<{id: number, roomNumber: string, floor: number, rentAmount: number, status: string, type: string}>} Updated unit
  * @throws {Error} When update fails or unit not found
  * 
  * @example
  * const updated = await updateUnit(1, {
- *   rent: 1600,
+ *   rentAmount: 1600,
  *   status: 'OCCUPIED'
  * });
  */
@@ -113,7 +121,7 @@ export const deleteUnit = async (id) => {
  * 
  * @async
  * @function getAvailableUnits
- * @returns {Promise<Array<{id: number, unitNumber: string, floor: number, rent: number}>>} Array of available units
+ * @returns {Promise<Array<{id: number, roomNumber: string, floor: number, rentAmount: number, type: string, sizeSqm: number}>>} Array of available units
  * @throws {Error} When fetching fails
  * 
  * @example
