@@ -26,6 +26,12 @@ k8s/
 
 ## 🚀 Quick Start
 
+### 0. Check ingress-nginx
+```bash
+kubectl get deploy -n ingress-nginx
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+```
+
 ### 1. Deploy All Resources
 
 ```bash

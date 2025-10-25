@@ -60,13 +60,13 @@ PRODUCTION_DEPLOYMENT_ROADMAP.md
 *.bat
 **/*.bat
 
-# Shell scripts
-*.sh
-**/*.sh
+# # Shell scripts
+# *.sh
+# **/*.sh
 
-# PowerShell scripts
-*.ps1
-**/*.ps1
+# # PowerShell scripts
+# *.ps1
+# **/*.ps1
 
 # Executable scripts
 *.exe
