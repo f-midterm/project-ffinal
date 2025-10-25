@@ -1,8 +1,14 @@
-import React from 'react'
-import UnitList from '../../components/list/unit_list'
-import UnitDetail from '../../components/form/unit_detail'
+import React, { useState } from 'react';
+import UnitList from '../../components/list/unit_list';
+import UnitDetail from '../../components/form/unit_detail';
 
 function BookingPage() {
+  const [selectedUnitId, setSelectedUnitId] = useState(null);
+
+  const handleSelectUnit = (unitId) => {
+    setSelectedUnitId(unitId);
+  };
+
   return (
     <div>
       <div className='w-full max-w-6xl mx-auto rounded-xl p-6 sm:p-10'>
@@ -19,21 +25,22 @@ function BookingPage() {
 
           {/* Left Column: Unit List */}
           <div className='lg:col-span-1'>
-            {/* NEW: Added wrapper for scrolling on long lists */}
             <div>
-              <UnitList />
+              <UnitList 
+                selectedUnitId={selectedUnitId} 
+                onSelectUnit={handleSelectUnit} 
+              />
             </div>
-
           </div>
 
           {/* Right Column: Unit Detail */}
           <div className="lg:col-span-2">
-            <UnitDetail />
+            <UnitDetail selectedUnitId={selectedUnitId} />
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default BookingPage
+export default BookingPage;
