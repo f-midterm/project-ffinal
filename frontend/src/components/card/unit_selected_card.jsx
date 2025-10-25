@@ -1,7 +1,8 @@
 import React from 'react';
 
 function UnitSelectedCard({ unit, isSelected, onSelect }) {
-  const { unitNumber, rent, floor } = unit;
+  // const { unitNumber, rent, floor } = unit;
+  const { roomNumber, rentAmount, floor, type } = unit;
 
   const baseClasses = 'p-4 rounded-lg border-2 cursor-pointer transition-all duration-200';
   const selectedClasses = isSelected
@@ -13,10 +14,11 @@ function UnitSelectedCard({ unit, isSelected, onSelect }) {
       onClick={() => onSelect(unit.id)}
       className={`${baseClasses} ${selectedClasses}`}
     >
-      <h3 className="text-lg font-medium text-gray-900">Unit {unitNumber}</h3>
+      <h3 className="text-lg font-medium text-gray-900">Unit {roomNumber}</h3>
       <p className="text-sm text-gray-500">
-        Rent: ${rent} / Floor: {floor}
+        Rent: ${rentAmount} / Floor: {floor}
       </p>
+      <p className="text-xs text-gray-400 mt-1">{type}</p>
     </div>                  
   );
 }

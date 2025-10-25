@@ -10,6 +10,7 @@ import PaymentsPage from "./pages/admin/payments/page";
 import MaintenancePage from "./pages/admin/maintenance/page";
 import CreateProfilePage from "./pages/create-profile/page";
 import BookingPage from "./pages/booking/page";
+import PrivateRoute from "./components/auth/PrivateRoute";
 
 function App() {
 
@@ -29,11 +30,22 @@ function App() {
             <Route path="maintenance" element={<MaintenancePage />} />
           </Route>
 
-          <Route path="/booking" element={<BookingPage />} />
+          {/* Protected Routes - Require Authentication */}
+          <Route path="/booking" element={
+            <PrivateRoute>
+              <BookingPage />
+            </PrivateRoute>
+          } />
+          
+          <Route path="/create-profile" element={
+            <PrivateRoute>
+              <CreateProfilePage />
+            </PrivateRoute>
+          } />
 
+          {/* Public Routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
-          <Route path="/create-profile" element={<CreateProfilePage />} />
         </Routes>
       </Router>
     </>

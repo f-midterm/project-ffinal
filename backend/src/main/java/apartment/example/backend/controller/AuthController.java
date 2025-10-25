@@ -4,15 +4,19 @@ import apartment.example.backend.dto.LoginRequest;
 import apartment.example.backend.dto.LoginResponse;
 import apartment.example.backend.dto.RegisterRequest;
 import apartment.example.backend.dto.RegisterResponse;
+import apartment.example.backend.dto.CreateProfileRequest;
+import apartment.example.backend.dto.CreateProfileResponse;
 import apartment.example.backend.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 /**
  * REST Controller for authentication endpoints.
- * Handles user login and registration.
+ * Handles user login, registration, and profile creation.
  */
 @RestController
 @RequestMapping("/auth")
@@ -45,5 +49,39 @@ public class AuthController {
         log.info("Registration request received for username: {}", registerRequest.getUsername());
         RegisterResponse response = authService.register(registerRequest);
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Create Profile endpoint - creates tenant profile for authenticated user
+     * @param request Contains profile information (firstName, lastName, phone, etc.)
+     * @param authHeader Authorization header containing JWT token
+     * @return Created profile information
+     */
+    @PostMapping("/create-profile")
+    public ResponseEntity<CreateProfileResponse> createProfile(
+            @RequestBody CreateProfileRequest request,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        try {
+            log.info("Create profile request received");
+            log.info("Authorization header: {}", authHeader != null ? "Present" : "Missing");
+            
+            // Extract username from JWT token
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                log.error("Create profile failed: No authentication token provided or invalid format");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+            
+            String token = authHeader.substring(7); // Remove "Bearer " prefix
+            log.info("Token extracted, length: {}", token.length());
+            
+            CreateProfileResponse response = authService.createProfileWithToken(request, token);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (IllegalArgumentException e) {
+            log.error("Error creating profile: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            log.error("Unexpected error creating profile: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }

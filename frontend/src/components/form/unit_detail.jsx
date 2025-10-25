@@ -48,11 +48,16 @@ function UnitDetail({ selectedUnitId }) {
 
   return (
     <div className="p-8 border rounded-lg shadow-lg">
-      <h2 className="text-2xl font-bold mb-4">Unit {unit.unitNumber}</h2>
+      <h2 className="text-2xl font-bold mb-4">Unit {unit.roomNumber}</h2>
       <div className="space-y-2">
-        <p><span className="font-semibold">Rent:</span> ${unit.rent}</p>
+        <p><span className="font-semibold">Type:</span> {unit.type}</p>
+        <p><span className="font-semibold">Rent:</span> ${unit.rentAmount}/month</p>
         <p><span className="font-semibold">Floor:</span> {unit.floor}</p>
+        <p><span className="font-semibold">Size:</span> {unit.sizeSqm} sqm</p>
         <p><span className="font-semibold">Status:</span> {unit.status}</p>
+        {unit.description && (
+          <p><span className="font-semibold">Description:</span> {unit.description}</p>
+        )}
       </div>
     </div>
   );

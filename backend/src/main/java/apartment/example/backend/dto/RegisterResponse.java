@@ -8,4 +8,6 @@ import lombok.Data;
 public class RegisterResponse {
     private String message;
     private String username;
+    private String token;  // Add token for auto-login
+    private String role;   // Add role for frontend
 }

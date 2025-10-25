@@ -47,7 +47,7 @@ export const login = async (username, password) => {
  * @param {string} userData.email - User's email address
  * @param {string} [userData.phoneNumber] - User's phone number (optional)
  * @param {string} [userData.role='USER'] - User role (USER, VILLAGER, ADMIN)
- * @returns {Promise<{message: string, username: string}>} Registration success response
+ * @returns {Promise<{message: string, username: string, token: string, role: string}>} Registration success response with token for auto-login
  * @throws {Error} When registration fails (e.g., username already exists)
  * 
  * @example
@@ -58,9 +58,23 @@ export const login = async (username, password) => {
  *   phoneNumber: '1234567890',
  *   role: 'USER'
  * });
+ * // Response includes token for auto-login
  */
 export const register = async (userData) => {
-  return await apiClient.post('/auth/register', userData);
+  const response = await apiClient.post('/auth/register', userData);
+  
+  // Auto-login: Save token and user info
+  if (response?.token) {
+    localStorage.setItem('token', response.token);
+    if (response.role) {
+      localStorage.setItem('role', response.role);
+    }
+    if (response.username) {
+      localStorage.setItem('username', response.username);
+    }
+  }
+  
+  return response;
 };
 
 /**
