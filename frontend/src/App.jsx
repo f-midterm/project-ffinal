@@ -9,6 +9,7 @@ import TenantsPage from "./pages/admin/tenants/page";
 import PaymentsPage from "./pages/admin/payments/page";
 import MaintenancePage from "./pages/admin/maintenance/page";
 import CreateProfilePage from "./pages/create-profile/page";
+import BookingPage from "./pages/booking/page";
 
 function App() {
 
@@ -27,6 +28,8 @@ function App() {
             <Route path="payments" element={<PaymentsPage />} />
             <Route path="maintenance" element={<MaintenancePage />} />
           </Route>
+
+          <Route path="/booking" element={<BookingPage />} />
 
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
