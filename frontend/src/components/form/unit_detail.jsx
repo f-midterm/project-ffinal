@@ -78,7 +78,7 @@ function UnitDetail({ selectedUnitId, onClose }) {
 
       {/* Content */}
       <div className='px-8 py-6'>
-        <h2 className="text-2xl font-bold mb-4">Unit {unit.roomNumber}</h2>
+        <h2 className="text-2xl font-bold mb-4">Si {unit.roomNumber}</h2>
         <div className="space-y-2">
           <p><span className="font-semibold">Type:</span> {unit.type}</p>
           <p><span className="font-semibold">Rent:</span> ${unit.rentAmount}/month</p>

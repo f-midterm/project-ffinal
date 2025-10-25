@@ -14,7 +14,7 @@ function UnitSelectedCard({ unit, isSelected, onSelect }) {
       onClick={() => onSelect(unit.id)}
       className={`${baseClasses} ${selectedClasses}`}
     >
-      <h3 className="text-lg font-medium text-gray-900">Unit {roomNumber}</h3>
+      <h3 className="text-lg font-medium text-gray-900">Si {roomNumber}</h3>
       <p className="text-sm text-gray-500">
         Rent: ${rentAmount} / Floor: {floor}
       </p>
