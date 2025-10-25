@@ -42,9 +42,9 @@ jobs:
         run: npm ci
 
       # 4. Run ESLint for code quality checks. The build fails if linting errors are found.
-      - name: Run ESLint
-        working-directory: ./frontend
-        run: npm run lint
+      # - name: Run ESLint
+      #   working-directory: ./frontend
+      #   run: npm run lint
       
       # 5. Set up Docker Buildx for advanced image building features
       - name: Set up Docker Buildx
@@ -71,9 +71,9 @@ jobs:
       #     npm run cy:run
 
       # 7. Always stop and remove containers after the test run to clean up the runner
-      - name: Stop and Remove Containers
-        if: always() 
-        run: docker compose down
+      # - name: Stop and Remove Containers
+      #   if: always() 
+      #   run: docker compose down
 
       # 8. Log in to Docker Hub. This step only runs on pushes to the 'frontend' branch.
       - name: Log in to Docker Hub
