@@ -11,6 +11,7 @@ import MaintenancePage from "./pages/admin/maintenance/page";
 import CreateProfilePage from "./pages/create-profile/page";
 import BookingPage from "./pages/booking/page";
 import PrivateRoute from "./components/auth/PrivateRoute";
+import RentalRequestsPage from "./pages/admin/rental-requests/page";
 
 function App() {
 
@@ -28,6 +29,7 @@ function App() {
             <Route path="tenants" element={<TenantsPage />} />
             <Route path="payments" element={<PaymentsPage />} />
             <Route path="maintenance" element={<MaintenancePage />} />
+            <Route path="rental-requests" element={<RentalRequestsPage />} />
           </Route>
 
           {/* Protected Routes - Require Authentication */}
