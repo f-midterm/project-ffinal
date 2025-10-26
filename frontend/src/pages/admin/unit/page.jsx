@@ -1,4 +1,5 @@
 import React from 'react'
+import TenantsUnitTable from '../../../components/table/tenants_unit_table'
 
 function UnitPage() {
   return (
@@ -21,7 +22,13 @@ function UnitPage() {
 
           {/* Left Column */}
           <div className='lg:col-span-2 flex flex-col gap-6'>
-            
+            {/* Tenant infomation */}
+            <TenantsUnitTable />
+
+            {/* Electricity and Water bill graph */}
+            <div>
+              
+            </div>
           </div>
 
           {/* Right Column */}
