@@ -16,10 +16,11 @@
 #   install-all      - Install all prerequisites (Docker, K3s, kubectl, jq)
 #   install-docker   - Install Docker only
 #   install-k3s      - Install K3s only
-#   install-tools    - Install kubectl and jq only
-#   check            - Check status of all prerequisites
-#   uninstall-k3s    - Uninstall K3s
-#   help             - Show this help message
+  install-tools    - Install kubectl and jq only
+  start-k3s        - Start K3s service and configure kubeconfig
+  check            - Check status of all prerequisites
+  uninstall-k3s    - Uninstall K3s
+  help             - Show this help message
 #
 # Options:
 #   --no-docker      - Skip Docker installation
@@ -382,6 +383,10 @@ check_prerequisites() {
     write_success "All prerequisites are met! You can run ./deploy.sh"
   else
     write_warning "Some prerequisites are missing. Run './library.sh install-all' to install them."
+    if systemctl is-active --quiet k3s 2>/dev/null; then
+      echo ""
+      write_info "To start K3s, run: sudo ./library.sh start-k3s"
+    fi
   fi
   
   return 0
@@ -413,6 +418,7 @@ This script installs and configures all prerequisites needed to run ./deploy.sh
   install-docker   Install Docker only
   install-k3s      Install K3s only
   install-tools    Install kubectl and jq only
+  start-k3s        Start K3s service and configure kubeconfig
   check            Check status of all prerequisites
   uninstall-k3s    Uninstall K3s
   help             Show this help message
@@ -425,6 +431,7 @@ This script installs and configures all prerequisites needed to run ./deploy.sh
 \033[1mExamples:\033[0m
   sudo ./library.sh install-all
   sudo ./library.sh install-all --no-docker
+  sudo ./library.sh start-k3s
   sudo ./library.sh check
   sudo ./library.sh install-k3s --k3s-version v1.28.3+k3s1
   sudo ./library.sh uninstall-k3s
@@ -436,10 +443,13 @@ This script installs and configures all prerequisites needed to run ./deploy.sh
   2. Install all prerequisites:
      sudo ./library.sh install-all
   
-  3. Check installation:
+  3. Start K3s service:
+     sudo ./library.sh start-k3s
+  
+  4. Check installation:
      sudo ./library.sh check
   
-  4. Deploy your application:
+  5. Deploy your application:
      ./deploy.sh up
 
 \033[1mNotes:\033[0m
@@ -476,7 +486,8 @@ case $COMMAND in
     
     echo ""
     write_success "All prerequisites installed successfully!"
-    write_info "You can now run: ./deploy.sh up"
+    write_info "Next step: sudo ./library.sh start-k3s"
+    write_info "Then run: ./deploy.sh up"
     ;;
     
   install-docker)
@@ -496,6 +507,55 @@ case $COMMAND in
     check_root
     detect_os
     install_tools
+    ;;
+    
+  start-k3s)
+    check_root
+    
+    write_section "Starting K3s"
+    
+    # Start K3s service
+    if systemctl is-active --quiet k3s; then
+      write_success "K3s is already running"
+    else
+      write_step "Starting K3s service..."
+      systemctl start k3s
+      systemctl enable k3s
+    fi
+    
+    # Wait for K3s to be ready
+    write_step "Waiting for K3s to be ready..."
+    for i in {1..30}; do
+      if k3s kubectl get nodes >/dev/null 2>&1; then
+        write_success "K3s is ready"
+        break
+      fi
+      if [ $i -eq 30 ]; then
+        write_error "K3s failed to start after 60 seconds"
+        systemctl status k3s
+        exit 1
+      fi
+      sleep 2
+    done
+    
+    # Configure kubeconfig for regular user
+    if [ -n "$SUDO_USER" ]; then
+      SUDO_HOME=$(eval echo ~$SUDO_USER)
+      write_step "Configuring kubeconfig for $SUDO_USER..."
+      
+      mkdir -p $SUDO_HOME/.kube
+      cp /etc/rancher/k3s/k3s.yaml $SUDO_HOME/.kube/config
+      chown -R $SUDO_USER:$SUDO_USER $SUDO_HOME/.kube
+      chmod 600 $SUDO_HOME/.kube/config
+      
+      write_success "Kubeconfig configured"
+    fi
+    
+    # Show cluster info
+    write_section "Cluster Status"
+    k3s kubectl get nodes
+    
+    write_success "K3s is running! You can now run: ./deploy.sh up"
     ;;
     
   check)

@@ -108,9 +108,25 @@ wait_statefulset() {
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# Check if K3s is running (helpful check)
+check_k3s_running() {
+  if command -v k3s >/dev/null 2>&1; then
+    if ! systemctl is-active --quiet k3s 2>/dev/null; then
+      write_warning "[WARN] K3s is installed but not running!"
+      write_warning "       Run: sudo systemctl start k3s"
+      write_warning "       Or:  sudo ./library.sh start-k3s"
+      return 1
+    fi
+  fi
+  return 0
+}
+
 case $COMMAND in
   up)
     write_section "One-command deploy: build images, apply manifests, wait, and expose access"
+
+    # Check if K3s is running (helpful check)
+    check_k3s_running || true
 
     # 1) Build local images (frontend+backend)
     BUILD_SCRIPT="$SCRIPT_DIR/build-images.sh"

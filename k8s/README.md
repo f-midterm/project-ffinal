@@ -2,7 +2,32 @@
 
 This directory contains all Kubernetes manifest files needed to deploy the entire Apartment Management System to a K3s/Kubeadm cluster.
 
-## 📁 Directory Structure
+## � QUICK START (ONE COMMAND!)
+
+**First time setup:**
+```bash
+chmod +x *.sh
+sudo ./library.sh install-all    # Install Docker, K3s, kubectl, jq
+sudo ./library.sh start-k3s      # Start K3s service
+./deploy.sh up                   # Deploy everything!
+```
+
+**Daily deployment:**
+```bash
+./quick-deploy.sh    # One command does everything!
+```
+
+**Already have K3s running?**
+```bash
+./deploy.sh up       # Build, deploy, and expose everything
+```
+
+📖 **See [QUICK_START.md](./QUICK_START.md) for instant solutions!**
+📖 **See [ONE_COMMAND_DEPLOY.md](./ONE_COMMAND_DEPLOY.md) for complete guide!**
+
+---
+
+## �📁 Directory Structure
 
 ```
 k8s/
