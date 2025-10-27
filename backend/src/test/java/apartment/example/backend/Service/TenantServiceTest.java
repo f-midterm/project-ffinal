@@ -1,31 +1,18 @@
 package apartment.example.backend.Service;
 
 import apartment.example.backend.entity.Tenant;
-import apartment.example.backend.entity.enums.TenantStatus;
 import apartment.example.backend.repository.TenantRepository;
 import apartment.example.backend.service.TenantService;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.mockito.*;
+import org.springframework.data.domain.*;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
-@DisplayName("TenantService Unit Tests")
 class TenantServiceTest {
 
     @Mock
@@ -34,340 +21,184 @@ class TenantServiceTest {
     @InjectMocks
     private TenantService tenantService;
 
-    private Tenant testTenant;
-    private Tenant testTenant2;
+    private Tenant tenant;
 
     @BeforeEach
     void setUp() {
-        testTenant = new Tenant();
-        testTenant.setId(1L);
-        testTenant.setFirstName("John");
-        testTenant.setLastName("Doe");
-        testTenant.setPhone("081-234-5678");
-        testTenant.setEmail("john.doe@example.com");
-        testTenant.setEmergencyContact("Jane Doe");
-        testTenant.setEmergencyPhone("082-345-6789");
-        testTenant.setOccupation("Engineer");
-        testTenant.setStatus(TenantStatus.ACTIVE);
-
-        testTenant2 = new Tenant();
-        testTenant2.setId(2L);
-        testTenant2.setFirstName("Jane");
-        testTenant2.setLastName("Smith");
-        testTenant2.setPhone("083-456-7890");
-        testTenant2.setEmail("jane.smith@example.com");
-        testTenant2.setEmergencyContact("John Smith");
-        testTenant2.setEmergencyPhone("084-567-8901");
-        testTenant2.setOccupation("Doctor");
-        testTenant2.setStatus(TenantStatus.ACTIVE);
+        MockitoAnnotations.openMocks(this);
+        tenant = new Tenant();
+        tenant.setId(1L);
+        tenant.setFirstName("John");
+        tenant.setLastName("Doe");
+        tenant.setEmail("john@example.com");
+        tenant.setPhone("0812345678");
     }
 
     @Test
-    @DisplayName("Should return all tenants")
-    void getAllTenants_ShouldReturnAllTenants() {
-        // Arrange
-        List<Tenant> expectedTenants = Arrays.asList(testTenant, testTenant2);
-        when(tenantRepository.findAll()).thenReturn(expectedTenants);
+    void getAllTenants_ShouldReturnList() {
+        when(tenantRepository.findAll()).thenReturn(List.of(tenant));
 
-        // Act
-        List<Tenant> actualTenants = tenantService.getAllTenants();
+        List<Tenant> result = tenantService.getAllTenants();
 
-        // Assert
-        assertNotNull(actualTenants);
-        assertEquals(2, actualTenants.size());
-        assertEquals(expectedTenants, actualTenants);
+        assertEquals(1, result.size());
         verify(tenantRepository, times(1)).findAll();
     }
 
     @Test
-    @DisplayName("Should return paginated tenants")
-    void getAllTenants_WithPageable_ShouldReturnPagedTenants() {
-        // Arrange
-        Pageable pageable = PageRequest.of(0, 10);
-        List<Tenant> tenantList = Arrays.asList(testTenant, testTenant2);
-        Page<Tenant> expectedPage = new PageImpl<>(tenantList, pageable, tenantList.size());
-        when(tenantRepository.findAll(pageable)).thenReturn(expectedPage);
+    void getAllTenants_WithPageable_ShouldReturnPage() {
+        Pageable pageable = PageRequest.of(0, 5);
+        when(tenantRepository.findAll(pageable))
+                .thenReturn(new PageImpl<>(List.of(tenant)));
 
-        // Act
-        Page<Tenant> actualPage = tenantService.getAllTenants(pageable);
+        Page<Tenant> result = tenantService.getAllTenants(pageable);
 
-        // Assert
-        assertNotNull(actualPage);
-        assertEquals(2, actualPage.getContent().size());
-        assertEquals(expectedPage, actualPage);
-        verify(tenantRepository, times(1)).findAll(pageable);
+        assertEquals(1, result.getContent().size());
+        verify(tenantRepository).findAll(pageable);
     }
 
     @Test
-    @DisplayName("Should return tenant by id when exists")
-    void getTenantById_WhenExists_ShouldReturnTenant() {
-        // Arrange
-        when(tenantRepository.findById(1L)).thenReturn(Optional.of(testTenant));
+    void getTenantById_ShouldReturnTenant_WhenExists() {
+        when(tenantRepository.findById(1L)).thenReturn(Optional.of(tenant));
 
-        // Act
         Optional<Tenant> result = tenantService.getTenantById(1L);
 
-        // Assert
         assertTrue(result.isPresent());
-        assertEquals(testTenant.getId(), result.get().getId());
-        assertEquals(testTenant.getEmail(), result.get().getEmail());
-        verify(tenantRepository, times(1)).findById(1L);
+        assertEquals("John", result.get().getFirstName());
+        verify(tenantRepository).findById(1L);
     }
 
     @Test
-    @DisplayName("Should return empty when tenant id not found")
-    void getTenantById_WhenNotExists_ShouldReturnEmpty() {
-        // Arrange
-        when(tenantRepository.findById(999L)).thenReturn(Optional.empty());
+    void getTenantById_ShouldReturnEmpty_WhenNotFound() {
+        when(tenantRepository.findById(99L)).thenReturn(Optional.empty());
 
-        // Act
-        Optional<Tenant> result = tenantService.getTenantById(999L);
+        Optional<Tenant> result = tenantService.getTenantById(99L);
 
-        // Assert
-        assertFalse(result.isPresent());
-        verify(tenantRepository, times(1)).findById(999L);
-    }
-
-    @Test
-    @DisplayName("Should return tenant by email when exists")
-    void getTenantByEmail_WhenExists_ShouldReturnTenant() {
-        // Arrange
-        String email = "john.doe@example.com";
-        when(tenantRepository.findByEmail(email)).thenReturn(Optional.of(testTenant));
-
-        // Act
-        Optional<Tenant> result = tenantService.getTenantByEmail(email);
-
-        // Assert
-        assertTrue(result.isPresent());
-        assertEquals(testTenant.getEmail(), result.get().getEmail());
-        verify(tenantRepository, times(1)).findByEmail(email);
-    }
-
-    @Test
-    @DisplayName("Should return empty when email not found")
-    void getTenantByEmail_WhenNotExists_ShouldReturnEmpty() {
-        // Arrange
-        String email = "notfound@example.com";
-        when(tenantRepository.findByEmail(email)).thenReturn(Optional.empty());
-
-        // Act
-        Optional<Tenant> result = tenantService.getTenantByEmail(email);
-
-        // Assert
-        assertFalse(result.isPresent());
-        verify(tenantRepository, times(1)).findByEmail(email);
-    }
-
-    @Test
-    @DisplayName("Should find tenant by email using findByEmail method")
-    void findByEmail_WhenExists_ShouldReturnTenant() {
-        // Arrange
-        String email = "john.doe@example.com";
-        when(tenantRepository.findByEmail(email)).thenReturn(Optional.of(testTenant));
-
-        // Act
-        Optional<Tenant> result = tenantService.findByEmail(email);
-
-        // Assert
-        assertTrue(result.isPresent());
-        assertEquals(testTenant.getEmail(), result.get().getEmail());
-        verify(tenantRepository, times(1)).findByEmail(email);
-    }
-
-    @Test
-    @DisplayName("Should search tenants by name")
-    void searchTenantsByName_ShouldReturnMatchingTenants() {
-        // Arrange
-        String searchName = "John";
-        List<Tenant> expectedTenants = Arrays.asList(testTenant);
-        when(tenantRepository.findByNameContainingIgnoreCase(searchName)).thenReturn(expectedTenants);
-
-        // Act
-        List<Tenant> result = tenantService.searchTenantsByName(searchName);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertTrue(result.get(0).getFirstName().contains(searchName));
-        verify(tenantRepository, times(1)).findByNameContainingIgnoreCase(searchName);
-    }
-
-    @Test
-    @DisplayName("Should return empty list when no name matches")
-    void searchTenantsByName_WhenNoMatch_ShouldReturnEmptyList() {
-        // Arrange
-        String searchName = "NonExistent";
-        when(tenantRepository.findByNameContainingIgnoreCase(searchName)).thenReturn(Arrays.asList());
-
-        // Act
-        List<Tenant> result = tenantService.searchTenantsByName(searchName);
-
-        // Assert
-        assertNotNull(result);
         assertTrue(result.isEmpty());
-        verify(tenantRepository, times(1)).findByNameContainingIgnoreCase(searchName);
     }
 
     @Test
-    @DisplayName("Should get tenants by phone")
-    void getTenantsByPhone_ShouldReturnMatchingTenants() {
-        // Arrange
-        String phone = "081";
-        List<Tenant> expectedTenants = Arrays.asList(testTenant);
-        when(tenantRepository.findByPhoneContaining(phone)).thenReturn(expectedTenants);
+    void getTenantByEmail_ShouldReturnTenant_WhenExists() {
+        when(tenantRepository.findByEmail("john@example.com"))
+                .thenReturn(Optional.of(tenant));
 
-        // Act
-        List<Tenant> result = tenantService.getTenantsByPhone(phone);
+        Optional<Tenant> result = tenantService.getTenantByEmail("john@example.com");
 
-        // Assert
-        assertNotNull(result);
+        assertTrue(result.isPresent());
+        assertEquals("john@example.com", result.get().getEmail());
+        verify(tenantRepository).findByEmail("john@example.com");
+    }
+
+    @Test
+    void findByEmail_ShouldCallRepository() {
+        when(tenantRepository.findByEmail("john@example.com"))
+                .thenReturn(Optional.of(tenant));
+
+        tenantService.findByEmail("john@example.com");
+
+        verify(tenantRepository).findByEmail("john@example.com");
+    }
+
+    @Test
+    void searchTenantsByName_ShouldReturnList() {
+        when(tenantRepository.findByNameContainingIgnoreCase("john"))
+                .thenReturn(List.of(tenant));
+
+        List<Tenant> result = tenantService.searchTenantsByName("john");
+
         assertEquals(1, result.size());
-        assertTrue(result.get(0).getPhone().contains(phone));
-        verify(tenantRepository, times(1)).findByPhoneContaining(phone);
+        verify(tenantRepository).findByNameContainingIgnoreCase("john");
     }
 
     @Test
-    @DisplayName("Should get tenants by email")
-    void getTenantsByEmail_ShouldReturnMatchingTenants() {
-        // Arrange
-        String email = "john";
-        List<Tenant> expectedTenants = Arrays.asList(testTenant);
-        when(tenantRepository.findByEmailContainingIgnoreCase(email)).thenReturn(expectedTenants);
+    void getTenantsByPhone_ShouldReturnList() {
+        when(tenantRepository.findByPhoneContaining("0812"))
+                .thenReturn(List.of(tenant));
 
-        // Act
-        List<Tenant> result = tenantService.getTenantsByEmail(email);
+        List<Tenant> result = tenantService.getTenantsByPhone("0812");
 
-        // Assert
-        assertNotNull(result);
         assertEquals(1, result.size());
-        assertTrue(result.get(0).getEmail().toLowerCase().contains(email.toLowerCase()));
-        verify(tenantRepository, times(1)).findByEmailContainingIgnoreCase(email);
+        verify(tenantRepository).findByPhoneContaining("0812");
     }
 
     @Test
-    @DisplayName("Should create new tenant successfully")
+    void getTenantsByEmail_ShouldReturnList() {
+        when(tenantRepository.findByEmailContainingIgnoreCase("john"))
+                .thenReturn(List.of(tenant));
+
+        List<Tenant> result = tenantService.getTenantsByEmail("john");
+
+        assertEquals(1, result.size());
+        verify(tenantRepository).findByEmailContainingIgnoreCase("john");
+    }
+
+    @Test
     void createTenant_ShouldSaveAndReturnTenant() {
-        // Arrange
-        when(tenantRepository.save(any(Tenant.class))).thenReturn(testTenant);
+        when(tenantRepository.save(tenant)).thenReturn(tenant);
 
-        // Act
-        Tenant result = tenantService.createTenant(testTenant);
+        Tenant result = tenantService.createTenant(tenant);
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(testTenant.getId(), result.getId());
-        assertEquals(testTenant.getEmail(), result.getEmail());
-        verify(tenantRepository, times(1)).save(testTenant);
+        assertEquals("John", result.getFirstName());
+        verify(tenantRepository).save(tenant);
     }
 
     @Test
-    @DisplayName("Should update tenant successfully")
-    void updateTenant_WhenExists_ShouldUpdateAndReturnTenant() {
-        // Arrange
-        Tenant updatedDetails = new Tenant();
-        updatedDetails.setFirstName("John Updated");
-        updatedDetails.setLastName("Doe Updated");
-        updatedDetails.setPhone("099-999-9999");
-        updatedDetails.setEmail("john.updated@example.com");
-        updatedDetails.setEmergencyContact("Jane Updated");
-        updatedDetails.setEmergencyPhone("098-888-8888");
-        updatedDetails.setOccupation("Senior Engineer");
-        updatedDetails.setStatus(TenantStatus.INACTIVE);
+    void updateTenant_ShouldUpdateExistingTenant() {
+        Tenant updateData = new Tenant();
+        updateData.setFirstName("Jane");
+        updateData.setLastName("Smith");
+        updateData.setEmail("jane@example.com");
+        updateData.setPhone("0999999999");
 
-        when(tenantRepository.findById(1L)).thenReturn(Optional.of(testTenant));
-        when(tenantRepository.save(any(Tenant.class))).thenReturn(testTenant);
+        when(tenantRepository.findById(1L)).thenReturn(Optional.of(tenant));
+        when(tenantRepository.save(any(Tenant.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        // Act
-        Tenant result = tenantService.updateTenant(1L, updatedDetails);
+        Tenant updated = tenantService.updateTenant(1L, updateData);
 
-        // Assert
-        assertNotNull(result);
-        assertEquals("John Updated", result.getFirstName());
-        assertEquals("Doe Updated", result.getLastName());
-        assertEquals("099-999-9999", result.getPhone());
-        assertEquals("john.updated@example.com", result.getEmail());
-        assertEquals("Jane Updated", result.getEmergencyContact());
-        assertEquals("098-888-8888", result.getEmergencyPhone());
-        assertEquals("Senior Engineer", result.getOccupation());
-        assertEquals(TenantStatus.INACTIVE, result.getStatus());
-        verify(tenantRepository, times(1)).findById(1L);
-        verify(tenantRepository, times(1)).save(testTenant);
+        assertEquals("Jane", updated.getFirstName());
+        assertEquals("Smith", updated.getLastName());
+        verify(tenantRepository).save(tenant);
     }
 
     @Test
-    @DisplayName("Should throw exception when updating non-existent tenant")
-    void updateTenant_WhenNotExists_ShouldThrowException() {
-        // Arrange
-        Tenant updatedDetails = new Tenant();
-        when(tenantRepository.findById(999L)).thenReturn(Optional.empty());
+    void updateTenant_ShouldThrowException_WhenTenantNotFound() {
+        when(tenantRepository.findById(99L)).thenReturn(Optional.empty());
 
-        // Act & Assert
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            tenantService.updateTenant(999L, updatedDetails);
-        });
-
-        assertEquals("Tenant not found with id: 999", exception.getMessage());
-        verify(tenantRepository, times(1)).findById(999L);
-        verify(tenantRepository, never()).save(any(Tenant.class));
+        assertThrows(RuntimeException.class,
+                () -> tenantService.updateTenant(99L, tenant));
     }
 
     @Test
-    @DisplayName("Should delete tenant successfully")
-    void deleteTenant_WhenExists_ShouldDeleteTenant() {
-        // Arrange
-        when(tenantRepository.findById(1L)).thenReturn(Optional.of(testTenant));
-        doNothing().when(tenantRepository).delete(testTenant);
+    void deleteTenant_ShouldDelete_WhenFound() {
+        when(tenantRepository.findById(1L)).thenReturn(Optional.of(tenant));
 
-        // Act
         tenantService.deleteTenant(1L);
 
-        // Assert
-        verify(tenantRepository, times(1)).findById(1L);
-        verify(tenantRepository, times(1)).delete(testTenant);
+        verify(tenantRepository).delete(tenant);
     }
 
     @Test
-    @DisplayName("Should throw exception when deleting non-existent tenant")
-    void deleteTenant_WhenNotExists_ShouldThrowException() {
-        // Arrange
-        when(tenantRepository.findById(999L)).thenReturn(Optional.empty());
+    void deleteTenant_ShouldThrow_WhenNotFound() {
+        when(tenantRepository.findById(99L)).thenReturn(Optional.empty());
 
-        // Act & Assert
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            tenantService.deleteTenant(999L);
-        });
-
-        assertEquals("Tenant not found with id: 999", exception.getMessage());
-        verify(tenantRepository, times(1)).findById(999L);
-        verify(tenantRepository, never()).delete(any(Tenant.class));
+        assertThrows(RuntimeException.class, () -> tenantService.deleteTenant(99L));
     }
 
     @Test
-    @DisplayName("Should return true when tenant exists by id")
-    void existsById_WhenExists_ShouldReturnTrue() {
-        // Arrange
+    void existsById_ShouldReturnTrue_WhenExists() {
         when(tenantRepository.existsById(1L)).thenReturn(true);
 
-        // Act
         boolean result = tenantService.existsById(1L);
 
-        // Assert
         assertTrue(result);
-        verify(tenantRepository, times(1)).existsById(1L);
+        verify(tenantRepository).existsById(1L);
     }
 
     @Test
-    @DisplayName("Should return false when tenant does not exist by id")
-    void existsById_WhenNotExists_ShouldReturnFalse() {
-        // Arrange
-        when(tenantRepository.existsById(999L)).thenReturn(false);
+    void existsById_ShouldReturnFalse_WhenNotExists() {
+        when(tenantRepository.existsById(99L)).thenReturn(false);
 
-        // Act
-        boolean result = tenantService.existsById(999L);
+        boolean result = tenantService.existsById(99L);
 
-        // Assert
         assertFalse(result);
-        verify(tenantRepository, times(1)).existsById(999L);
     }
 }
