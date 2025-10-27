@@ -37,7 +37,7 @@ function AdminDashboard() {
             <StatCard icon={<GrDocumentText />} title={"Lease Renewals"} value={`3 Upcoming`} color={"red"} />
           </Link>
         </div>
-
+        
         {/* 1st Floor */}
         <div className='bg-white rounded-lg p-8 shadow-md mb-6 lg:mb-8'>
           <div className="lg:text-xl text-lg font-medium mb-2">1st Floor</div>
