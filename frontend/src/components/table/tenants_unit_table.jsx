@@ -4,7 +4,7 @@ function TenantsUnitTable() {
     const infoItems = [
         { label: 'Current tenant', value: 'John Doe', isAvatar: true },
         { label: 'Lease Dates', value: 'Aug 1, 2025 - Jul 31, 2026' },
-        { label: 'Monthly Rent', value: '2,500.00 Baht/Unit' },
+        { label: 'Monthly Rent', value: '2,500.00 Baht/Month' },
     ];
 
     return (

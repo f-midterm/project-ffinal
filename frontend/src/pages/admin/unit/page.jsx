@@ -1,5 +1,8 @@
 import React from 'react'
 import TenantsUnitTable from '../../../components/table/tenants_unit_table'
+import ElectricBillChart from '../../../components/chart/electric_bill_chart'
+import WaterBillChart from '../../../components/chart/water_bill_chart'
+import MaintenanceLogTable from '../../../components/table/maintenance_log_table'
 
 function UnitPage() {
   return (
@@ -26,9 +29,13 @@ function UnitPage() {
             <TenantsUnitTable />
 
             {/* Electricity and Water bill graph */}
-            <div>
-              
+            <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+              <ElectricBillChart />
+              <WaterBillChart />
             </div>
+
+            {/* Maintenance Log Table */}
+            <MaintenanceLogTable />
           </div>
 
           {/* Right Column */}
