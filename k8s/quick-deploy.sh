@@ -58,8 +58,19 @@ if ! sudo systemctl is-active --quiet k3s 2>/dev/null; then
   sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
   sudo chown $USER:$USER ~/.kube/config
   chmod 600 ~/.kube/config
+  write_success "Kubeconfig configured for K3s"
 else
   write_success "K3s is already running"
+  
+  # Ensure kubectl is pointing to K3s (not Kind)
+  if ! kubectl cluster-info 2>&1 | grep -q "127.0.0.1:6443"; then
+    write_step "Switching kubectl to K3s..."
+    mkdir -p ~/.kube
+    sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
+    sudo chown $USER:$USER ~/.kube/config
+    chmod 600 ~/.kube/config
+    write_success "Switched to K3s"
+  fi
 fi
 
 # Check if images need to be loaded into K3s

@@ -3,21 +3,29 @@
 ## Your Problem
 
 ```
-K3s service: not running
+K3s service: not running  (OR)
 error: dial tcp 127.0.0.1:6443: connect: connection refused
 ```
 
 ## The Solution (Copy & Paste)
 
 ```bash
-# 1. Start K3s service
+# 1. Start K3s and configure kubectl
 sudo ./library.sh start-k3s
 
-# 2. Deploy everything
+# 2. Switch kubectl to K3s (if you have Kind running)
+sudo ./switch-cluster.sh k3s
+
+# 3. Deploy everything
 ./deploy.sh up
 
-# 3. Access your app
+# 4. Access your app
 # Frontend: http://localhost/
+```
+
+**Or use the ONE command:**
+```bash
+./quick-deploy.sh
 ```
 
 That's it! ✅
@@ -52,6 +60,13 @@ sudo ./library.sh check          # Check what's installed
 ```bash
 sudo ./start-k3s.sh --load-images    # Start + load images
 sudo ./start-k3s.sh --stop-kind      # Stop Kind, start K3s
+```
+
+### `switch-cluster.sh` - Switch Between Clusters
+```bash
+sudo ./switch-cluster.sh k3s     # Switch kubectl to K3s
+./switch-cluster.sh kind         # Switch kubectl to Kind
+./switch-cluster.sh check        # Check current cluster
 ```
 
 ### `quick-deploy.sh` - One Command Deploy

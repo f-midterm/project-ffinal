@@ -108,13 +108,24 @@ wait_statefulset() {
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# Check if K3s is running (helpful check)
-check_k3s_running() {
-  if command -v k3s >/dev/null 2>&1; then
-    if ! systemctl is-active --quiet k3s 2>/dev/null; then
-      write_warning "[WARN] K3s is installed but not running!"
-      write_warning "       Run: sudo systemctl start k3s"
-      write_warning "       Or:  sudo ./library.sh start-k3s"
+# Check if kubectl can connect to a cluster
+check_cluster_connection() {
+  if ! kubectl get nodes >/dev/null 2>&1; then
+    write_warning "[WARN] kubectl cannot connect to a Kubernetes cluster!"
+    
+    # Check if K3s is installed but not running
+    if command -v k3s >/dev/null 2>&1; then
+      if ! systemctl is-active --quiet k3s 2>/dev/null; then
+        write_warning "       K3s is installed but not running."
+        write_warning "       Run: sudo ./library.sh start-k3s"
+        return 1
+      else
+        write_warning "       K3s is running but kubectl is not configured correctly."
+        write_warning "       Run: sudo ./switch-cluster.sh k3s"
+        return 1
+      fi
+    else
+      write_warning "       Please ensure a Kubernetes cluster is running."
       return 1
     fi
   fi
@@ -125,8 +136,8 @@ case $COMMAND in
   up)
     write_section "One-command deploy: build images, apply manifests, wait, and expose access"
 
-    # Check if K3s is running (helpful check)
-    check_k3s_running || true
+    # Check if kubectl can connect to cluster
+    check_cluster_connection || true
 
     # 1) Build local images (frontend+backend)
     BUILD_SCRIPT="$SCRIPT_DIR/build-images.sh"
