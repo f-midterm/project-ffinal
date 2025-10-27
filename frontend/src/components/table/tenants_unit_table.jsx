@@ -5,6 +5,8 @@ function TenantsUnitTable() {
         { label: 'Current tenant', value: 'John Doe', isAvatar: true },
         { label: 'Lease Dates', value: 'Aug 1, 2025 - Jul 31, 2026' },
         { label: 'Monthly Rent', value: '2,500.00 Baht/Month' },
+        { label: 'Electricity Price/Unit', value: '4.00 Baht/Unit', hasEdit: true },
+        { label: 'Water Price/Unit', value: '20.00 Baht/Unit', hasEdit: true },
     ];
 
     return (
