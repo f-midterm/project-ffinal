@@ -10,11 +10,7 @@ function UnitCard({ unit }) {
   const statusColor = isOccupied ? 'text-red-600' : 'text-green-600';
 
   const handleNavigate = () => {
-    if (unit.status === "AVAILABLE") {
-      navigate(`/admin/booking/${unit.id}`);
-    } else if (unit.status === "OCCUPIED") {
-      navigate(`/admin/unit/${unit.id}`);
-    }
+    navigate(`/admin/unit/${unit.id}`);
   };
 
   return (
