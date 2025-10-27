@@ -29,7 +29,7 @@ function App() {
             <Route path="tenants" element={<TenantsPage />} />
             <Route path="payments" element={<PaymentsPage />} />
             <Route path="maintenance" element={<MaintenancePage />} />
-            <Route path="unit" element={<UnitPage />} />
+            <Route path="unit/:id" element={<UnitPage />} />
           </Route>
 
           {/* Protected Routes - Require Authentication */}
