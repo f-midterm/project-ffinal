@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom';
 import NavItem from './nav_items';
 import { logout, getUsername } from '../../api';
+import { useAuth } from '../../hooks/useAuth';
 import { FiUser, FiLogOut, FiGrid } from 'react-icons/fi';
 
 function HomeNavbar({ isAuthenticated, onAuthChange }) {
@@ -22,6 +23,7 @@ function HomeNavbar({ isAuthenticated, onAuthChange }) {
   const [isDropdownOpen, setDropdownOpen] = useState(false);
   const navigate = useNavigate();
 
+  const { isAdmin, user } = useAuth();
   const username = getUsername();
   const dropdownRef = useRef(null);
 
@@ -117,14 +119,26 @@ function HomeNavbar({ isAuthenticated, onAuthChange }) {
                       <ul className="py-1">
                         <li>
                           <Link
-                            to="/admin"
+                            to={`/user/${user?.id}`}
                             className="flex items-center px-4 py-2 text-gray-800 hover:bg-gray-100"
                             onClick={() => setDropdownOpen(false)}
                           >
-                            <FiGrid className="mr-2" />
-                            Dashboard
+                            <FiUser className="mr-2" />
+                            Profile
                           </Link>
                         </li>
+                        {isAdmin && (
+                          <li>
+                            <Link
+                              to="/admin"
+                              className="flex items-center px-4 py-2 text-gray-800 hover:bg-gray-100"
+                              onClick={() => setDropdownOpen(false)}
+                            >
+                              <FiGrid className="mr-2" />
+                              Dashboard
+                            </Link>
+                          </li>
+                        )}
                         <li>
                           <button
                             onClick={handleLogout}
