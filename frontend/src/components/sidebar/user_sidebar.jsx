@@ -3,11 +3,6 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { logout } from "../../api";
 import { useAuth } from '../../hooks/useAuth';
 
-const settingsLinks = [
-  { name: "Setting", path: "/user/settings" },
-  { name: "Terms & Policy", path: "/user/terms" },
-];
-
 function UserSidebar({ isOpen, setIsOpen }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -17,7 +12,14 @@ function UserSidebar({ isOpen, setIsOpen }) {
     { name: "Dashboard", path: `/user/${user?.id}` },
     { name: "Maintenance", path: `/user/${user?.id}/maintenance`},
     { name: "Billing", path: `/user/${user?.id}/billing`},
-    { name: "Parcel", path: `/user/${user?.id}/parcel`}
+    { name: "Parcel", path: `/user/${user?.id}/parcel`},
+  ];
+
+  const settingsLinks = [
+    { name: "Setting", path: `/user/${user?.id}/settings` },
+    { name: "Notification", path: `/user/${user?.id}/notification`},
+    { name: "Help", path: `/user/${user?.id}/help`},
+    { name: "Terms & Policy", path: `/user/${user?.id}/terms` },
   ];
 
   const handleLogout = () => {
