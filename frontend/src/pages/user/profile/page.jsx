@@ -1,4 +1,5 @@
 import React from 'react'
+import { PiBuilding } from "react-icons/pi";
 
 function ProfilePage() {
 
@@ -16,7 +17,7 @@ function ProfilePage() {
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Username</h2>
           <div className="space-y-2">
             <ProfileDetail label="Fullname" value={"Fullname"} />
-            <ProfileDetail label="Email" value={"who@company.com"} />
+            <ProfileDetail label="Email" value={"who@company.com"} isEmail={true} />
             <ProfileDetail label="Phone" value={"123-123-1234"} />
             <ProfileDetail label="Emergency" value={"123-123-1234"} />
           </div>
@@ -32,7 +33,7 @@ function ProfilePage() {
       <div className='flex lg:flex-1 border border-gray-400 rounded-2xl justify-center items-center'>
         <div className='text-center lg:py-0 py-32'>
           <div className="flex justify-center mb-4">
-            <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center"></div>
+            <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center"><PiBuilding size={32} className='text-gray-500' /></div>
           </div>
           <h2 className="text-2xl font-semibold text-gray-700">
             You haven't any application
@@ -43,11 +44,15 @@ function ProfilePage() {
   )
 }
 
-function ProfileDetail({ label, value }) {
+function ProfileDetail({ label, value, isEmail = false }) {
   return (
     <div className="flex justify-between text-md mb-2">
       <span className="font-medium text-gray-600">{label}:</span>
-      <span className="text-gray-900">{value}</span>
+      { isEmail ? (
+        <a href={`mailto:${value}`} className="text-blue-600 hover:underline">{value}</a>
+      ) : (
+        <span className="text-gray-900">{value}</span>
+      )}
     </div>
   );
 }
