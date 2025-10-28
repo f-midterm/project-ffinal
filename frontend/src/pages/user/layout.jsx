@@ -1,13 +1,21 @@
-import React from 'react'
+import { useState } from 'react'
 import { Outlet } from 'react-router-dom';
+import UserNavbar from '../../components/navbar/user_navbar';
+import UserSidebar from '../../components/sidebar/user_sidebar';
 
 function UserLayout() {
 
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+
     return (
         <div className='min-h-screen flex flex-col'>
+            {/* Sidebar */}
+            <UserSidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+
             {/* Header Section */}
             <header>
-
+                <UserNavbar toggleSidebar={toggleSidebar} />
             </header>
 
             {/* Main Section */}
