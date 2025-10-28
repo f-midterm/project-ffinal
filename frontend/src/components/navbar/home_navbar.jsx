@@ -116,7 +116,7 @@ function HomeNavbar({ isAuthenticated, onAuthChange }) {
 
                   {isDropdownOpen && (
                     <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
-                      <ul className="py-1">
+                      <ul className="py-1"> 
                         <li>
                           <Link
                             to={`/user/${user?.id}`}
