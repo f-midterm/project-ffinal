@@ -43,6 +43,23 @@ export const getUnitById = async (id) => {
 };
 
 /**
+ * Retrieves detailed information about a unit including tenant and lease data
+ * 
+ * @async
+ * @function getUnitDetails
+ * @param {number} id - Unit ID
+ * @returns {Promise<{unit: object, lease: object, tenant: object}>} Unit details with tenant and lease info
+ * @throws {Error} When unit not found or request fails
+ * 
+ * @example
+ * const details = await getUnitDetails(1);
+ * console.log(`Unit ${details.unit.roomNumber} - Tenant: ${details.tenant?.firstName}`);
+ */
+export const getUnitDetails = async (id) => {
+  return await apiClient.get(`/units/${id}/details`);
+};
+
+/**
  * Creates a new apartment unit
  * 
  * @async

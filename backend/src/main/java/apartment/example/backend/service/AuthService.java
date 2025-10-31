@@ -6,6 +6,7 @@ import apartment.example.backend.dto.RegisterRequest;
 import apartment.example.backend.dto.RegisterResponse;
 import apartment.example.backend.dto.CreateProfileRequest;
 import apartment.example.backend.dto.CreateProfileResponse;
+import apartment.example.backend.dto.UserProfileDto;
 import apartment.example.backend.entity.User;
 import apartment.example.backend.entity.Tenant;
 import apartment.example.backend.entity.enums.TenantStatus;
@@ -21,6 +22,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 /**
  * Service layer for authentication and user management.
@@ -223,5 +226,47 @@ public class AuthService {
         }
         String cleaned = phone.replaceAll("\\D", "");
         return cleaned.length() == 10;
+    }
+
+    /**
+     * Get current user profile information from JWT token
+     * @param token JWT token
+     * @return UserProfileDto with user and tenant information
+     */
+    public UserProfileDto getCurrentUserProfile(String token) {
+        log.info("Getting current user profile from token");
+        
+        // Extract username from token
+        String username = jwtUtil.extractUsername(token);
+        log.info("Extracted username from token: {}", username);
+        
+        // Find user
+        List<User> users = userRepository.findByUsername(username);
+        if (users.isEmpty()) {
+            throw new IllegalArgumentException("User not found");
+        }
+        User user = users.get(0);
+        
+        log.info("Found user: {}, role: {}", user.getUsername(), user.getRole());
+        
+        // Create response DTO
+        UserProfileDto profileDto = new UserProfileDto();
+        profileDto.setId(user.getId());
+        profileDto.setUsername(user.getUsername());
+        profileDto.setEmail(user.getEmail());
+        profileDto.setRole(user.getRole().toString());
+        
+        // Try to fetch tenant profile if exists
+        tenantRepository.findByEmail(user.getEmail()).ifPresent(tenant -> {
+            log.info("Found tenant profile for user: {}", user.getUsername());
+            profileDto.setFirstName(tenant.getFirstName());
+            profileDto.setLastName(tenant.getLastName());
+            profileDto.setPhone(tenant.getPhone());
+            profileDto.setOccupation(tenant.getOccupation());
+            profileDto.setEmergencyContact(tenant.getEmergencyContact());
+            profileDto.setEmergencyPhone(tenant.getEmergencyPhone());
+        });
+        
+        return profileDto;
     }
 }

@@ -1,15 +1,21 @@
 package apartment.example.backend.service;
 
 import apartment.example.backend.entity.Lease;
+import apartment.example.backend.entity.Tenant;
 import apartment.example.backend.entity.Unit;
+import apartment.example.backend.entity.User;
 import apartment.example.backend.entity.enums.LeaseStatus;
+import apartment.example.backend.entity.enums.TenantStatus;
 import apartment.example.backend.entity.enums.UnitStatus;
 import apartment.example.backend.repository.LeaseRepository;
+import apartment.example.backend.repository.TenantRepository;
 import apartment.example.backend.repository.UnitRepository;
+import apartment.example.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +31,8 @@ public class LeaseService {
 
     private final LeaseRepository leaseRepository;
     private final UnitRepository unitRepository;
+    private final UserRepository userRepository;
+    private final TenantRepository tenantRepository;
 
     public List<Lease> getAllLeases() {
         return leaseRepository.findAll();
@@ -133,37 +141,86 @@ public class LeaseService {
             .orElseThrow(() -> new RuntimeException("Lease not found with id: " + leaseId));
 
         lease.setStatus(LeaseStatus.TERMINATED);
-        // Removed notes field since it doesn't exist in database
-        // lease.setNotes(lease.getNotes() + "\nTermination reason: " + reason);
-
-        // Update unit status to available
-        Unit unit = lease.getUnit();
-        unit.setStatus(UnitStatus.AVAILABLE);
-        unitRepository.save(unit);
-
-        log.info("Terminated lease for unit: {} with reason: {}", unit.getRoomNumber(), reason);
-        return leaseRepository.save(lease);
+        Lease savedLease = leaseRepository.save(lease);
+        
+        log.info("Terminated lease #{} with reason: {}", leaseId, reason);
+        
+        // Perform immediate cleanup
+        performLeaseCleanup(lease, "TERMINATED");
+        
+        return savedLease;
     }
 
     @Transactional
     public Lease terminateLease(Long leaseId) {
         return terminateLease(leaseId, "Terminated by system");
     }
+    
+    /**
+     * Shared cleanup logic for EXPIRED and TERMINATED leases
+     * Handles: unit→AVAILABLE, user VILLAGER→USER (with safety check), tenant→INACTIVE
+     * 
+     * @param lease The lease to cleanup
+     * @param source The source of cleanup (EXPIRED, TERMINATED, etc.)
+     */
+    @Transactional
+    protected void performLeaseCleanup(Lease lease, String source) {
+        Unit unit = lease.getUnit();
+        Tenant tenant = lease.getTenant();
+        
+        // 1. Update unit to AVAILABLE
+        unit.setStatus(UnitStatus.AVAILABLE);
+        unitRepository.save(unit);
+        log.info("[{}] Unit {} now AVAILABLE", source, unit.getRoomNumber());
+        
+        // 2. Check for other active leases (safety check for multi-unit tenants)
+        long activeLeaseCount = leaseRepository.countByTenantIdAndStatus(tenant.getId(), LeaseStatus.ACTIVE);
+        
+        // 3. Only downgrade and deactivate if no other active leases
+        if (activeLeaseCount == 0) {
+            // Downgrade user role VILLAGER → USER
+            Optional<User> userOptional = userRepository.findByEmail(tenant.getEmail());
+            if (userOptional.isPresent()) {
+                User user = userOptional.get();
+                if (user.getRole() == User.Role.VILLAGER) {
+                    user.setRole(User.Role.USER);
+                    userRepository.save(user);
+                    log.info("[{}] Downgraded user {} from VILLAGER to USER (can book again!)", source, user.getEmail());
+                }
+            } else {
+                log.warn("[{}] User not found for tenant email: {}", source, tenant.getEmail());
+            }
+            
+            // Set tenant to INACTIVE
+            tenant.setStatus(TenantStatus.INACTIVE);
+            tenantRepository.save(tenant);
+            log.info("[{}] Tenant {} {} now INACTIVE", source, tenant.getFirstName(), tenant.getLastName());
+        } else {
+            log.info("[{}] Tenant {} still has {} active lease(s), keeping VILLAGER role", 
+                source, tenant.getEmail(), activeLeaseCount);
+        }
+    }
 
+    @Scheduled(cron = "0 0 2 * * *")  // Run daily at 2 AM
     @Transactional
     public void expireLeases() {
         List<Lease> expiredLeases = getExpiredLeases();
+        log.info("Starting lease expiration job, found {} lease(s) to process", expiredLeases.size());
+        
         for (Lease lease : expiredLeases) {
             lease.setStatus(LeaseStatus.EXPIRED);
+            leaseRepository.save(lease);
             
-            // Update unit status to available
-            Unit unit = lease.getUnit();
-            unit.setStatus(UnitStatus.AVAILABLE);
-            unitRepository.save(unit);
+            log.info("Expired lease #{} for unit {} - Tenant: {} {}, Email: {}", 
+                    lease.getId(), lease.getUnit().getRoomNumber(), 
+                    lease.getTenant().getFirstName(), lease.getTenant().getLastName(), 
+                    lease.getTenant().getEmail());
             
-            log.info("Expired lease for unit: {}", unit.getRoomNumber());
+            // Use shared cleanup logic
+            performLeaseCleanup(lease, "AUTO_EXPIRED");
         }
-        leaseRepository.saveAll(expiredLeases);
+        
+        log.info("Lease expiration job completed, processed {} lease(s)", expiredLeases.size());
     }
 
     public Lease updateLease(Long id, Lease leaseDetails) {

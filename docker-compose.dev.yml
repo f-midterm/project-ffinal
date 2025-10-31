@@ -79,6 +79,9 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+    depends_on:
+      backend:
+        condition: service_healthy
     networks:
       - app-network
     environment:

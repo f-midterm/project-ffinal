@@ -6,12 +6,17 @@ import SignupPage from "./pages/signup/page";
 import AdminLayout from "./pages/admin/layout";
 import AdminDashboard from "./pages/admin/dashboard/page";
 import TenantsPage from "./pages/admin/tenants/page";
+import TenantEditPage from "./pages/admin/tenants/[id]/edit";
 import PaymentsPage from "./pages/admin/payments/page";
 import MaintenancePage from "./pages/admin/maintenance/page";
 import CreateProfilePage from "./pages/create-profile/page";
 import BookingPage from "./pages/booking/page";
+import WaitingPage from "./pages/booking/waiting/page";
 import PrivateRoute from "./components/auth/PrivateRoute";
 import RentalRequestsPage from "./pages/admin/rental-requests/page";
+import RentalRequestDetailPage from "./pages/admin/rental-requests/[id]/form";
+import UnitDetailPage from "./pages/admin/units/[id]/page";
+import UnitEditPage from "./pages/admin/units/[id]/edit";
 
 function App() {
 
@@ -27,15 +32,25 @@ function App() {
           <Route path="/admin/" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="tenants" element={<TenantsPage />} />
+            <Route path="tenants/:id/edit" element={<TenantEditPage />} />
             <Route path="payments" element={<PaymentsPage />} />
             <Route path="maintenance" element={<MaintenancePage />} />
             <Route path="rental-requests" element={<RentalRequestsPage />} />
+            <Route path="rental-requests/:id" element={<RentalRequestDetailPage />} />
+            <Route path="units/:id" element={<UnitDetailPage />} />
+            <Route path="units/:id/edit" element={<UnitEditPage />} />
           </Route>
 
           {/* Protected Routes - Require Authentication */}
           <Route path="/booking" element={
             <PrivateRoute>
               <BookingPage />
+            </PrivateRoute>
+          } />
+          
+          <Route path="/booking/waiting" element={
+            <PrivateRoute>
+              <WaitingPage />
             </PrivateRoute>
           } />
           

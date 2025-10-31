@@ -2,7 +2,7 @@ package apartment.example.backend.controller;
 
 import apartment.example.backend.dto.ApprovalRequest;
 import apartment.example.backend.entity.RentalRequest;
-import apartment.example.backend.entity.RentalRequestStatus;
+import apartment.example.backend.entity.enums.RentalRequestStatus;
 import apartment.example.backend.service.RentalRequestService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
