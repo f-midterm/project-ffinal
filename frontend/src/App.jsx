@@ -16,6 +16,7 @@ import UserRoute from "./components/auth/UserRoute";
 import ProfilePage from "./pages/user/profile/page";
 import UnitPage from "./pages/admin/unit/page";
 import UserLayout from "./pages/user/layout";
+import RentalRequestsPage from "./pages/admin/rental-requests/page";
 
 function App() {
 
@@ -37,6 +38,7 @@ function App() {
             <Route path="tenants" element={<TenantsPage />} />
             <Route path="payments" element={<PaymentsPage />} />
             <Route path="maintenance" element={<MaintenancePage />} />
+            <Route path="rental-requests" element={<RentalRequestsPage />} />
             <Route path="unit/:id" element={<UnitPage />} />
           </Route>
 
