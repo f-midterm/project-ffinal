@@ -120,7 +120,14 @@ switch ($Command) {
     Write-Section "Apply backend"
     kubectl apply -n $Namespace -f .\backend\service.yaml     | Write-Host
     kubectl apply -n $Namespace -f .\backend\deployment.yaml  | Write-Host
-  Wait-Deployment -name 'backend' -ns $Namespace
+    
+    # Apply ServiceMonitor for Prometheus scraping (if exists)
+    if (Test-Path .\backend\servicemonitor.yaml) {
+      Write-Step "Applying ServiceMonitor for backend metrics..."
+      kubectl apply -n $Namespace -f .\backend\servicemonitor.yaml | Write-Host
+    }
+    
+    Wait-Deployment -name 'backend' -ns $Namespace
 
     # 5) Frontend: service then deployment
     Write-Section "Apply frontend"
@@ -134,6 +141,12 @@ switch ($Command) {
     if ($hasIngress) {
       Write-Step "Ingress-NGINX detected; applying ingress rules."
       kubectl apply -n $Namespace -f .\ingress\ingress.yaml | Write-Host
+      
+      # Apply Prometheus Ingress for monitoring (if exists)
+      if (Test-Path .\monitoring\prometheus-ingress.yaml) {
+        Write-Step "Applying Prometheus Ingress for monitoring access..."
+        kubectl apply -n $Namespace -f .\monitoring\prometheus-ingress.yaml | Write-Host
+      }
     } else {
       Write-Step "Ingress-NGINX not detected; exposing NodePorts as fallback."
       # Patch frontend service to NodePort: 30080

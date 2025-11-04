@@ -162,6 +162,13 @@ case $COMMAND in
     write_section "Apply backend"
     kubectl apply -n $NAMESPACE -f ./backend/service.yaml
     kubectl apply -n $NAMESPACE -f ./backend/deployment.yaml
+    
+    # Apply ServiceMonitor for Prometheus scraping (if exists)
+    if [ -f ./backend/servicemonitor.yaml ]; then
+      write_step "Applying ServiceMonitor for backend metrics..."
+      kubectl apply -n $NAMESPACE -f ./backend/servicemonitor.yaml
+    fi
+    
     wait_deployment "backend" "$NAMESPACE"
 
     # 5) Frontend: service then deployment
@@ -175,6 +182,13 @@ case $COMMAND in
     if test_ingress_controller; then
       write_step "Ingress-NGINX detected; applying ingress rules."
       kubectl apply -n $NAMESPACE -f ./ingress/ingress.yaml
+      
+      # Apply Prometheus Ingress for monitoring (if exists)
+      if [ -f ./monitoring/prometheus-ingress.yaml ]; then
+        write_step "Applying Prometheus Ingress for monitoring access..."
+        kubectl apply -n $NAMESPACE -f ./monitoring/prometheus-ingress.yaml
+      fi
+      
       HAS_INGRESS=true
     else
       write_step "Ingress-NGINX not detected; exposing NodePorts as fallback."

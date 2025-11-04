@@ -52,6 +52,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints - no authentication required
                         .requestMatchers("/auth/**", "/health/**", "/ready").permitAll()
+                        // Prometheus metrics endpoint - allow unauthenticated access for Prometheus scraping
+                        .requestMatchers("/actuator/prometheus", "/actuator/health", "/actuator/info").permitAll()
                         
                         // Units - Read access for authenticated users, Write access for ADMIN only
                         .requestMatchers(HttpMethod.GET, "/units/**").authenticated()  // Any authenticated user can view

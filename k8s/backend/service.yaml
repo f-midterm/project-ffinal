@@ -11,6 +11,7 @@ metadata:
   labels:
     app: apartment-system
     component: backend
+    monitoring: enabled  # Enable Prometheus monitoring
 spec:
   type: ClusterIP  # Internal access only
   ports:
