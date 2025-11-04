@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { getAllRentalRequests } from '../../../api/services/rentalRequests.service'
 import { HiOutlineInbox } from 'react-icons/hi2'
 import RentalRequestCard from '../../../components/card/rental_request_card'
@@ -11,7 +10,6 @@ function RentalRequestsPage() {
     const [error, setError] = useState(null)
     const [sortBy, setSortBy] = useState('newest')
     const [filterBy, setFilterBy] = useState('all')
-    const navigate = useNavigate()
 
     useEffect(() => {
         fetchRentalRequests()
@@ -120,7 +118,9 @@ function RentalRequestsPage() {
                 /* Request Cards */
                 <div className='space-y-4'>
                     {sortedRequests.map(request => (
-                        <RentalRequestCard />
+                        <RentalRequestCard
+                            key={request}
+                        />
                     ))}
                 </div>
             )}
