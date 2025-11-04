@@ -1,5 +1,7 @@
 package apartment.example.backend.entity;
 
+import apartment.example.backend.entity.enums.RentalRequestStatus;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -15,12 +17,22 @@ public class RentalRequest {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "user_id", insertable = false, updatable = false)
+    private Long userId;
+
+    // Link to authenticated user who created the request
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    private User user;
+
     @Column(name = "unit_id", nullable = false, insertable = false, updatable = false)
     private Long unitId;
 
     // Fetch the unit for calculating monthlyRent and totalAmount
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "unit_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Unit unit;
 
     @Column(name = "first_name", nullable = false, length = 50)
@@ -29,7 +41,7 @@ public class RentalRequest {
     @Column(name = "last_name", nullable = false, length = 50)
     private String lastName;
 
-    @Column(nullable = false, length = 100)
+    @Column(nullable = false, length = 254)
     private String email;
 
     @Column(nullable = false, length = 20)
@@ -38,7 +50,7 @@ public class RentalRequest {
     @Column(length = 100)
     private String occupation;
 
-    @Column(name = "emergency_contact", length = 100)
+    @Column(name = "emergency_contact", length = 255)
     private String emergencyContact;
 
     @Column(name = "emergency_phone", length = 20)
@@ -63,6 +75,9 @@ public class RentalRequest {
     @Column(name = "rejection_reason", columnDefinition = "TEXT")
     private String rejectionReason;
 
+    @Column(name = "rejection_acknowledged_at")
+    private LocalDateTime rejectionAcknowledgedAt;
+
     @Column(columnDefinition = "TEXT")
     private String notes;
 
@@ -84,6 +99,24 @@ public class RentalRequest {
             return unit.getRentAmount().multiply(BigDecimal.valueOf(leaseDurationMonths));
         }
         return null;
+    }
+
+    /**
+     * Check if rejection has been acknowledged by the user
+     * @return true if rejection was acknowledged, false otherwise
+     */
+    @Transient
+    public boolean isRejectionAcknowledged() {
+        return rejectionAcknowledgedAt != null;
+    }
+
+    /**
+     * Check if user needs to acknowledge rejection before making new booking
+     * @return true if status is REJECTED and not yet acknowledged
+     */
+    @Transient
+    public boolean requiresAcknowledgement() {
+        return status == RentalRequestStatus.REJECTED && !isRejectionAcknowledged();
     }
 
     @PrePersist

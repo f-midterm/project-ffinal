@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -102,13 +103,17 @@ public class TenantController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTenant(@PathVariable Long id) {
+    public ResponseEntity<?> deleteTenant(@PathVariable Long id) {
         try {
             tenantService.deleteTenant(id);
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
             log.error("Error deleting tenant: {}", e.getMessage());
-            return ResponseEntity.notFound().build();
+            // Return error message to frontend
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", "Failed to delete tenant",
+                "message", e.getMessage()
+            ));
         }
     }
 

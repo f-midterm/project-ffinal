@@ -24,6 +24,20 @@ DROP TABLE IF EXISTS leases;
 DROP TABLE IF EXISTS tenants;
 DROP TABLE IF EXISTS units;
 DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS apartment_settings;
+
+-- ============================================
+-- APARTMENT SETTINGS TABLE (Global settings for all units)
+-- ============================================
+CREATE TABLE apartment_settings (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    setting_key VARCHAR(50) UNIQUE NOT NULL,
+    setting_value VARCHAR(255) NOT NULL,
+    description TEXT,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_by_user_id BIGINT,
+    INDEX idx_setting_key (setting_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
 -- USERS TABLE
@@ -158,6 +172,7 @@ CREATE TABLE payments (
 -- ============================================
 CREATE TABLE rental_requests (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NULL,  -- Links to authenticated user who created the request
     unit_id BIGINT NOT NULL,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
@@ -174,16 +189,20 @@ CREATE TABLE rental_requests (
     approved_by_user_id BIGINT,
     approved_date DATETIME,
     rejection_reason TEXT,
+    rejection_acknowledged_at DATETIME NULL,  -- Tracks when user acknowledged rejection notification
     notes TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at DATETIME NULL,  -- Soft delete support
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,  -- Link to requesting user
     FOREIGN KEY (unit_id) REFERENCES units(id) ON DELETE RESTRICT,  -- Changed from CASCADE
     FOREIGN KEY (approved_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_user_id (user_id),  -- For querying user's requests
     INDEX idx_unit (unit_id),
     INDEX idx_status (status),
     INDEX idx_request_date (request_date),
-    INDEX idx_email (email),  -- Added for email lookups
+    INDEX idx_email (email),  -- Added for email lookups (backward compatibility)
+    INDEX idx_user_status (user_id, status),  -- Composite index for user's active requests
     CONSTRAINT chk_lease_duration CHECK (lease_duration_months > 0)  -- Validation
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -366,6 +385,11 @@ DELIMITER ;
 -- INSERT INITIAL DATA
 -- ============================================
 
+-- Insert apartment-wide settings
+INSERT INTO apartment_settings (setting_key, setting_value, description) VALUES 
+('ELECTRICITY_RATE', '4.00', 'Electricity rate per unit (Baht/Unit)'),
+('WATER_RATE', '20.00', 'Water rate per unit (Baht/Unit)');
+
 -- Insert 24 units (12 per floor, 2 floors)
 INSERT INTO units (room_number, floor, type, rent_amount, size_sqm, description) VALUES 
 -- Floor 1
@@ -404,7 +428,9 @@ INSERT INTO units (room_number, floor, type, rent_amount, size_sqm, description)
 SELECT 'Database schema created successfully!' as status;
 
 -- Count records
-SELECT 'users' as table_name, COUNT(*) as record_count FROM users
+SELECT 'apartment_settings' as table_name, COUNT(*) as record_count FROM apartment_settings
+UNION ALL
+SELECT 'users', COUNT(*) FROM users
 UNION ALL
 SELECT 'units', COUNT(*) FROM units
 UNION ALL

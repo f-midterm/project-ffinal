@@ -38,6 +38,9 @@ public interface MaintenanceRequestRepository extends JpaRepository<MaintenanceR
     // Count by status
     long countByStatus(RequestStatus status);
     
+    // Count by multiple statuses
+    long countByStatusIn(List<RequestStatus> statuses);
+    
     // Count by priority
     long countByPriority(Priority priority);
     

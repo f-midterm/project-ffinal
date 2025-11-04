@@ -1,5 +1,6 @@
 package apartment.example.backend.security;
 
+import apartment.example.backend.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -33,9 +34,30 @@ public class JwtUtil {
         return extractClaim(token, Claims::getSubject);
     }
 
+    // NEW: Extract userId from JWT token
+    public Long extractUserId(String token) {
+        Claims claims = extractAllClaims(token);
+        Object userIdObj = claims.get("userId");
+        if (userIdObj instanceof Integer) {
+            return ((Integer) userIdObj).longValue();
+        } else if (userIdObj instanceof Long) {
+            return (Long) userIdObj;
+        }
+        return null;
+    }
+
     // Why: เมธอดสำหรับสร้าง Token จากข้อมูล UserDetails
     public String generateToken(UserDetails userDetails) {
-        return generateToken(new HashMap<>(), userDetails);
+        Map<String, Object> extraClaims = new HashMap<>();
+        
+        // Add userId to token claims if available
+        if (userDetails instanceof User) {
+            User user = (User) userDetails;
+            extraClaims.put("userId", user.getId());
+            extraClaims.put("role", user.getRole().name());
+        }
+        
+        return generateToken(extraClaims, userDetails);
     }
 
     // Why: เมธอดสำหรับตรวจสอบความถูกต้องของ Token
@@ -43,6 +65,16 @@ public class JwtUtil {
         final String username = extractUsername(token);
         // Why: ตรวจสอบว่า username ใน token ตรงกับ user ที่ login อยู่ และ token ยังไม่หมดอายุ
         return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
+    }
+
+    // NEW: Simple token validation without UserDetails (checks expiration and signature only)
+    public boolean validateToken(String token, String username) {
+        try {
+            final String tokenUsername = extractUsername(token);
+            return (tokenUsername.equals(username) && !isTokenExpired(token));
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private boolean isTokenExpired(String token) {
