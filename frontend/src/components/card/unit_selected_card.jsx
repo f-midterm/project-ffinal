@@ -16,7 +16,7 @@ function UnitSelectedCard({ unit, isSelected, onSelect }) {
     >
       <h3 className="text-lg font-medium text-gray-900">Si {roomNumber}</h3>
       <p className="text-sm text-gray-500">
-        Rent: ${rentAmount} / Floor: {floor}
+        Rent: {rentAmount}฿ / Floor: {floor}
       </p>
       <p className="text-xs text-gray-400 mt-1">{type}</p>
     </div>                  

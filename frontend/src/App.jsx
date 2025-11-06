@@ -17,6 +17,7 @@ import ProfilePage from "./pages/user/profile/page";
 import UnitPage from "./pages/admin/unit/page";
 import UserLayout from "./pages/user/layout";
 import RentalRequestsPage from "./pages/admin/rental-requests/page";
+import WaitingPage from "./pages/booking/waiting/page";
 
 function App() {
 
@@ -49,6 +50,12 @@ function App() {
             </PrivateRoute>
           } />
           
+          <Route path="/booking/waiting" element={
+            <PrivateRoute>
+              <WaitingPage />
+            </PrivateRoute>
+          } />
+
           <Route path="/create-profile" element={
             <PrivateRoute>
               <CreateProfilePage />

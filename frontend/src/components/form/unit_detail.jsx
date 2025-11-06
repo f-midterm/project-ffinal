@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getUnitById } from '../../api/services/units.service';
 import { createAuthenticatedRentalRequest } from '../../api/services/rentalRequests.service';
 import { getCurrentUser } from '../../api/services/auth.service';
+import SubmissionSuccessModal from '../modal/submission_success_modal';
 
 function UnitDetail({ selectedUnitId, onClose }) {
   const [unit, setUnit] = useState(null);
@@ -11,6 +12,7 @@ function UnitDetail({ selectedUnitId, onClose }) {
   const [submitting, setSubmitting] = useState(false);
   const [leaseDuration, setLeaseDuration] = useState(1);
   const [userProfile, setUserProfile] = useState(null);
+  const [isSubmissionSuccessModalOpen, setIsSubmissionSuccessModalOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -148,8 +150,8 @@ function UnitDetail({ selectedUnitId, onClose }) {
         onClose();
       }
       
-      // Redirect to waiting page
-      navigate('/booking/waiting');
+      // Open success modal
+      setIsSubmissionSuccessModalOpen(true);
       
     } catch (err) {
       console.error('Error submitting rental request:', err);
@@ -197,7 +199,7 @@ function UnitDetail({ selectedUnitId, onClose }) {
         
         <div className="space-y-2">
           <p><span className="font-semibold">Type:</span> {unit.type}</p>
-          <p><span className="font-semibold">Rent:</span> ${unit.rentAmount}/month</p>
+          <p><span className="font-semibold">Rent:</span> {unit.rentAmount}฿/month</p>
           <p><span className="font-semibold">Floor:</span> {unit.floor}</p>
           <p><span className="font-semibold">Size:</span> {unit.sizeSqm} sqm</p>
           <p><span className="font-semibold">Status:</span> {unit.status}</p>
@@ -228,7 +230,7 @@ function UnitDetail({ selectedUnitId, onClose }) {
             <div className="mt-4 p-4 bg-gray-50 rounded-lg">
               <div className="flex justify-between items-center mb-2">
                 <span className="font-semibold">Monthly Rent:</span>
-                <span>${unit.rentAmount}</span>
+                <span>{unit.rentAmount}฿</span>
               </div>
               <div className="flex justify-between items-center mb-2">
                 <span className="font-semibold">Duration:</span>
@@ -243,23 +245,10 @@ function UnitDetail({ selectedUnitId, onClose }) {
               <div className="flex justify-between items-center pt-2 border-t border-gray-300">
                 <span className="font-bold text-lg">Total Amount:</span>
                 <span className="font-bold text-lg text-blue-600">
-                  ${calculateTotalAmount().toFixed(2)}
+                  {calculateTotalAmount().toFixed(2)}฿
                 </span>
               </div>
             </div>
-            
-            {/* User Info Preview
-            {userProfile && userProfile.firstName && (
-              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm font-semibold mb-2">Your Information:</p>
-                <p className="text-sm text-gray-700">
-                  {userProfile.firstName} {userProfile.lastName} • {userProfile.email}
-                </p>
-                {userProfile.phone && (
-                  <p className="text-sm text-gray-700">Phone: {userProfile.phone}</p>
-                )}
-              </div>
-            )} */}
             
             {/* Profile Incomplete Warning */}
             {userProfile && !userProfile.firstName && (
@@ -298,6 +287,10 @@ function UnitDetail({ selectedUnitId, onClose }) {
           </form>
         </div>
       </div>
+      <SubmissionSuccessModal
+        isOpen={isSubmissionSuccessModalOpen}
+        onClose={() => setIsSubmissionSuccessModalOpen(false)}
+      />
     </div>
   );
 }
