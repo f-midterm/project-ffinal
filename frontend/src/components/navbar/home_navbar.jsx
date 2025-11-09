@@ -233,7 +233,7 @@ function HomeNavbar({ isAuthenticated, onAuthChange }) {
                   </button>
                 </>
               ) : (
-                <>
+                <div className='flex flex-col items-center gap-4'>
                   <Link
                     to="/signup"
                     className="btn-primary rounded-full text-white text-lg font-medium px-8 py-3 bg-gradient-to-r from-[#0076D4] to-[#303841] shadow-md hover:translate-y-[-2px] transition-transform"
@@ -248,7 +248,7 @@ function HomeNavbar({ isAuthenticated, onAuthChange }) {
                   >
                     Login
                   </Link>
-                </>
+                </div>
               )}
             </div>
           </div>

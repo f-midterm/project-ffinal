@@ -6,10 +6,10 @@ function AdminNavbar({ toggleSidebar }) {
   return (
     <div className='fixed top-0 left-0 right-0 z-10'>
         <div className='w-full transition-colors duration-300 shadow-md'>
-            <div className='flex justify-between py-4 px-32 bg-white'>
+            <div className='flex justify-between py-4 lg:px-32 px-6 bg-white'>
 
                 {/* Left Side */}
-                <div className='flex gap-12 items-center'>
+                <div className='flex lg:gap-12 gap-6 items-center'>
                     <button 
                         className='btn rounded-full p-3 hover:text-[#0076D4]'
                         onClick={toggleSidebar}
@@ -20,7 +20,7 @@ function AdminNavbar({ toggleSidebar }) {
                 </div>
                 
                 {/* Right Side */}
-                <div className='flex gap-12 items-center'>
+                <div className='flex lg:gap-12 gap-6 items-center'>
                     <button className='btn rounded-full p-3 hover:text-[#0076D4]'>
                         <FiBell size={24} />
                     </button>
