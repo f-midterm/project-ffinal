@@ -6,6 +6,7 @@ import useMediaQuery from '../../hooks/useMediaQuery';
 import { useBookingStatus } from '../../hooks/useBookingStatus';
 import UnitSelectedModal from '../../components/modal/unit_selected_modal';
 import RejectionNotificationModal from '../../components/modal/rejection_notification_modal';
+import { FiChevronLeft } from "react-icons/fi";
 
 function BookingPage() {
   const navigate = useNavigate();
@@ -165,7 +166,17 @@ function BookingPage() {
 
   return (
     <div>
-      <div className='w-full max-w-6xl mx-auto rounded-xl p-6 sm:p-10'>
+      <div className='p-8 lg:p-12'>
+        {/* Back to Home Button*/}
+        <div className='flex justify-start'>
+          <button
+            onClick={() => navigate("/")}
+            className="flex lg:gap-2 gap-1 items-center btn border-2 lg:py-2 lg:px-4 p-1 rounded-lg hover:translate-y-[-1px] hover:shadow-md cursor-pointer text-xs lg:text-base"
+          >
+            <FiChevronLeft /> Back to Home
+          </button>
+        </div>
+
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className='title mb-4 lg:mb-6 p-2'>

@@ -7,6 +7,7 @@ import {
 } from "../../../../api/services/rentalRequests.service";
 import { useAuth } from "../../../../hooks/useAuth";
 import { HiArrowLeft } from "react-icons/hi2";
+import { FiChevronLeft } from "react-icons/fi";
 
 function RentalRequestDetailPage() {
   const { id } = useParams();
@@ -183,9 +184,9 @@ function RentalRequestDetailPage() {
         </div>
         <button
           onClick={() => navigate("/admin/rental-requests")}
-          className="mt-4 text-blue-600 hover:text-blue-800"
+          className="flex lg:gap-2 gap-1 items-center btn border-2 lg:py-2 lg:px-4 p-1 rounded-lg hover:translate-y-[-1px] hover:shadow-md cursor-pointer text-xs lg:text-base"
         >
-          ← Back to Requests
+          <FiChevronLeft /> Back to Requests
         </button>
       </div>
     );
