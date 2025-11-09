@@ -1,24 +1,67 @@
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../hooks/useAuth';
+import { useBookingStatus } from '../../../hooks/useBookingStatus';
 import { PiBuilding } from "react-icons/pi";
+import SelectedUnitDetail from '../../../components/form/selected_unit_detail';
 
 function ProfilePage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, isAdmin, loading } = useAuth();
+  const { user, isAdmin, loading: authLoading } = useAuth();
+  const { status, loading: bookingStatusLoading, error } = useBookingStatus();
 
   useEffect(() => {
-    if (!loading && user) {
+    if (!authLoading && user) {
       if (!isAdmin && user.id.toString() !== id) {
         navigate(`/user/${user.id}`);
       }
     }
-  }, [id, user, isAdmin, loading, navigate]);
+  }, [id, user, isAdmin, authLoading, navigate]);
 
-  if (loading) {
+  if (authLoading || bookingStatusLoading) {
     return <div>Loading...</div>;
   }
+
+  const renderLeaseDetail = () => {
+    if (error) {
+      return <div className='text-red-500'>Error: {error}</div>;
+    }
+
+    if (status?.isApproved) {
+      return <SelectedUnitDetail unitId={status.unitId} />;
+    }
+
+    if (status?.isPending) {
+      return (
+        <div className='flex lg:flex-1 border border-gray-400 rounded-2xl justify-center items-center h-full'>
+          <div className='text-center lg:py-0 py-32'>
+            <div className="flex justify-center mb-4">
+              <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center">
+                <PiBuilding size={32} className='text-yellow-500' />
+              </div>
+            </div>
+            <h2 className="text-2xl font-semibold text-gray-700">
+              Your application is waiting for approval.
+            </h2>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className='flex lg:flex-1 border border-gray-400 rounded-2xl justify-center items-center h-full'>
+        <div className='text-center lg:py-0 py-32'>
+          <div className="flex justify-center mb-4">
+            <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center"><PiBuilding size={32} className='text-gray-500' /></div>
+          </div>
+          <h2 className="text-2xl font-semibold text-gray-700">
+            You haven't any application
+          </h2>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className='flex flex-col lg:flex-row gap-8'>
@@ -41,22 +84,15 @@ function ProfilePage() {
           </div>
         </div>
 
-        <button className='w-full bg-gray-800 text-white py-4 rounded-xl shadow-md hover:translate-y-[-1px]'>
+        <button className='w-full bg-gray-800 text-white py-4 rounded-xl shadow-md hover:translate-y-[-1px] hover:shadow-lg hover:bg-gray-700'>
           Edit Profile
         </button>
         
       </div>
 
       {/* Lease Detail */}
-      <div className='flex lg:flex-1 border border-gray-400 rounded-2xl justify-center items-center'>
-        <div className='text-center lg:py-0 py-32'>
-          <div className="flex justify-center mb-4">
-            <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center"><PiBuilding size={32} className='text-gray-500' /></div>
-          </div>
-          <h2 className="text-2xl font-semibold text-gray-700">
-            You haven't any application
-          </h2>
-        </div>
+      <div className='lg:flex-1 flex justify-center items-center'>
+        {renderLeaseDetail()}
       </div>
     </div>
   )
