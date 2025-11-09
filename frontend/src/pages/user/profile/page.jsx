@@ -1,7 +1,24 @@
-import React from 'react'
+import React, { useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../hooks/useAuth';
 import { PiBuilding } from "react-icons/pi";
 
 function ProfilePage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { user, isAdmin, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && user) {
+      if (!isAdmin && user.id.toString() !== id) {
+        navigate(`/user/${user.id}`);
+      }
+    }
+  }, [id, user, isAdmin, loading, navigate]);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className='flex flex-col lg:flex-row gap-8'>
@@ -14,12 +31,13 @@ function ProfilePage() {
         {/* Profile Detail */}
         <div className='lg:mb-12 mb-6'>
           <span className='text-md text-gray-400'>Profile</span><div className="border-t border-gray-300 pt-4"></div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Username</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">{user?.username}</h2>
           <div className="space-y-2">
-            <ProfileDetail label="Fullname" value={"Fullname"} />
-            <ProfileDetail label="Email" value={"who@company.com"} isEmail={true} />
-            <ProfileDetail label="Phone" value={"123-123-1234"} />
-            <ProfileDetail label="Emergency" value={"123-123-1234"} />
+            <ProfileDetail label="Fullname" value={user?.firstName + " " + user?.lastName || 'N/A'} />
+            <ProfileDetail label="Email" value={user?.email || 'N/A'} isEmail={true} />
+            <ProfileDetail label="Phone" value={user?.phone || 'N/A'} />
+            <ProfileDetail label="Emergency Contact" value={user?.emergencyContact || 'N/A'} />
+            <ProfileDetail label="Emergency Phone" value={user?.emergencyPhone || 'N/A'} />
           </div>
         </div>
 
@@ -57,4 +75,4 @@ function ProfileDetail({ label, value, isEmail = false }) {
   );
 }
 
-export default ProfilePage
+export default ProfilePage;

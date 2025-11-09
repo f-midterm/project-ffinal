@@ -112,7 +112,7 @@ function HomeNavbar({ isAuthenticated, onAuthChange }) {
                   >
                     <FiUser size={24} className="text-[#0076D4]" />
                   </button>
-                  <span className="font-medium text-gray-700">{username}</span>
+                  <span className="font-medium text-gray-700">{user?.username}</span>
 
                   {isDropdownOpen && (
                     <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">

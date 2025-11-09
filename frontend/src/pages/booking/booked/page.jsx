@@ -1,8 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../hooks/useAuth';
 
 function BookedPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   return (
     <div className="flex justify-center items-center min-h-screen">
@@ -41,7 +43,7 @@ function BookedPage() {
 
         <div className="flex justify-center gap-4">
           <button
-            onClick={() => navigate('/user/profile')}
+            onClick={() => navigate(`/user/${user?.id}`)}
             className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             Go to Dashboard
