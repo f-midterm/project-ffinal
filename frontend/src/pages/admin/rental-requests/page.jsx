@@ -116,10 +116,11 @@ function RentalRequestsPage() {
                 </div>
             ) : (
                 /* Request Cards */
-                <div className='space-y-4'>
+                <div className='space-y-4 mt-6'>
                     {sortedRequests.map(request => (
                         <RentalRequestCard
-                            key={request}
+                            key={request.id}
+                            request={request}
                         />
                     ))}
                 </div>

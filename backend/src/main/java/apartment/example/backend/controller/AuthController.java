@@ -6,6 +6,7 @@ import apartment.example.backend.dto.RegisterRequest;
 import apartment.example.backend.dto.RegisterResponse;
 import apartment.example.backend.dto.CreateProfileRequest;
 import apartment.example.backend.dto.CreateProfileResponse;
+import apartment.example.backend.dto.UserProfileDto;
 import apartment.example.backend.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -81,6 +82,37 @@ public class AuthController {
             return ResponseEntity.badRequest().build();
         } catch (Exception e) {
             log.error("Unexpected error creating profile: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Get current user endpoint - returns authenticated user's profile information
+     * @param authHeader Authorization header containing JWT token
+     * @return UserProfileDto with user and tenant information
+     */
+    @GetMapping("/me")
+    public ResponseEntity<UserProfileDto> getCurrentUser(
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        try {
+            log.info("Get current user request received");
+            
+            // Check for authorization header
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                log.error("Get current user failed: No authentication token provided or invalid format");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+            
+            String token = authHeader.substring(7); // Remove "Bearer " prefix
+            log.info("Token extracted for getCurrentUser");
+            
+            UserProfileDto profile = authService.getCurrentUserProfile(token);
+            return ResponseEntity.ok(profile);
+        } catch (IllegalArgumentException e) {
+            log.error("Error getting current user: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        } catch (Exception e) {
+            log.error("Unexpected error getting current user: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

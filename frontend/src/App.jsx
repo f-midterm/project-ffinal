@@ -17,6 +17,10 @@ import ProfilePage from "./pages/user/profile/page";
 import UnitPage from "./pages/admin/unit/page";
 import UserLayout from "./pages/user/layout";
 import RentalRequestsPage from "./pages/admin/rental-requests/page";
+import WaitingPage from "./pages/booking/waiting/page";
+import BookedPage from "./pages/booking/booked/page";
+import RentalRequestDetailPage from "./pages/admin/rental-requests/[id]/page";
+
 
 function App() {
 
@@ -39,6 +43,7 @@ function App() {
             <Route path="payments" element={<PaymentsPage />} />
             <Route path="maintenance" element={<MaintenancePage />} />
             <Route path="rental-requests" element={<RentalRequestsPage />} />
+            <Route path="rental-requests/:id" element={<RentalRequestDetailPage />} />
             <Route path="unit/:id" element={<UnitPage />} />
           </Route>
 
@@ -49,6 +54,18 @@ function App() {
             </PrivateRoute>
           } />
           
+          <Route path="/booking/waiting" element={
+            <PrivateRoute>
+              <WaitingPage />
+            </PrivateRoute>
+          } />
+
+          <Route path="/booking/booked" element={
+            <PrivateRoute>
+              <BookedPage />
+            </PrivateRoute>
+          } />
+
           <Route path="/create-profile" element={
             <PrivateRoute>
               <CreateProfilePage />

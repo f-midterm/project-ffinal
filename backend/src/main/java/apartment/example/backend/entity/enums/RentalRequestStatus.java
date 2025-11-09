@@ -1,4 +1,4 @@
-package apartment.example.backend.entity;
+package apartment.example.backend.entity.enums;
 
 public enum RentalRequestStatus {
     PENDING,

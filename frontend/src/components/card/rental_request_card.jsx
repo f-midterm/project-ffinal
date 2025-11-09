@@ -1,6 +1,25 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom'
 
+const getStatusBadgeColor = (status) => {
+    switch (status) {
+        case 'PENDING':
+            return 'bg-yellow-100 text-yellow-800';
+        case 'APPROVED':
+            return 'bg-green-100 text-green-800';
+        case 'REJECTED':
+            return 'bg-red-100 text-red-800';
+        default:
+            return 'bg-gray-100 text-gray-800';
+    }
+};
+
+const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString(undefined, options);
+};
+
 const RentalRequestCard = ({ request }) => {
     
     const navigate = useNavigate()
@@ -9,7 +28,7 @@ const RentalRequestCard = ({ request }) => {
     }
 
     return (
-        <div className="bg-white shadow-md rounded-lg p-6 mb-4 hover:shadow-lg hover:-translate-y-[-2px] transition-all cursor-pointer"
+        <div className="bg-white shadow-md rounded-xl p-6 mb-4 hover:shadow-lg hover:-translate-y-[-2px] transition-all cursor-pointer"
             key={request.id}
             onClick={() => handleCardClick(request.id)}
         >
@@ -48,7 +67,7 @@ const RentalRequestCard = ({ request }) => {
                     </p>
                     {request.unit && (
                         <p className='text-lg font-semibold text-blue-600 mt-2'>
-                            ${request.unit.rentAmount}/month
+                            {request.unit.rentAmount}฿/month
                         </p>
                     )}
                 </div>

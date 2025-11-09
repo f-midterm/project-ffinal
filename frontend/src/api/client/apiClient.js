@@ -90,7 +90,8 @@ class APIClient {
         // Try to parse as JSON first
         try {
           const parsed = JSON.parse(errorData);
-          errorMessage = parsed.message || errorData;
+          // Extract message from various error formats
+          errorMessage = parsed.message || parsed.error || parsed.details || errorData;
         } catch {
           errorMessage = errorData;
         }
