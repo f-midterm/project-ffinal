@@ -14,6 +14,7 @@ function BookingPage() {
   const navigate = useNavigate();
   const [selectedUnitId, setSelectedUnitId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isUnitDetailLoading, setIsUnitDetailLoading] = useState(false);
   const isLargeScreen = useMediaQuery('(min-width: 1024px)');
 
   // Booking status hook
@@ -28,10 +29,14 @@ function BookingPage() {
   } = useBookingStatus();
 
   const handleSelectUnit = (unitId) => {
+    setIsUnitDetailLoading(true);
     setSelectedUnitId(unitId);
     if (!isLargeScreen) {
       setIsModalOpen(true);
     }
+    setTimeout(() => {
+      setIsUnitDetailLoading(false);
+    }, 500);
   };
 
   const handleCloseModal = () => {
@@ -177,7 +182,7 @@ function BookingPage() {
           {/* Right Column: Unit Detail (on large screens) */}
           {isLargeScreen && (
             <div className="lg:col-span-2">
-              <UnitDetail selectedUnitId={selectedUnitId} />
+              <UnitDetail selectedUnitId={selectedUnitId} isLoading={isUnitDetailLoading} />
             </div>
           )}
         </div>
@@ -185,7 +190,7 @@ function BookingPage() {
         {/* Modal for Unit Detail (on small screens) */}
         {!isLargeScreen && (
           <UnitSelectedModal isOpen={isModalOpen} onClose={handleCloseModal}>
-            <UnitDetail selectedUnitId={selectedUnitId} onClose={handleCloseModal} />
+            <UnitDetail selectedUnitId={selectedUnitId} onClose={handleCloseModal} isLoading={isUnitDetailLoading} />
           </UnitSelectedModal>
         )}
       </div>
