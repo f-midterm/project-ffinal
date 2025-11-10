@@ -55,7 +55,7 @@ function UserNavbar({ toggleSidebar }) {
           {/* Right Side */}
           <div className="flex lg:gap-12 gap-6 items-center">
             <Link
-              to="/user/:id/notifications"
+              to="/user/{:id}/notifications"
               className="btn rounded-full p-3 hover:text-[#0076D4]"
             >
               <FiBell size={24} />
