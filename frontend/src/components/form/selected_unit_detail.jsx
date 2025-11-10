@@ -70,7 +70,7 @@ function SelectedUnitDetail({ unitId }) {
         alt={`${unit?.type} room`}
         className="w-full h-48 object-cover"
       />
-      <div className="p-8 lg:mt-6 mt-4">
+      <div className="p-8 lg:mt-2 mt-2">
         <h2 className="text-3xl font-bold text-gray-800 mb-6">Your Apartment</h2>
         
         {/* Unit Details */}
@@ -106,6 +106,16 @@ function SelectedUnitDetail({ unitId }) {
             <p className="text-gray-600">No active lease found for this unit.</p>
           </div>
         )}
+      </div>
+
+      {/* Check out Button */}
+      <div className='flex justify-end p-4'>
+        <button 
+          className='bg-red-400 px-6 py-2 rounded-xl font-medium hover:bg-red-500 text-white shadow-md hover:translate-y-[-1px]'
+          onClick={() => {}}
+        >
+          Check Out
+        </button>
       </div>
     </div>
   );
