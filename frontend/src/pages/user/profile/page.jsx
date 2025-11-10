@@ -5,6 +5,8 @@ import { useBookingStatus } from '../../../hooks/useBookingStatus';
 import { PiBuilding } from "react-icons/pi";
 import SelectedUnitDetail from '../../../components/form/selected_unit_detail';
 
+import ProfilePageSkeleton from '../../../components/skeleton/profile_page_skeleton';
+
 function ProfilePage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -20,7 +22,7 @@ function ProfilePage() {
   }, [id, user, isAdmin, authLoading, navigate]);
 
   if (authLoading || bookingStatusLoading) {
-    return <div>Loading...</div>;
+    return <ProfilePageSkeleton />;
   }
 
   const renderLeaseDetail = () => {
@@ -35,7 +37,7 @@ function ProfilePage() {
     if (status?.isPending) {
       return (
         <div className='flex lg:flex-1 border border-gray-400 rounded-2xl justify-center items-center h-full'>
-          <div className='text-center lg:py-0 py-32'>
+          <div className='text-center lg:py-0 py-32 px-24'>
             <div className="flex justify-center mb-4">
               <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center">
                 <PiBuilding size={32} className='text-yellow-500' />
@@ -51,13 +53,16 @@ function ProfilePage() {
 
     return (
       <div className='flex lg:flex-1 border border-gray-400 rounded-2xl justify-center items-center h-full'>
-        <div className='text-center lg:py-0 py-32'>
+        <div className='text-center lg:py-0 py-32 px-24'>
           <div className="flex justify-center mb-4">
             <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center"><PiBuilding size={32} className='text-gray-500' /></div>
           </div>
-          <h2 className="text-2xl font-semibold text-gray-700">
+          <h2 className="text-2xl font-semibold text-gray-700 mb-4">
             You haven't any application
           </h2>
+          <div onClick={() => navigate('/booking')} className='py-4 rounded-full bg-blue-400 text-white font-medium hover:bg-blue-500 cursor-pointer shadow-md hover:translate-y-[-1px] transition-all duration-300'>
+            Book now
+          </div>
         </div>
       </div>
     );

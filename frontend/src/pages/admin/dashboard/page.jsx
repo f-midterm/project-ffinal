@@ -6,14 +6,22 @@ import { GrDocumentText } from "react-icons/gr";
 import { Link } from 'react-router-dom';
 import UnitCard from '../../../components/card/unit_card';
 import { getAllUnits } from '../../../api/services/units.service';
+import { getAllRentalRequests } from '../../../api/services/rentalRequests.service';
+import AdminDashboardSkeleton from '../../../components/skeleton/admin_dashboard_skeleton';
 
 function AdminDashboard() {
   const [unitsByFloor, setUnitsByFloor] = useState({});
+  const [rentalRequestsCount, setRentalRequestsCount] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUnits = async () => {
+    const fetchData = async () => {
       try {
-        const units = await getAllUnits();
+        const [units, rentalRequests] = await Promise.all([
+          getAllUnits(),
+          getAllRentalRequests()
+        ]);
+
         const groupedUnits = units.reduce((acc, unit) => {
           const { floor } = unit;
           if (!acc[floor]) {
@@ -23,13 +31,20 @@ function AdminDashboard() {
           return acc;
         }, {});
         setUnitsByFloor(groupedUnits);
+        setRentalRequestsCount(rentalRequests.length);
       } catch (error) {
-        console.error("Failed to fetch units:", error);
+        console.error("Failed to fetch data:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchUnits();
+    fetchData();
   }, []);
+
+  if (loading) {
+    return <AdminDashboardSkeleton />;
+  }
 
   return (
     <div className='flex flex-col'>
@@ -48,7 +63,7 @@ function AdminDashboard() {
       <div className='grid gap-6 grid-cols-1 lg:grid-cols-3 justify-center items-center mb-12'>
         {/* Rental Requests */}
         <Link to="/admin/rental-requests" className='hover:translate-y-[-1px] hover:shadow-lg'>
-          <StatCard icon={<MdPendingActions />} title={"Rental Requests"} value={`2 Requests`} color={"green"} />
+          <StatCard icon={<MdPendingActions />} title={"Rental Requests"} value={`${rentalRequestsCount} Requests`} color={"green"} />
         </Link>
 
         {/* Maintenance Requests */}

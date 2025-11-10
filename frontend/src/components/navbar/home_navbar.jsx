@@ -148,7 +148,7 @@ function HomeNavbar({ isAuthenticated, onAuthChange }) {
                       <li>
                         <button
                           onClick={handleLogout}
-                          className="flex items-center w-full px-4 py-2 text-left text-gray-800 hover:bg-gray-100"
+                          className="flex items-center w-full px-4 py-2 text-left text-gray-800 hover:bg-gray-100 text-red-600"
                         >
                           <FiLogOut className="mr-2" />
                           Logout
@@ -226,7 +226,7 @@ function HomeNavbar({ isAuthenticated, onAuthChange }) {
                       handleLogout();
                       setMobileMenuOpen(false);
                     }}
-                    className="flex justify-center items-center w-full px-4 py-4 text-left text-gray-800 hover:bg-gray-100"
+                    className="flex justify-center items-center w-full px-4 py-4 text-left text-gray-800 hover:bg-gray-100 text-red-600"
                   >
                     <FiLogOut className="mr-2" />
                     Logout

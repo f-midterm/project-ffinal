@@ -3,6 +3,8 @@ import { getAllRentalRequests } from '../../../api/services/rentalRequests.servi
 import { HiOutlineInbox } from 'react-icons/hi2'
 import RentalRequestCard from '../../../components/card/rental_request_card'
 
+import RentalRequestsPageSkeleton from '../../../components/skeleton/rental_requests_page_skeleton';
+
 function RentalRequestsPage() {
 
     const [rentalRequests, setRentalRequests] = useState([])
@@ -95,9 +97,7 @@ function RentalRequestsPage() {
 
             {/* Loading Content*/}
             {loading ? (
-                <div className="flex justify-center items-center p-16">
-                    <div className="text-gray-600">Loading rental requests...</div>
-                </div>
+                <RentalRequestsPageSkeleton />
             ) : sortedRequests.length === 0 ? (
                 /* Empty State */
                 <div className="p-16 flex flex-col items-center justify-center text-center">

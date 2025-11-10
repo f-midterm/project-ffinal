@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { FiMenu, FiBell, FiUser, FiLogOut, FiSettings } from "react-icons/fi";
+import { FiMenu, FiBell, FiUser, FiLogOut } from "react-icons/fi";
 import { GoHome } from "react-icons/go";
 import { useAuth } from "../../hooks/useAuth";
 
@@ -69,22 +69,12 @@ function AdminNavbar({ toggleSidebar }) {
                   <ul className="py-1">
                     <li>
                       <Link
-                        to="/user/{:id}"
+                        to={`/user/${user.id}`}
                         className="flex items-center px-4 py-2 text-gray-800 hover:bg-gray-100"
                         onClick={() => setDropdownOpen(false)}
                       >
                         <FiUser className="mr-2" />
                         Profile
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
-                        to="/settings"
-                        className="flex items-center px-4 py-2 text-gray-800 hover:bg-gray-100"
-                        onClick={() => setDropdownOpen(false)}
-                      >
-                        <FiSettings className="mr-2" />
-                        Settings
                       </Link>
                     </li>
                     <li>
@@ -100,7 +90,7 @@ function AdminNavbar({ toggleSidebar }) {
                     <li>
                       <button
                         onClick={handleLogout}
-                        className="flex items-center w-full px-4 py-2 text-left text-gray-800 hover:bg-gray-100"
+                        className="flex items-center w-full px-4 py-2 text-left text-gray-800 hover:bg-gray-100 text-red-600"
                       >
                         <FiLogOut className="mr-2" />
                         Logout

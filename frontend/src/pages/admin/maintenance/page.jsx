@@ -1,10 +1,26 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react';
 import StatCard from '../../../components/card/stat_card'
 import { MdDone, MdOutlinePending, MdOutlineDoNotDisturb } from "react-icons/md";
 import { PiHammer } from "react-icons/pi";
 import MaintenanceTable from '../../../components/table/maintenance_table';
+import MaintenancePageSkeleton from '../../../components/skeleton/maintenance_page_skeleton';
 
 function MaintenancePage() {
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate data fetching
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1500); // Adjust time as needed
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (loading) {
+    return <MaintenancePageSkeleton />;
+  }
+
   return (
     <div className='flex flex-col'>
       {/* Header */}

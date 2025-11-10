@@ -4,8 +4,9 @@ import { getUnitById } from '../../api/services/units.service';
 import { createAuthenticatedRentalRequest } from '../../api/services/rentalRequests.service';
 import { getCurrentUser } from '../../api/services/auth.service';
 import SubmissionSuccessModal from '../modal/submission_success_modal';
+import UnitDetailSkeleton from '../skeleton/unit_detail_skeleton';
 
-function UnitDetail({ selectedUnitId, onClose }) {
+function UnitDetail({ selectedUnitId, onClose, isLoading }) {
   const [unit, setUnit] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -50,6 +51,10 @@ function UnitDetail({ selectedUnitId, onClose }) {
     }
   }, [selectedUnitId]);
 
+  if (isLoading) {
+    return <UnitDetailSkeleton />;
+  }
+
   if (!selectedUnitId) {
     return (
       <div className="flex items-center justify-center h-full p-8 border-2 border-dashed rounded-lg">
@@ -59,7 +64,7 @@ function UnitDetail({ selectedUnitId, onClose }) {
   }
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <UnitDetailSkeleton />;
   }
 
   if (error) {

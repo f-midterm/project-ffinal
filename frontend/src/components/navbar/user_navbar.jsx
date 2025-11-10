@@ -5,7 +5,6 @@ import {
   FiBell,
   FiUser,
   FiLogOut,
-  FiSettings,
   FiGrid,
   FiHome,
 } from "react-icons/fi";
@@ -47,19 +46,19 @@ function UserNavbar({ toggleSidebar }) {
             >
               <FiMenu size={24} />
             </button>
-            <Link to="/user/{:id}" className="logo text-4xl font-semibold">
+            <div onClick={() => navigate(`/user/${user?.id}`)} className="logo text-4xl font-semibold cursor-pointer">
               BeLiv
-            </Link>
+            </div>
           </div>
 
           {/* Right Side */}
           <div className="flex lg:gap-12 gap-6 items-center">
-            <Link
-              to="/user/{:id}/notifications"
-              className="btn rounded-full p-3 hover:text-[#0076D4]"
+            <div
+              onClick={() => navigate(`/user/${user?.id}/notifications`)}
+              className="btn rounded-full p-3 hover:text-[#0076D4] cursor-pointer"
             >
               <FiBell size={24} />
-            </Link>
+            </div>
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen(!isDropdownOpen)}
@@ -76,22 +75,12 @@ function UserNavbar({ toggleSidebar }) {
                   <ul className="py-1">
                     <li>
                       <Link
-                        to="/user/{:id}"
+                        to={`/user/${user?.id}`}
                         className="flex items-center px-4 py-2 text-gray-800 hover:bg-gray-100"
                         onClick={() => setDropdownOpen(false)}
                       >
                         <FiUser className="mr-2" />
                         Profile
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
-                        to="/settings"
-                        className="flex items-center px-4 py-2 text-gray-800 hover:bg-gray-100"
-                        onClick={() => setDropdownOpen(false)}
-                      >
-                        <FiSettings className="mr-2" />
-                        Settings
                       </Link>
                     </li>
                     {isAdmin && (
@@ -102,7 +91,7 @@ function UserNavbar({ toggleSidebar }) {
                           onClick={() => setDropdownOpen(false)}
                         >
                           <FiGrid className="mr-2" />
-                          Admin Dashboard
+                          Dashboard
                         </Link>
                       </li>
                     )}
@@ -119,7 +108,7 @@ function UserNavbar({ toggleSidebar }) {
                     <li>
                       <button
                         onClick={handleLogout}
-                        className="flex items-center w-full px-4 py-2 text-left text-gray-800 hover:bg-gray-100"
+                        className="flex items-center w-full px-4 py-2 text-left text-gray-800 hover:bg-gray-100 text-red-600"
                       >
                         <FiLogOut className="mr-2" />
                         Logout
