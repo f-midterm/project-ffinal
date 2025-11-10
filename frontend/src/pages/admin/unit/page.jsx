@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { getUnitById } from '../../../api/services/units.service';
+import { getUnitDetails } from '../../../api/services/units.service';
 import TenantsUnitTable from '../../../components/table/tenants_unit_table';
 import ElectricBillChart from '../../../components/chart/electric_bill_chart';
 import WaterBillChart from '../../../components/chart/water_bill_chart';
@@ -13,14 +13,18 @@ import UnitPageSkeleton from '../../../components/skeleton/unit_page_skeleton';
 function UnitPage() {
   const { id } = useParams();
   const [unit, setUnit] = useState(null);
+  const [lease, setLease] = useState(null);
+  const [tenant, setTenant] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const unitData = await getUnitById(id);
-        setUnit(unitData);
+        const { unit, lease, tenant } = await getUnitDetails(id);
+        setUnit(unit);
+        setLease(lease);
+        setTenant(tenant);
 
       } catch (err) {
         setError(err);
@@ -66,7 +70,7 @@ function UnitPage() {
         {/* Left Column */}
         <div className='lg:col-span-2 flex flex-col gap-6'>
           {/* Tenant infomation */}
-          <TenantsUnitTable />
+          <TenantsUnitTable unit={unit} lease={lease} tenant={tenant} />
 
           {/* Electricity and Water bill graph */}
           <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
