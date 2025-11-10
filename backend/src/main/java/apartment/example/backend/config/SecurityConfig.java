@@ -52,10 +52,27 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints - no authentication required
                         .requestMatchers("/auth/**", "/health/**", "/ready").permitAll()
+                        // Prometheus metrics endpoint - allow unauthenticated access for Prometheus scraping
+                        .requestMatchers("/actuator/prometheus", "/actuator/health", "/actuator/info").permitAll()
+                        
+                        // Units - Read access for authenticated users, Write access for ADMIN only
+                        .requestMatchers(HttpMethod.GET, "/units/**").authenticated()  // Any authenticated user can view
+                        .requestMatchers("/units/**").hasAnyRole("ADMIN")  // Only ADMIN can create/update/delete
+                        
+                        // Rental Requests - User endpoints (MUST be before the catch-all admin rule)
+                        .requestMatchers(HttpMethod.GET, "/rental-requests/me/latest").authenticated()  // User can check their own status
+                        .requestMatchers(HttpMethod.POST, "/rental-requests/*/acknowledge").authenticated()  // User can acknowledge rejection (single path segment)
+                        .requestMatchers(HttpMethod.POST, "/rental-requests/authenticated").authenticated()  // User can submit authenticated booking
+                        .requestMatchers(HttpMethod.POST, "/rental-requests", "/rental-requests/unit/**").authenticated()  // Users can submit (legacy)
+                        .requestMatchers("/rental-requests/**").hasAnyRole("ADMIN")  // ADMIN can view/approve/reject (catch-all)
+                        
+                        // Settings - Read access for authenticated, Write for ADMIN only
+                        .requestMatchers(HttpMethod.GET, "/settings/**").authenticated()
+                        .requestMatchers("/settings/**").hasAnyRole("ADMIN")
+                        
                         // Admin-only endpoints
-                        .requestMatchers("/units/**", "/tenants/**", "/leases/**", 
-                                       "/payments/**", "/maintenance-requests/**", 
-                                       "/rental-requests/**").hasAnyRole("ADMIN")
+                        .requestMatchers("/admin/**", "/tenants/**", "/leases/**", 
+                                       "/payments/**", "/maintenance-requests/**").hasAnyRole("ADMIN")
                         // Villager endpoints (villagers can access their own data)
                         .requestMatchers("/villager/**").hasAnyRole("VILLAGER", "ADMIN")
                         // All other requests must be authenticated

@@ -18,6 +18,10 @@ public interface LeaseRepository extends JpaRepository<Lease, Long> {
     
     List<Lease> findByTenantId(Long tenantId);
     
+    List<Lease> findByTenantIdAndStatus(Long tenantId, LeaseStatus status);
+    
+    long countByTenantIdAndStatus(Long tenantId, LeaseStatus status);
+    
     List<Lease> findByUnitId(Long unitId);
     
     Optional<Lease> findByUnitIdAndStatus(Long unitId, LeaseStatus status);
@@ -35,4 +39,8 @@ public interface LeaseRepository extends JpaRepository<Lease, Long> {
     boolean existsOverlappingLease(@Param("unitId") Long unitId, 
                                   @Param("startDate") LocalDate startDate, 
                                   @Param("endDate") LocalDate endDate);
+    
+    @Query("SELECT l FROM Lease l WHERE l.status = :status AND l.tenant.email = :email")
+    List<Lease> findByStatusAndTenantEmail(@Param("status") LeaseStatus status, 
+                                           @Param("email") String email);
 }

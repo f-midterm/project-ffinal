@@ -9,6 +9,118 @@
 
 import apiClient from '../client/apiClient';
 
+// ============================================
+// NEW AUTHENTICATED ENDPOINTS (User-based booking flow)
+// ============================================
+
+/**
+ * Get the latest rental request status for the authenticated user
+ * Used by booking page to check if user can book, has pending request, etc.
+ * 
+ * @async
+ * @function getMyLatestRequest
+ * @returns {Promise<{
+ *   id: number,
+ *   userId: number,
+ *   unitId: number,
+ *   status: string,
+ *   isPending: boolean,
+ *   isApproved: boolean,
+ *   isRejected: boolean,
+ *   requiresAcknowledgement: boolean,
+ *   hasActiveLease: boolean,
+ *   canCreateNewRequest: boolean,
+ *   statusMessage: string,
+ *   rejectionReason: string
+ * }>} Latest request status with flags
+ * @throws {Error} When request fails or user not authenticated
+ * 
+ * @example
+ * const status = await getMyLatestRequest();
+ * if (status.isPending) {
+ *   // Redirect to waiting page
+ * } else if (status.requiresAcknowledgement) {
+ *   // Show rejection modal
+ * }
+ */
+export const getMyLatestRequest = async () => {
+  return await apiClient.get('/rental-requests/me/latest');
+};
+
+/**
+ * Acknowledge a rejected rental request
+ * Dismisses the rejection notification and allows user to create new booking
+ * 
+ * @async
+ * @function acknowledgeRejection
+ * @param {number} id - Rental request ID to acknowledge
+ * @returns {Promise<{
+ *   requestId: number,
+ *   acknowledgedAt: string,
+ *   message: string,
+ *   canCreateNewRequest: boolean
+ * }>} Acknowledgement confirmation
+ * @throws {Error} When acknowledgement fails (not owner, already acknowledged, etc.)
+ * 
+ * @example
+ * await acknowledgeRejection(5);
+ * // User can now submit new booking request
+ */
+export const acknowledgeRejection = async (id) => {
+  return await apiClient.post(`/rental-requests/${id}/acknowledge`);
+};
+
+/**
+ * Create rental request with authentication (RECOMMENDED for logged-in users)
+ * Includes full validation: prevents duplicate bookings, VILLAGER blocking, etc.
+ * 
+ * @async
+ * @function createAuthenticatedRentalRequest
+ * @param {object} requestData - Rental request creation data
+ * @param {number} requestData.unitId - ID of the unit being applied for
+ * @param {string} requestData.firstName - Applicant's first name
+ * @param {string} requestData.lastName - Applicant's last name
+ * @param {string} requestData.email - Applicant's email address
+ * @param {string} requestData.phone - Applicant's phone number
+ * @param {string} [requestData.occupation] - Applicant's occupation
+ * @param {string} [requestData.emergencyContact] - Emergency contact name
+ * @param {string} [requestData.emergencyPhone] - Emergency contact phone
+ * @param {number} requestData.leaseDurationMonths - Desired lease duration in months
+ * @param {string} [requestData.notes] - Additional notes
+ * @returns {Promise<object>} Created rental request
+ * @throws {Error} When creation fails
+ * @throws {Error} With status 409 if user already has pending/approved booking
+ * @throws {Error} With status 409 if user hasn't acknowledged previous rejection
+ * 
+ * @example
+ * try {
+ *   const request = await createAuthenticatedRentalRequest({
+ *     unitId: 5,
+ *     firstName: 'Jane',
+ *     lastName: 'Smith',
+ *     email: 'jane@example.com',
+ *     phone: '9876543210',
+ *     occupation: 'Software Engineer',
+ *     emergencyContact: 'John Smith',
+ *     emergencyPhone: '1234567890',
+ *     leaseDurationMonths: 12,
+ *     notes: 'Prefer early move-in'
+ *   });
+ * } catch (error) {
+ *   if (error.message.includes('409')) {
+ *     // Handle duplicate booking error
+ *     alert('You already have a pending or approved booking');
+ *   }
+ * }
+ */
+export const createAuthenticatedRentalRequest = async (requestData) => {
+  return await apiClient.post('/rental-requests/authenticated', requestData);
+};
+
+// ============================================
+// EXISTING ENDPOINTS (Legacy/Admin use)
+// ============================================
+
 /**
  * Retrieves all rental requests
  * 
@@ -45,6 +157,7 @@ export const getRentalRequestById = async (id) => {
 /**
  * Creates a new rental request
  * 
+ * @deprecated Use createAuthenticatedRentalRequest() for logged-in users
  * @async
  * @function createRentalRequest
  * @param {object} requestData - Rental request creation data
@@ -58,6 +171,7 @@ export const getRentalRequestById = async (id) => {
  * @throws {Error} When creation fails
  * 
  * @example
+ * // Legacy endpoint - use createAuthenticatedRentalRequest() instead
  * const newRequest = await createRentalRequest({
  *   unitId: 5,
  *   applicantName: 'Jane Smith',
@@ -129,20 +243,27 @@ export const getPendingRentalRequests = async () => {
 };
 
 /**
- * Approves a rental request
+ * Approves a rental request and creates a lease
  * 
  * @async
  * @function approveRentalRequest
  * @param {number} id - Rental request ID to approve
+ * @param {object} approvalData - Approval details
+ * @param {number} approvalData.approvedByUserId - ID of the admin user approving
+ * @param {string} approvalData.startDate - Lease start date (YYYY-MM-DD)
+ * @param {string} approvalData.endDate - Lease end date (YYYY-MM-DD)
  * @returns {Promise<{id: number, status: string}>} Updated rental request
  * @throws {Error} When approval fails
  * 
  * @example
- * await approveRentalRequest(1);
- * console.log('Rental request approved');
+ * await approveRentalRequest(1, {
+ *   approvedByUserId: 10,
+ *   startDate: '2025-11-01',
+ *   endDate: '2026-11-01'
+ * });
  */
-export const approveRentalRequest = async (id) => {
-  return await updateRentalRequest(id, { status: 'APPROVED' });
+export const approveRentalRequest = async (id, approvalData) => {
+  return await apiClient.put(`/rental-requests/${id}/approve`, approvalData);
 };
 
 /**
@@ -151,13 +272,18 @@ export const approveRentalRequest = async (id) => {
  * @async
  * @function rejectRentalRequest
  * @param {number} id - Rental request ID to reject
+ * @param {object} rejectionData - Rejection details
+ * @param {string} rejectionData.reason - Reason for rejection
+ * @param {number} [rejectionData.rejectedByUserId] - ID of the admin user rejecting
  * @returns {Promise<{id: number, status: string}>} Updated rental request
  * @throws {Error} When rejection fails
  * 
  * @example
- * await rejectRentalRequest(1);
- * console.log('Rental request rejected');
+ * await rejectRentalRequest(1, {
+ *   reason: 'Incomplete documentation',
+ *   rejectedByUserId: 10
+ * });
  */
-export const rejectRentalRequest = async (id) => {
-  return await updateRentalRequest(id, { status: 'REJECTED' });
+export const rejectRentalRequest = async (id, rejectionData) => {
+  return await apiClient.put(`/rental-requests/${id}/reject`, rejectionData);
 };

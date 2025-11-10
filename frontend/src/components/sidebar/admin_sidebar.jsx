@@ -6,12 +6,11 @@ const navLinks = [
   { name: "Tenants", path: "/admin/tenants" },
   { name: "Payments", path: "/admin/payments" },
   { name: "Maintenance", path: "/admin/maintenance" },
-  { name: "Inbox", path: "/admin/inbox" },
   { name: "Report", path: "/admin/report" },
 ];
 
 const settingsLinks = [
-  { name: "Setting", path: "/admin/settings" },
+  { name: "Notfications", path: "/admin/notifications" },
   { name: "Terms & Policy", path: "/admin/terms" },
 ];
 

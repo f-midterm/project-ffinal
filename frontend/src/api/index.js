@@ -34,6 +34,7 @@ export {
 export {
   getAllUnits,
   getUnitById,
+  getUnitDetails,
   createUnit,
   updateUnit,
   deleteUnit,

@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import AdminNavbar from '../../components/navbar/admin_navbar'
 import AdminSidebar from '../../components/sidebar/admin_sidebar';
-import Footer from '../../components/footer/Footer';
 
 function AdminLayout() {
 
@@ -23,8 +22,6 @@ function AdminLayout() {
         <main className='flex-1 w-full mx-auto lg:py-36 lg:px-32 py-36 px-12 sm:px-24 bg-[#F3F3F3]'>
             <Outlet />
         </main>
-
-        <Footer />
     </div>
   )
 }
