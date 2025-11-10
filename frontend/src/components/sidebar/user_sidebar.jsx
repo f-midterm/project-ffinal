@@ -16,8 +16,7 @@ function UserSidebar({ isOpen, setIsOpen }) {
   ];
 
   const settingsLinks = [
-    { name: "Setting", path: `/user/${user?.id}/settings` },
-    { name: "Notification", path: `/user/${user?.id}/notification`},
+    { name: "Notifications", path: `/user/${user?.id}/notifications`},
     { name: "Help", path: `/user/${user?.id}/help`},
     { name: "Terms & Policy", path: `/user/${user?.id}/terms` },
   ];

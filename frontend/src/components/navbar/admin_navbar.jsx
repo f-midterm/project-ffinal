@@ -79,16 +79,6 @@ function AdminNavbar({ toggleSidebar }) {
                     </li>
                     <li>
                       <Link
-                        to="/settings"
-                        className="flex items-center px-4 py-2 text-gray-800 hover:bg-gray-100"
-                        onClick={() => setDropdownOpen(false)}
-                      >
-                        <FiSettings className="mr-2" />
-                        Settings
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
                         to="/"
                         className="flex items-center px-4 py-2 text-gray-800 hover:bg-gray-100"
                         onClick={() => setDropdownOpen(false)}
@@ -100,7 +90,7 @@ function AdminNavbar({ toggleSidebar }) {
                     <li>
                       <button
                         onClick={handleLogout}
-                        className="flex items-center w-full px-4 py-2 text-left text-gray-800 hover:bg-gray-100"
+                        className="flex items-center w-full px-4 py-2 text-left text-gray-800 hover:bg-gray-100 text-red-600"
                       >
                         <FiLogOut className="mr-2" />
                         Logout
