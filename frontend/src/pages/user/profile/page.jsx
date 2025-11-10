@@ -37,7 +37,7 @@ function ProfilePage() {
     if (status?.isPending) {
       return (
         <div className='flex lg:flex-1 border border-gray-400 rounded-2xl justify-center items-center h-full'>
-          <div className='text-center lg:py-0 py-32'>
+          <div className='text-center lg:py-0 py-32 px-24'>
             <div className="flex justify-center mb-4">
               <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center">
                 <PiBuilding size={32} className='text-yellow-500' />
@@ -53,7 +53,7 @@ function ProfilePage() {
 
     return (
       <div className='flex lg:flex-1 border border-gray-400 rounded-2xl justify-center items-center h-full'>
-        <div className='text-center lg:py-0 py-32'>
+        <div className='text-center lg:py-0 py-32 px-24'>
           <div className="flex justify-center mb-4">
             <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center"><PiBuilding size={32} className='text-gray-500' /></div>
           </div>
