@@ -8,6 +8,8 @@ import MaintenanceLogTable from '../../../components/table/maintenance_log_table
 import QuickActionCard from '../../../components/card/quick_action_card';
 import UnitFilesCard from '../../../components/card/unit_files_card';
 
+import UnitPageSkeleton from '../../../components/skeleton/unit_page_skeleton';
+
 function UnitPage() {
   const { id } = useParams();
   const [unit, setUnit] = useState(null);
@@ -31,7 +33,7 @@ function UnitPage() {
   }, [id]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <UnitPageSkeleton />;
   }
 
   if (error) {

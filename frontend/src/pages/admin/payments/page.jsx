@@ -1,11 +1,27 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react';
 import PaymentsTable from '../../../components/table/payments_table'
 import StatCard from '../../../components/card/stat_card'
 import { MdAttachMoney, MdOutlinePending, MdOutlineTrendingUp } from "react-icons/md";
 import { IoBanOutline } from "react-icons/io5";
 import { Link } from 'react-router-dom'
+import PaymentsPageSkeleton from '../../../components/skeleton/payments_page_skeleton';
 
 function PaymentsPage() {
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate data fetching
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1500); // Adjust time as needed
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (loading) {
+    return <PaymentsPageSkeleton />;
+  }
+
   return (
     <div className='flex flex-col'>
         {/* Header */}

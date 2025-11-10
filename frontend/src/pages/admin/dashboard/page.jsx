@@ -6,9 +6,11 @@ import { GrDocumentText } from "react-icons/gr";
 import { Link } from 'react-router-dom';
 import UnitCard from '../../../components/card/unit_card';
 import { getAllUnits } from '../../../api/services/units.service';
+import AdminDashboardSkeleton from '../../../components/skeleton/admin_dashboard_skeleton';
 
 function AdminDashboard() {
   const [unitsByFloor, setUnitsByFloor] = useState({});
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchUnits = async () => {
@@ -25,11 +27,17 @@ function AdminDashboard() {
         setUnitsByFloor(groupedUnits);
       } catch (error) {
         console.error("Failed to fetch units:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchUnits();
   }, []);
+
+  if (loading) {
+    return <AdminDashboardSkeleton />;
+  }
 
   return (
     <div className='flex flex-col'>
@@ -89,3 +97,4 @@ function AdminDashboard() {
 }
 
 export default AdminDashboard;
+
