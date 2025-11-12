@@ -21,6 +21,8 @@ import WaitingPage from "./pages/booking/waiting/page";
 import BookedPage from "./pages/booking/booked/page";
 import RentalRequestDetailPage from "./pages/admin/rental-requests/[id]/page";
 import SendBillPage from "./pages/admin/unit/send_bill/page";
+import ContactTenantPage from "./pages/admin/unit/contact_tenant/page";
+import PaymentsHistoryPage from "./pages/admin/unit/payment_history/page";
 
 
 function App() {
@@ -46,7 +48,9 @@ function App() {
             <Route path="rental-requests" element={<RentalRequestsPage />} />
             <Route path="rental-requests/:id" element={<RentalRequestDetailPage />} />
             <Route path="unit/:id" element={<UnitPage />} />
-            <Route path="send-invoice/:id" element={<SendBillPage />} />
+            <Route path="unit/:id/send-invoice" element={<SendBillPage />} />
+            <Route path="unit/:id/contact-tenant" element={<ContactTenantPage />} />
+            <Route path="unit/:id/payments-history" element={<PaymentsHistoryPage />} />
           </Route>
 
           {/* Protected Routes - Require Authentication */}

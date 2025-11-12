@@ -88,7 +88,7 @@ function UnitPage() {
         {/* Action Button */}
         <div className='flex justify-space gap-4'>
           <button 
-            onClick={() => navigate(`/admin/send-invoice/${unit?.id}`)}
+            onClick={() => navigate(`/admin/unit/${unit.id}/send-invoice`)}
             className="bg-white text-gray-800 font-medium py-2 px-6 rounded-lg shadow-md hover:translate-y-[-1px] hover:bg-gray-50"
           >
             Send Invoice
