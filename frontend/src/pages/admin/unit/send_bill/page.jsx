@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getUnitDetails } from '../../../api/services/units.service';
+import { getUnitDetails } from '../../../../api/services/units.service';
 import { RiBillLine } from "react-icons/ri";
 import { HiArrowLeft } from "react-icons/hi2";
 

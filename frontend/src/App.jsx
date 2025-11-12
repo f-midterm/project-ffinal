@@ -20,7 +20,7 @@ import RentalRequestsPage from "./pages/admin/rental-requests/page";
 import WaitingPage from "./pages/booking/waiting/page";
 import BookedPage from "./pages/booking/booked/page";
 import RentalRequestDetailPage from "./pages/admin/rental-requests/[id]/page";
-import SendBillPage from "./pages/admin/send_bill/page";
+import SendBillPage from "./pages/admin/unit/send_bill/page";
 
 
 function App() {
