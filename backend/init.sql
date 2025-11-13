@@ -20,6 +20,7 @@ USE apartment_db;
 DROP TABLE IF EXISTS rental_requests;
 DROP TABLE IF EXISTS maintenance_requests;
 DROP TABLE IF EXISTS payments;
+DROP TABLE IF EXISTS invoices;
 DROP TABLE IF EXISTS leases;
 DROP TABLE IF EXISTS tenants;
 DROP TABLE IF EXISTS units;
@@ -137,10 +138,40 @@ CREATE TABLE leases (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
--- PAYMENTS TABLE
+-- INVOICES TABLE (Master invoice with INV-YYYYMMDD-XXX format)
+-- ============================================
+CREATE TABLE invoices (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    invoice_number VARCHAR(50) UNIQUE NOT NULL,  -- Format: INV-YYYYMMDD-XXX
+    lease_id BIGINT NOT NULL,
+    invoice_date DATE NOT NULL,
+    due_date DATE NOT NULL,
+    total_amount DECIMAL(10,2) NOT NULL,
+    status ENUM('PENDING', 'PAID', 'OVERDUE', 'PARTIAL', 'CANCELLED') NOT NULL DEFAULT 'PENDING',
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME NULL,
+    created_by_user_id BIGINT,
+    updated_by_user_id BIGINT,
+    FOREIGN KEY (lease_id) REFERENCES leases(id) ON DELETE RESTRICT,
+    FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_invoice_number (invoice_number),
+    INDEX idx_lease (lease_id),
+    INDEX idx_invoice_date (invoice_date),
+    INDEX idx_due_date (due_date),
+    INDEX idx_status (status),
+    CONSTRAINT chk_invoice_total_amount CHECK (total_amount > 0),
+    CONSTRAINT chk_invoice_dates CHECK (due_date >= invoice_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
+-- PAYMENTS TABLE (Line items linked to invoice)
 -- ============================================
 CREATE TABLE payments (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    invoice_id BIGINT,  -- NULL for standalone payments, NOT NULL for invoice line items
     lease_id BIGINT NOT NULL,
     payment_type ENUM('RENT', 'ELECTRICITY', 'WATER', 'MAINTENANCE', 'SECURITY_DEPOSIT', 'OTHER') NOT NULL DEFAULT 'RENT',
     amount DECIMAL(10,2) NOT NULL,
@@ -148,16 +179,18 @@ CREATE TABLE payments (
     paid_date DATE,
     payment_method ENUM('CASH', 'BANK_TRANSFER', 'CHECK', 'ONLINE') DEFAULT 'CASH',
     status ENUM('PENDING', 'PAID', 'OVERDUE', 'PARTIAL') NOT NULL DEFAULT 'PENDING',
-    receipt_number VARCHAR(50) UNIQUE,  -- Added UNIQUE constraint
+    receipt_number VARCHAR(50) UNIQUE,  -- Format: RENT-XXX, ELEC-XXX, WATER-XXX
     notes TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at DATETIME NULL,  -- Soft delete support
     created_by_user_id BIGINT,  -- Audit trail
     updated_by_user_id BIGINT,  -- Audit trail
+    FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE RESTRICT,
     FOREIGN KEY (lease_id) REFERENCES leases(id) ON DELETE RESTRICT,  -- Changed from CASCADE
     FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_invoice (invoice_id),
     INDEX idx_lease (lease_id),
     INDEX idx_due_date (due_date),
     INDEX idx_status (status),
