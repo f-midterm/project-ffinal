@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom';
 import { FcInspection } from "react-icons/fc";
+import BillingContentCard from '../../../components/card/billing_content_card';
 
 function BillingPage() {
 
@@ -13,7 +14,7 @@ function BillingPage() {
                     <FcInspection size={64} />
                 </div>
                 <div className='text-3xl text-gray-600 font-medium mb-4'>
-                    You've paid all bills!
+                    You're not have any bills
                 </div>
             </div>
             
@@ -36,8 +37,14 @@ function BillingPage() {
                 <div className='border-b border-gray-400 mb-4'></div>
 
                 <div className='flex gap-6 mb-6 items-center '>
-                    <div className='bg-green-200 rounded-full p-4 text-green-600'>Date</div>
-                    <div>Content</div>
+                    <div className='flex bg-green-200 rounded-full px-4 py-2 text-green-600 flex-col items-center justify-center text-sm'>
+                        <div>Date</div>
+                        <div>Month</div>
+                        <div>Year</div>
+                    </div>
+                    <div className='w-full'>
+                        <BillingContentCard />
+                    </div>
                 </div>
                 
                 <div className='text-xl font-medium mb-4'>
@@ -47,8 +54,12 @@ function BillingPage() {
                 <div className='border-b border-gray-400 mb-4'></div>
 
                 <div className='flex gap-6 mb-6 items-center '>
-                    <div className='bg-blue-200 rounded-full p-4 text-blue-600'>Date</div>
-                    <div>Content</div>
+                    <div className='flex bg-blue-200 rounded-full px-4 py-2 text-blue-600 flex-col items-center justify-center text-sm'>
+                        <div>Date</div>
+                        <div>Month</div>
+                        <div>Year</div>
+                    </div>
+                    <div className='w-full'><BillingContentCard /></div>
                 </div>
             </div>
         </div>
