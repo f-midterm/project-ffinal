@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getUnitDetails } from '../../../../api/services/units.service';
 import { getUtilityRates } from '../../../../api/services/settings.service';
-import { createBillByAdmin } from '../../../../api/services/payments.service';
+import { createInvoice } from '../../../../api/services/invoices.service';
 import { RiBillLine } from "react-icons/ri";
 import { HiArrowLeft } from "react-icons/hi2";
 
@@ -32,6 +32,7 @@ function SendBillPage() {
     // Invoice details
     const [invoiceDate, setInvoiceDate] = useState('');
     const [dueDate, setDueDate] = useState('');
+    const [invoiceNumber, setInvoiceNumber] = useState(''); // Store invoice number from backend
 
     // Sending state
     const [sending, setSending] = useState(false);
@@ -113,59 +114,47 @@ function SendBillPage() {
             const leaseId = lease.id;
             const currentMonth = new Date().toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
 
-            console.log('Sending bills with data:', {
+            console.log('Creating invoice with data:', {
                 leaseId,
+                invoiceDate,
+                dueDate,
+                rentAmount: unit.rentAmount,
+                electricityAmount,
+                waterAmount
+            });
+
+            // Create invoice with payment line items
+            const invoice = await createInvoice({
+                leaseId,
+                invoiceDate,
+                dueDate,
                 rentAmount: unit.rentAmount,
                 electricityAmount,
                 waterAmount,
-                dueDate,
-                currentMonth
+                notes: `ค่าเช่าและค่าสาธารณูปโภคประจำเดือน ${currentMonth}`
             });
 
-            // Create 3 payment records
-            await Promise.all([
-                // 1. RENT
-                createBillByAdmin({
-                    leaseId,
-                    paymentType: 'RENT',
-                    amount: unit.rentAmount,
-                    dueDate,
-                    description: `ค่าเช่าประจำเดือน ${currentMonth}`
-                }),
-                // 2. ELECTRICITY
-                createBillByAdmin({
-                    leaseId,
-                    paymentType: 'ELECTRICITY',
-                    amount: electricityAmount,
-                    dueDate,
-                    description: `ค่าไฟฟ้า ${electricityUnits} หน่วย × ${electricityRate} ฿/หน่วย`
-                }),
-                // 3. WATER
-                createBillByAdmin({
-                    leaseId,
-                    paymentType: 'WATER',
-                    amount: waterAmount,
-                    dueDate,
-                    description: `ค่าน้ำ ${waterUnits} หน่วย × ${waterRate} ฿/หน่วย`
-                })
-            ]);
+            console.log('✅ Invoice created successfully:', invoice);
+            console.log('Invoice Number:', invoice.invoiceNumber);
+            
+            // Store invoice number for display
+            setInvoiceNumber(invoice.invoiceNumber);
 
             // Success - navigate back
-            console.log('✅ Bills sent successfully!');
-            alert('✅ ส่งบิลให้ผู้เช่าเรียบร้อยแล้ว');
+            alert(`✅ ส่งบิลเรียบร้อยแล้ว\nเลขที่ใบแจ้งหนี้: ${invoice.invoiceNumber}`);
             navigate(`/admin/unit/${unit.id}`);
         } catch (err) {
-            console.error('Failed to send bill:', err);
+            console.error('Failed to create invoice:', err);
             console.error('Error response:', err.response);
             
             // Extract error message from response
-            let errorMessage = 'Failed to send bill. Please try again.';
+            let errorMessage = 'Failed to create invoice. Please try again.';
             if (err.response?.data?.message) {
                 errorMessage = err.response.data.message;
             } else if (err.response?.status === 500) {
                 errorMessage = 'Server error occurred. Please check the lease is active and try again.';
             } else if (err.response?.status === 400) {
-                errorMessage = 'Invalid bill data. Please check all fields.';
+                errorMessage = 'Invalid invoice data. Please check all fields.';
             } else if (err.message) {
                 errorMessage = err.message;
             }
@@ -230,7 +219,9 @@ function SendBillPage() {
                         <div className='text-gray-500 space-y-4'>
                             <div className='flex items-center justify-between'>
                                 <div>Invoice ID :</div>
-                                <div className='text-black'>INV-{invoiceDate.replace(/-/g, '')}-{unit?.id}</div>
+                                <div className='text-black'>
+                                    {invoiceNumber ? invoiceNumber : `INV-${invoiceDate.replace(/-/g, '')}-${unit?.id}`}
+                                </div>
                             </div>
                             <div className='flex items-center justify-between'>
                                 <div>Invoice Date :</div>

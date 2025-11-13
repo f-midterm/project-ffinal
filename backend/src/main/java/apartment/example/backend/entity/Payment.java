@@ -34,6 +34,13 @@ public class Payment {
     @EqualsAndHashCode.Exclude
     private Lease lease;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "invoice_id")
+    @JsonBackReference("invoice-payments")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private Invoice invoice;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_type", nullable = false)
     private PaymentType paymentType;

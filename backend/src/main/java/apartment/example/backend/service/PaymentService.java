@@ -207,7 +207,7 @@ public class PaymentService {
         paymentRepository.delete(payment);
     }
 
-    private String generateReceiptNumber(PaymentType paymentType) {
+    public String generateReceiptNumber(PaymentType paymentType) {
         String prefix = switch (paymentType) {
             case RENT -> "RENT";
             case ELECTRICITY -> "ELEC";

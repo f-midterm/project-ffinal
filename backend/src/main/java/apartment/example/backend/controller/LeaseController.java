@@ -3,11 +3,14 @@ package apartment.example.backend.controller;
 import apartment.example.backend.entity.Lease;
 import apartment.example.backend.entity.enums.LeaseStatus;
 import apartment.example.backend.service.LeaseService;
+import apartment.example.backend.service.PdfService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,6 +25,7 @@ import java.util.Map;
 public class LeaseController {
 
     private final LeaseService leaseService;
+    private final PdfService pdfService;
 
     @GetMapping
     public ResponseEntity<List<Lease>> getAllLeases() {
@@ -156,5 +160,43 @@ public class LeaseController {
     public ResponseEntity<Boolean> checkLeaseExists(@PathVariable Long id) {
         boolean exists = leaseService.existsById(id);
         return ResponseEntity.ok(exists);
+    }
+
+    /**
+     * Generate Lease Agreement PDF
+     * 
+     * @param id Lease ID
+     * @return PDF file as byte array
+     */
+    @GetMapping("/{id}/generate-pdf")
+    public ResponseEntity<byte[]> generateLeaseAgreementPdf(@PathVariable Long id) {
+        try {
+            log.info("Generating PDF for lease ID: {}", id);
+            
+            // Get lease with tenant and unit information
+            Lease lease = leaseService.getLeaseById(id)
+                    .orElseThrow(() -> new RuntimeException("Lease not found with id: " + id));
+
+            // Generate PDF
+            byte[] pdfBytes = pdfService.generateLeaseAgreementPdf(lease);
+
+            // Set headers for PDF download
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("attachment", "lease-agreement-" + id + ".pdf");
+            headers.setContentLength(pdfBytes.length);
+
+            log.info("PDF generated successfully for lease ID: {}", id);
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(pdfBytes);
+                    
+        } catch (RuntimeException e) {
+            log.error("Error generating PDF for lease ID {}: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        } catch (Exception e) {
+            log.error("Unexpected error generating PDF for lease ID {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }
