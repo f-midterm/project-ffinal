@@ -50,10 +50,6 @@ class TenantServiceTest {
         testTenant.setEmergencyContact("Jane Doe");
         testTenant.setEmergencyPhone("0887654321");
         testTenant.setOccupation("Engineer");
-        testTenant.setUnitId(101L);
-        testTenant.setMoveInDate(LocalDate.of(2024, 1, 1));
-        testTenant.setLeaseEndDate(LocalDate.of(2025, 1, 1));
-        testTenant.setMonthlyRent(new BigDecimal("15000.00"));
         testTenant.setStatus(TenantStatus.valueOf("ACTIVE"));
 
         testTenant2 = new Tenant();
@@ -62,7 +58,6 @@ class TenantServiceTest {
         testTenant2.setLastName("Smith");
         testTenant2.setEmail("jane.smith@example.com");
         testTenant2.setPhone("0823456789");
-        testTenant2.setUnitId(102L);
     }
 
     @Test
@@ -213,23 +208,7 @@ class TenantServiceTest {
         verify(tenantRepository, times(1)).findByEmailContainingIgnoreCase(email);
     }
 
-    @Test
-    @DisplayName("Should get tenants by unit id")
-    void getTenantsByUnitId_ShouldReturnMatchingTenants() {
-        // Arrange
-        Long unitId = 101L;
-        List<Tenant> tenants = Arrays.asList(testTenant);
-        when(tenantRepository.findByUnitId(unitId)).thenReturn(tenants);
-
-        // Act
-        List<Tenant> result = tenantService.getTenantsByUnitId(unitId);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals(unitId, result.get(0).getUnitId());
-        verify(tenantRepository, times(1)).findByUnitId(unitId);
-    }
+    // Test removed: getTenantsByUnitId - unitId moved to Lease entity
 
     @Test
     @DisplayName("Should create new tenant successfully")
@@ -259,10 +238,6 @@ class TenantServiceTest {
         updatedDetails.setEmergencyContact("Jane Updated");
         updatedDetails.setEmergencyPhone("0888888888");
         updatedDetails.setOccupation("Senior Engineer");
-        updatedDetails.setUnitId(201L);
-        updatedDetails.setMoveInDate(LocalDate.of(2024, 6, 1));
-        updatedDetails.setLeaseEndDate(LocalDate.of(2025, 6, 1));
-        updatedDetails.setMonthlyRent(new BigDecimal("20000.00"));
         updatedDetails.setStatus(TenantStatus.INACTIVE);
 
         when(tenantRepository.findById(1L)).thenReturn(Optional.of(testTenant));
@@ -278,7 +253,6 @@ class TenantServiceTest {
         assertEquals("johnny.doe@example.com", testTenant.getEmail());
         assertEquals("0899999999", testTenant.getPhone());
         assertEquals("Senior Engineer", testTenant.getOccupation());
-        assertEquals(201L, testTenant.getUnitId());
         assertEquals(TenantStatus.INACTIVE, testTenant.getStatus());
         verify(tenantRepository, times(1)).findById(1L);
         verify(tenantRepository, times(1)).save(testTenant);

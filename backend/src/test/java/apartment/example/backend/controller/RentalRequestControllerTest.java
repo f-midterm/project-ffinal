@@ -59,8 +59,6 @@ class RentalRequestControllerTest {
         sampleRequest.setEmergencyContact("Jane Doe");
         sampleRequest.setEmergencyPhone("0898765432");
         sampleRequest.setLeaseDurationMonths(12);
-        sampleRequest.setMonthlyRent(new BigDecimal("15000.00"));
-        sampleRequest.setTotalAmount(new BigDecimal("180000.00"));
         sampleRequest.setRequestDate(LocalDateTime.now());
         sampleRequest.setStatus(RentalRequestStatus.PENDING);
         sampleRequest.setNotes("Looking for long-term rental");
