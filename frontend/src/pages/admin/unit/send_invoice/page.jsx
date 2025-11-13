@@ -5,9 +5,10 @@ import { getUtilityRates } from '../../../../api/services/settings.service';
 import { createBillByAdmin } from '../../../../api/services/payments.service';
 import { RiBillLine } from "react-icons/ri";
 import { HiArrowLeft } from "react-icons/hi2";
+import SendInvoiceSkeleton from '../../../../components/skeleton/send_invoice_skeleton';
 
 
-function SendBillPage() {
+function SendInvoicePage() {
     const { id } = useParams();
     const [unit, setUnit] = useState(null);
     const [tenant, setTenant] = useState(null);
@@ -177,7 +178,7 @@ function SendBillPage() {
     };
 
     if (loading) {
-        return <div className="flex items-center justify-center h-64">Loading...</div>;
+        return <SendInvoiceSkeleton />;
     }
 
     if (error) {
@@ -218,10 +219,10 @@ function SendBillPage() {
                 Create Invoice
             </div>
             
-            <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+            <div className='grid grid-cols-1 gap-6'>
 
                 {/* Left Detail */}
-                <div className='grid grid-cols-1 lg:grid-rows-2 gap-6'>
+                <div className='grid grid-cols-1 gap-6'>
                     <div className='bg-white p-6 rounded-xl shadow-md'>
                         <div className='text-lg mb-4 font-medium'>
                             Invoice Details
