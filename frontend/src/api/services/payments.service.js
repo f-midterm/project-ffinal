@@ -144,3 +144,57 @@ export const getPendingPayments = async () => {
   const payments = await getAllPayments();
   return payments.filter(payment => payment.status === 'PENDING');
 };
+
+/**
+ * Retrieves payments for a specific unit
+ * 
+ * @async
+ * @function getPaymentsByUnitId
+ * @param {number} unitId - Unit ID
+ * @returns {Promise<Array<{id: number, type: string, amount: number, dueDate: string, paidDate: string, status: string}>>} Array of payments for the unit
+ * @throws {Error} When fetching fails
+ * 
+ * @example
+ * const payments = await getPaymentsByUnitId(1);
+ * console.log(`${payments.length} payments for this unit`);
+ */
+export const getPaymentsByUnitId = async (unitId) => {
+  return await apiClient.get(`/payments/unit/${unitId}`);
+};
+
+/**
+ * Creates a bill by admin (used in Send Bill page)
+ * 
+ * @async
+ * @function createBillByAdmin
+ * @param {object} billData - Bill creation data
+ * @param {number} billData.leaseId - ID of the associated lease
+ * @param {string} billData.paymentType - Payment type (RENT, ELECTRICITY, WATER, MAINTENANCE, SECURITY_DEPOSIT, OTHER)
+ * @param {number} billData.amount - Bill amount
+ * @param {string} billData.dueDate - Due date (YYYY-MM-DD format)
+ * @param {string} [billData.description] - Optional bill description
+ * @returns {Promise<{id: number, lease: object, paymentType: string, amount: number, dueDate: string, status: string, receiptNumber: string}>} Created bill/payment
+ * @throws {Error} When bill creation fails
+ * 
+ * @example
+ * const bill = await createBillByAdmin({
+ *   leaseId: 1,
+ *   paymentType: 'RENT',
+ *   amount: 5000,
+ *   dueDate: '2024-02-28',
+ *   description: 'ค่าเช่าประจำเดือน กุมภาพันธ์ 2024'
+ * });
+ */
+export const createBillByAdmin = async (billData) => {
+  // Backend expects query params, not JSON body
+  const params = new URLSearchParams();
+  params.append('leaseId', billData.leaseId);
+  params.append('paymentType', billData.paymentType);
+  params.append('amount', billData.amount);
+  params.append('dueDate', billData.dueDate);
+  if (billData.description) {
+    params.append('description', billData.description);
+  }
+  
+  return await apiClient.post(`/payments/create-bill?${params.toString()}`);
+};

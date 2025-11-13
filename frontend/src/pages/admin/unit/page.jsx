@@ -107,8 +107,8 @@ function UnitPage() {
 
           {/* Electricity and Water bill graph */}
           <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-            <ElectricBillChart />
-            <WaterBillChart />
+            <ElectricBillChart unitId={unit.id} />
+            <WaterBillChart unitId={unit.id} />
           </div>
 
           {/* Maintenance Log Table */}
