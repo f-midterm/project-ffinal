@@ -4,6 +4,11 @@ import { FcInspection } from "react-icons/fc";
 import BillingContentCard from '../../../components/card/billing_content_card';
 
 function BillingPage() {
+    
+    const navigate = useNavigate();
+    const { id } = useParams();
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     return (
         <div>

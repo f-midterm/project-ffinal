@@ -8,6 +8,7 @@ function BillingContentCard() {
             <div>Due Date</div>
             <div>Tenant name</div>
             <div>Unit</div>
+            <div className='text-indigo-500'>Type</div> {/* Type: RENT, MAINTENANCE, OTHER*/}
             <div className='text-blue-600'>Amount</div>
         </div>
     </div>
