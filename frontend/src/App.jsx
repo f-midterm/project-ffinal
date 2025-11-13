@@ -23,6 +23,8 @@ import RentalRequestDetailPage from "./pages/admin/rental-requests/[id]/page";
 import SendBillPage from "./pages/admin/unit/send_bill/page";
 import ContactTenantPage from "./pages/admin/unit/contact_tenant/page";
 import PaymentsHistoryPage from "./pages/admin/unit/payment_history/page";
+import UserNotificationsPage from "./pages/user/notifications/page";
+import AdminNotificationsPage from "./pages/admin/notifications/page";
 
 
 function App() {
@@ -51,6 +53,7 @@ function App() {
             <Route path="unit/:id/send-invoice" element={<SendBillPage />} />
             <Route path="unit/:id/contact-tenant" element={<ContactTenantPage />} />
             <Route path="unit/:id/payments-history" element={<PaymentsHistoryPage />} />
+            <Route path="notifications" element={<AdminNotificationsPage />} />
           </Route>
 
           {/* Protected Routes - Require Authentication */}
@@ -84,6 +87,7 @@ function App() {
             </UserRoute>
           }>
             <Route index element={<ProfilePage />} />
+            <Route path="notifications" element={<UserNotificationsPage />} />
           </Route>
 
           {/* Public Routes */}
