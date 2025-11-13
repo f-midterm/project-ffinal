@@ -25,6 +25,7 @@ import ContactTenantPage from "./pages/admin/unit/contact_tenant/page";
 import PaymentsHistoryPage from "./pages/admin/unit/payment_history/page";
 import UserNotificationsPage from "./pages/user/notifications/page";
 import AdminNotificationsPage from "./pages/admin/notifications/page";
+import BillingPage from "./pages/user/billing/page";
 
 
 function App() {
@@ -88,6 +89,7 @@ function App() {
           }>
             <Route index element={<ProfilePage />} />
             <Route path="notifications" element={<UserNotificationsPage />} />
+            <Route path="billing" element={<BillingPage />} />
           </Route>
 
           {/* Public Routes */}
