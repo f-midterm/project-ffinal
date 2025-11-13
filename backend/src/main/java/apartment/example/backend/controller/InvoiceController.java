@@ -3,7 +3,11 @@ package apartment.example.backend.controller;
 import apartment.example.backend.entity.Invoice;
 import apartment.example.backend.entity.enums.PaymentType;
 import apartment.example.backend.service.InvoiceService;
+import apartment.example.backend.service.PdfService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,6 +29,9 @@ public class InvoiceController {
 
     @Autowired
     private InvoiceService invoiceService;
+    
+    @Autowired
+    private PdfService pdfService;
 
     /**
      * Create a new invoice with payment line items
@@ -132,6 +139,28 @@ public class InvoiceController {
     public ResponseEntity<List<Invoice>> getInvoicesByLeaseId(@PathVariable Long leaseId) {
         List<Invoice> invoices = invoiceService.getInvoicesByLeaseId(leaseId);
         return ResponseEntity.ok(invoices);
+    }
+    
+    /**
+     * Download Invoice PDF
+     * 
+     * GET /invoices/{id}/pdf
+     */
+    @GetMapping("/{id}/pdf")
+    public ResponseEntity<byte[]> downloadInvoicePdf(@PathVariable Long id) {
+        try {
+            Invoice invoice = invoiceService.getInvoiceById(id);
+            
+            byte[] pdfBytes = pdfService.generateInvoicePdf(invoice);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("inline", invoice.getInvoiceNumber() + ".pdf");
+            
+            return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     /**

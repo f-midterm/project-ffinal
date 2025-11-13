@@ -59,6 +59,11 @@ class APIClient {
     const contentType = response.headers.get('content-type');
     const contentLength = response.headers.get('content-length');
     
+    // Handle PDF/Blob responses
+    if (contentType && contentType.includes('application/pdf')) {
+      return await response.blob();
+    }
+    
     // Handle empty responses (204 No Content, etc.)
     if (response.status === 204 || contentLength === '0' || 
         (!contentType || !contentType.includes('application/json'))) {
