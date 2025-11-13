@@ -5,7 +5,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: superproject-ns
+  name: beliv-apartment
   labels:
     app: apartment-system
     environment: production

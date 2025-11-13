@@ -20,10 +20,9 @@ import org.springframework.web.bind.annotation.*;
  * Handles user login, registration, and profile creation.
  */
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/auth")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*")
 public class AuthController {
 
     private final AuthService authService;

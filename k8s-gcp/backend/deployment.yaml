@@ -8,7 +8,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: backend
-  namespace: superproject-ns
+  namespace: beliv-apartment
   labels:
     app: apartment-system
     component: backend
@@ -46,8 +46,8 @@ spec:
       containers:
       - name: backend
         # GCP: Use Google Container Registry
-        # FORMAT: gcr.io/PROJECT_ID/IMAGE_NAME:TAG
-        image: gcr.io/YOUR_PROJECT_ID/apartment-backend:prod
+        # FORMAT: gcr.io/apartment-477216/IMAGE_NAME:TAG
+        image: gcr.io/apartment-477216/apartment-backend:prod
         imagePullPolicy: Always  # Always pull from GCR
         ports:
         - containerPort: 8080
@@ -86,7 +86,7 @@ spec:
           value: "86400000"  # 24 hours
         # CORS configuration
         - name: CORS_ALLOWED_ORIGINS
-          value: "https://beliv.muict.app"  # Change to your actual domain
+          value: "https://beliv.pipatpongpri.dev,http://beliv.pipatpongpri.dev"
         # Server configuration
         - name: SERVER_PORT
           value: "8080"

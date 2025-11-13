@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
  * Admin Controller for dashboard and admin-specific operations
  */
 @RestController
-@RequestMapping("/admin")
+@RequestMapping("/api/admin")
 @RequiredArgsConstructor
 @Slf4j
 @CrossOrigin(origins = "*")

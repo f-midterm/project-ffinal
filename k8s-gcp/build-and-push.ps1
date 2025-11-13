@@ -9,22 +9,24 @@
   3. Pushes them to GCR
   
 .PARAMETER ProjectId
-  GCP Project ID (e.g., "muict-project-2025")
+  GCP Project ID (optional - auto-detected from gcloud if not provided)
 
 .PARAMETER Tag
   Image tag (default: "prod")
 
 .EXAMPLE
-  .\build-and-push.ps1 -ProjectId "muict-project-2025"
+  .\build-and-push.ps1
+  # Auto-detect Project ID from gcloud config
 
 .EXAMPLE
-  .\build-and-push.ps1 -ProjectId "muict-project-2025" -Tag "v1.0.0"
+  .\build-and-push.ps1 -ProjectId "my-project-123456"
+
+.EXAMPLE
+  .\build-and-push.ps1 -Tag "v1.0.0"
 #>
 
 param(
-  [Parameter(Mandatory=$true)]
   [string]$ProjectId,
-  
   [string]$Tag = "prod"
 )
 
@@ -37,13 +39,24 @@ function Write-Section($msg) {
   Write-Host "============================================`n" -ForegroundColor Cyan
 }
 
-function Write-Success($msg) { Write-Host "✓ $msg" -ForegroundColor Green }
-function Write-Info($msg) { Write-Host "→ $msg" -ForegroundColor Yellow }
-function Write-Error($msg) { Write-Host "✗ $msg" -ForegroundColor Red }
+function Write-Success($msg) { Write-Host "[OK] $msg" -ForegroundColor Green }
+function Write-Info($msg) { Write-Host "[INFO] $msg" -ForegroundColor Yellow }
+function Write-Error($msg) { Write-Host "[ERROR] $msg" -ForegroundColor Red }
 
 # Get script and repo directories
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Split-Path -Parent $scriptDir
+
+# Auto-detect Project ID if not provided
+if (-not $ProjectId) {
+  Write-Host "Detecting Project ID from gcloud config..." -ForegroundColor Cyan
+  $ProjectId = gcloud config get-value project 2>$null
+  if (-not $ProjectId) {
+    Write-Error "No Project ID found! Run: gcloud config set project YOUR_PROJECT_ID"
+    exit 1
+  }
+  Write-Success "Auto-detected Project ID: $ProjectId"
+}
 
 Write-Host "`n🚀 Building and Pushing Docker Images to GCR" -ForegroundColor Magenta
 Write-Host "Project ID: $ProjectId" -ForegroundColor White
@@ -179,6 +192,8 @@ Write-Host "Images successfully pushed to Google Container Registry:`n" -Foregro
 Write-Host "  Backend:  gcr.io/$ProjectId/apartment-backend:$Tag" -ForegroundColor White
 Write-Host "  Frontend: gcr.io/$ProjectId/apartment-frontend:$Tag`n" -ForegroundColor White
 
-Write-Host "Next steps:" -ForegroundColor Yellow
-Write-Host "  1. Update deployment.yaml files with correct PROJECT_ID" -ForegroundColor White
-Write-Host "  2. Run: .\deploy.ps1 -ProjectId `"$ProjectId`" -Domain `"beliv.muict.app`"" -ForegroundColor White
+Write-Host "Next step:" -ForegroundColor Yellow
+Write-Host "  .\deploy.ps1 -ProjectId `"$ProjectId`"`n" -ForegroundColor Cyan
+Write-Host "Note: deploy.ps1 will handle everything (HTTP to HTTPS, DNS setup, etc.)" -ForegroundColor Gray
+
+

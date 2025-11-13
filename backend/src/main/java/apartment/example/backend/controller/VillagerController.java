@@ -16,7 +16,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/villager")
+@RequestMapping("/api/villager")
 @RequiredArgsConstructor
 @Slf4j
 @CrossOrigin(origins = "*")

@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hello-web-ingress
+  annotations:
+    # ❗️ ขั้นตอนที่ 1: Comment บรรทัดนี้ไว้ก่อน (รอได้ IP แล้วค่อยเปิด)
+    networking.gke.io/managed-certificates: "my-app-certificate"
+spec:
+  # ❗️ ขั้นตอนที่ 1: Comment ส่วน TLS ไว้ก่อน (รอได้ IP แล้วค่อยเปิด)
+  tls:
+  - hosts:
+    - "beliv.pipatpongpri.dev" # <-- ใส่ Domain ของคุณ
+    secretName: my-app-certificate-secret # GKE จะสร้าง Secret นี้ให้เองจาก Certificate
+  rules:
+  - host: "beliv.pipatpongpri.dev" # <-- Domain ของคุณ
+    http:
+      paths:
+      - path: "/"
+        pathType: Prefix
+        backend:
+          service:
+            name: hello-web-service
+            port:
+              number: 80

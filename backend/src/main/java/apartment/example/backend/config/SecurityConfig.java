@@ -50,8 +50,10 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+                        // CORS preflight requests - must be first
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // Public endpoints - no authentication required
-                        .requestMatchers("/auth/**", "/health/**", "/ready").permitAll()
+                        .requestMatchers("/api/auth/**", "/health/**", "/ready", "/api/health").permitAll()
                         // Prometheus metrics endpoint - allow unauthenticated access for Prometheus scraping
                         .requestMatchers("/actuator/prometheus", "/actuator/health", "/actuator/info").permitAll()
                         
@@ -91,7 +93,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         // Parse comma-separated origins from environment variable
         List<String> origins = Arrays.asList(allowedOrigins.split(","));
-        configuration.setAllowedOriginPatterns(origins);
+        configuration.setAllowedOrigins(origins);  // เปลี่ยนจาก setAllowedOriginPatterns
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);

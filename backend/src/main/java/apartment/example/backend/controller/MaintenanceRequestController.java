@@ -22,7 +22,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/maintenance-requests")
+@RequestMapping("/api/maintenance-requests")
 @RequiredArgsConstructor
 @Slf4j
 @CrossOrigin(origins = "*")

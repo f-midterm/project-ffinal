@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/units")
+@RequestMapping("/api/units")
 @RequiredArgsConstructor
 @Slf4j
 @CrossOrigin(origins = "*")

@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-web
+spec:
+  replicas: 3 # สร้าง App นี้ขึ้นมา 3 ตัว (เผื่อตัวไหนล่ม)
+  selector:
+    matchLabels:
+      app: hello
+  template:
+    metadata:
+      labels:
+        app: hello
+    spec:
+      containers:
+      - name: hello-app
+        image: us-docker.pkg.dev/google-samples/containers/gke/hello-app:1.0 # นี่คือ Image ของ App ที่ Google เตรียมไว้
+        ports:
+        - containerPort: 8080 # App นี้รันบน Port 8080

@@ -1,49 +1,12 @@
 # ============================================
-# CERT-MANAGER CLUSTER ISSUER
+# GKE MANAGED CERTIFICATE
 # ============================================
-# Configures Let's Encrypt for automatic SSL certificate issuance
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
+# Google-managed SSL certificate for GKE Ingress
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
 metadata:
-  name: letsencrypt-prod
+  name: apartment-certificate
+  namespace: beliv-apartment
 spec:
-  acme:
-    # Let's Encrypt production server
-    server: https://acme-v02.api.letsencrypt.org/directory
-    # Email for certificate expiration notifications
-    # ⚠️ CHANGE THIS to your actual email
-    email: your-email@example.com
-    # Secret to store ACME account private key
-    privateKeySecretRef:
-      name: letsencrypt-prod-account-key
-    # HTTP-01 challenge solver using Traefik ingress
-    solvers:
-    - http01:
-        ingress:
-          class: traefik
-
----
-# ============================================
-# SSL CERTIFICATE
-# ============================================
-# Automatic SSL certificate request via cert-manager
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: tls-certificate
-  namespace: superproject-ns
-spec:
-  # Secret name where the certificate will be stored
-  secretName: tls-certificate
-  # Certificate issuer reference
-  issuerRef:
-    name: letsencrypt-prod
-    kind: ClusterIssuer
-  # Common name for the certificate
-  commonName: beliv.muict.app  # ⚠️ CHANGE THIS to your actual domain
-  # DNS names covered by this certificate
-  dnsNames:
-  - beliv.muict.app  # ⚠️ CHANGE THIS to your actual domain
-  # If you need subdomains for monitoring:
-  # - prometheus.beliv.muict.app
-  # - grafana.beliv.muict.app
+  domains:
+    - beliv.pipatpongpri.dev

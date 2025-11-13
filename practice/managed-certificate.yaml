@@ -1,0 +1,7 @@
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: my-app-certificate  # ตั้งชื่อ Certificate
+spec:
+  domains:
+    - "beliv.pipatpongpri.dev"  # <-- ❗️❗️ ใส่ Domain ของคุณ

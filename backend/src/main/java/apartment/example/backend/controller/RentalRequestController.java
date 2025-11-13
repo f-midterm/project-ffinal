@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/rental-requests")
+@RequestMapping("/api/rental-requests")
 @RequiredArgsConstructor
 @Slf4j
 @CrossOrigin(origins = "*")

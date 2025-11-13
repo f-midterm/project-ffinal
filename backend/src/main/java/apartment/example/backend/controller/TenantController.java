@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/tenants")
+@RequestMapping("/api/tenants")
 @RequiredArgsConstructor
 @Slf4j
 @CrossOrigin(origins = "*")

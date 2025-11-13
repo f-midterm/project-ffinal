@@ -7,7 +7,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontend
-  namespace: superproject-ns
+  namespace: beliv-apartment
   labels:
     app: apartment-system
     component: frontend
@@ -32,8 +32,8 @@ spec:
       containers:
       - name: frontend
         # GCP: Use Google Container Registry
-        # FORMAT: gcr.io/PROJECT_ID/IMAGE_NAME:TAG
-        image: gcr.io/YOUR_PROJECT_ID/apartment-frontend:prod
+        # FORMAT: gcr.io/apartment-477216/IMAGE_NAME:TAG
+        image: gcr.io/apartment-477216/apartment-frontend:prod
         imagePullPolicy: Always  # Always pull from GCR
         ports:
         - containerPort: 80

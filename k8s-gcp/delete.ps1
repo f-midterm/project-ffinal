@@ -1,15 +1,12 @@
 <#
 .SYNOPSIS
-  Delete all resources from GKE
+  Delete all application resources from GKE
 
 .DESCRIPTION
-  Removes all application resources from the Kubernetes cluster
+  Removes namespace and all resources inside it
 
 .EXAMPLE
   .\delete.ps1
-
-.EXAMPLE
-  .\delete.ps1 -Confirm:$false  # Skip confirmation
 #>
 
 param(
@@ -19,58 +16,56 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+$Namespace = "beliv-apartment"
+
 function Write-Section($msg) { 
   Write-Host "`n============================================" -ForegroundColor Cyan
   Write-Host "  $msg" -ForegroundColor Cyan
   Write-Host "============================================`n" -ForegroundColor Cyan
 }
 
-function Write-Success($msg) { Write-Host "✓ $msg" -ForegroundColor Green }
-function Write-Info($msg) { Write-Host "→ $msg" -ForegroundColor Yellow }
-function Write-Error($msg) { Write-Host "✗ $msg" -ForegroundColor Red }
+function Write-Success($msg) { Write-Host "[OK] $msg" -ForegroundColor Green }
+function Write-Info($msg) { Write-Host "[INFO] $msg" -ForegroundColor Yellow }
 
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-
-Write-Host "`n🗑️  Deleting Resources from GKE" -ForegroundColor Red
+Write-Host "`n[DELETE] Deleting GKE Resources" -ForegroundColor Red
+Write-Host "Namespace: $Namespace`n" -ForegroundColor White
 
 if (-not $Force) {
-  $confirmation = Read-Host "`nAre you sure you want to delete all resources? (yes/no)"
+  $confirmation = Read-Host "Delete everything in namespace '$Namespace'? (yes/no)"
   if ($confirmation -ne "yes") {
-    Write-Host "Deletion cancelled" -ForegroundColor Yellow
+    Write-Host "Cancelled" -ForegroundColor Yellow
     exit 0
   }
 }
 
-Write-Section "Deleting Application Resources"
+Write-Section "Deleting Namespace (this deletes everything inside)"
+Write-Info "Deleting namespace $Namespace..."
+kubectl delete namespace $Namespace --ignore-not-found=true
 
-# Delete in reverse order
-Write-Info "Deleting ingress..."
-kubectl delete -f "$scriptDir\ingress\" --ignore-not-found=true
-Write-Success "Ingress deleted"
+Write-Info "Waiting for namespace deletion..."
+$timeout = 120
+$elapsed = 0
+while ($elapsed -lt $timeout) {
+  $nsExists = kubectl get namespace $Namespace 2>&1
+  if ($nsExists -match "NotFound" -or $LASTEXITCODE -ne 0) {
+    break
+  }
+  Start-Sleep -Seconds 5
+  $elapsed += 5
+  Write-Host "  Still deleting... $elapsed seconds" -ForegroundColor Gray
+}
 
-Write-Info "Deleting frontend..."
-kubectl delete -f "$scriptDir\frontend\" --ignore-not-found=true
-Write-Success "Frontend deleted"
+$finalCheck = kubectl get namespace $Namespace 2>&1
+if ($finalCheck -match "NotFound") {
+  Write-Success "Namespace deleted"
+} else {
+  Write-Host "[WARNING] Namespace still exists (may take a few more minutes)" -ForegroundColor Yellow
+}
 
-Write-Info "Deleting backend..."
-kubectl delete -f "$scriptDir\backend\" --ignore-not-found=true
-Write-Success "Backend deleted"
-
-Write-Info "Deleting database..."
-kubectl delete -f "$scriptDir\database\" --ignore-not-found=true
-Write-Success "Database deleted"
-
-Write-Info "Deleting namespace..."
-kubectl delete -f "$scriptDir\namespace.yaml" --ignore-not-found=true
-Write-Success "Namespace deleted"
-
-Write-Section "Cleanup Complete"
-Write-Host "All resources have been deleted from the cluster`n" -ForegroundColor Green
+Write-Section "Cleanup Complete!"
+Write-Host "All application resources deleted`n" -ForegroundColor Green
 
 Write-Host "Note: The following were NOT deleted:" -ForegroundColor Yellow
-Write-Host "  - GKE Cluster (delete manually if needed)" -ForegroundColor White
-Write-Host "  - Docker images in GCR (delete manually if needed)" -ForegroundColor White
-Write-Host "  - Traefik Ingress Controller (in kube-system namespace)`n" -ForegroundColor White
-
-Write-Host "To delete the GKE cluster:" -ForegroundColor Yellow
-Write-Host "  gcloud container clusters delete CLUSTER_NAME --zone ZONE`n" -ForegroundColor White
+Write-Host "  - GKE Cluster itself" -ForegroundColor Gray
+Write-Host "  - Container images in GCR" -ForegroundColor Gray
+Write-Host "  - External IP address (will be released automatically)`n" -ForegroundColor Gray

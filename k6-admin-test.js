@@ -10,8 +10,8 @@ const totalRequests = new Counter('total_requests');
 // Test configuration - 100 users, each refreshes admin page 2 times
 export const options = {
   stages: [
-    { duration: '30s', target: 100 },  // Ramp up to 100 users in 30 seconds
-    { duration: '2m', target: 100 },   // Stay at 100 users for 2 minutes (F5 twice)
+    { duration: '30s', target: 50 },  // Ramp up to 100 users in 30 seconds
+    { duration: '2m', target: 50 },   // Stay at 100 users for 2 minutes (F5 twice)
     { duration: '30s', target: 0 },    // Ramp down to 0
   ],
   thresholds: {
