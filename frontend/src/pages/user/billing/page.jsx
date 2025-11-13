@@ -22,16 +22,6 @@ function BillingPage() {
                     You're not have any bills
                 </div>
             </div>
-            
-            {/* Sort and Filter */}
-            <div className='flex justify-end font-medium text-gray-700 gap-4 mb-4'>
-                <select 
-                    className='bg-white border rounded-lg px-4 py-2 mr-2 text-sm text-gray-700 hover:bg-gray-50 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                >
-                    <option value="newest">Sort by: Newest</option>
-                    <option value="oldest">Sort by: Oldest</option>
-                </select>
-            </div>
 
             {/* History and Upcoming */}
             <div className='flex flex-col'>
@@ -42,28 +32,30 @@ function BillingPage() {
                 <div className='border-b border-gray-400 mb-4'></div>
 
                 <div className='flex gap-6 mb-6 items-center '>
-                    <div className='flex bg-green-200 rounded-full px-4 py-2 text-green-600 flex-col items-center justify-center text-sm'>
-                        <div>Date</div>
-                        <div>Month</div>
-                        <div>Year</div>
-                    </div>
                     <div className='w-full'>
                         <BillingContentCard />
                     </div>
                 </div>
                 
-                <div className='text-xl font-medium mb-4'>
-                    Finished
+                <div className='flex justify-between items-center'>
+                    <div className='text-xl font-medium mb-4'>
+                        Finished
+                    </div>
+                    {/* Sort and Filter */}
+                    <div className='flex gap-4 mb-4 items-center'>
+                        <select 
+                            className='bg-white border rounded-lg px-4 py-2 mr-2 text-sm text-gray-700 hover:bg-gray-50 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                        >
+                            <option value="newest">Sort by: Newest</option>
+                            <option value="oldest">Sort by: Oldest</option>
+                        </select>
+                        <div>Filter by:</div>
+                    </div>
                 </div>
 
                 <div className='border-b border-gray-400 mb-4'></div>
 
                 <div className='flex gap-6 mb-6 items-center '>
-                    <div className='flex bg-blue-200 rounded-full px-4 py-2 text-blue-600 flex-col items-center justify-center text-sm'>
-                        <div>Date</div>
-                        <div>Month</div>
-                        <div>Year</div>
-                    </div>
                     <div className='w-full'><BillingContentCard /></div>
                 </div>
             </div>
