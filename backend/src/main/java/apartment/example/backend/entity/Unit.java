@@ -1,6 +1,7 @@
 package apartment.example.backend.entity;
 
 import apartment.example.backend.entity.enums.UnitStatus;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -30,8 +31,8 @@ public class Unit {
     @Column(nullable = false)
     private UnitStatus status = UnitStatus.AVAILABLE;
 
-    @Column(nullable = false)
-    private String type;
+    @Column(name = "type", nullable = false)
+    private String unitType;
 
     @Column(name = "rent_amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal rentAmount;
@@ -53,7 +54,7 @@ public class Unit {
 
     // Relationships
     @OneToMany(mappedBy = "unit", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonManagedReference("unit-lease")
+    @JsonBackReference("unit-lease")
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private List<Lease> leases;

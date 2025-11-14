@@ -122,8 +122,8 @@ function SelectedUnitDetail({ unitId }) {
   return (
     <div className="bg-white shadow-lg rounded-2xl w-full h-full overflow-hidden">
       <img 
-        src={getImageForUnitType(unit?.type)}
-        alt={`${unit?.type} room`}
+        src={getImageForUnitType(unit?.unitType)}
+        alt={`${unit?.unitType} room`}
         className="w-full h-48 object-cover"
       />
       <div className="p-8 lg:mt-2 mt-2">
@@ -137,7 +137,7 @@ function SelectedUnitDetail({ unitId }) {
           </div>
           <div className="grid grid-cols-2 gap-4 text-md">
             <DetailItem label="Room Number" value={`Si ${unit?.roomNumber}`} />
-            <DetailItem label="Unit Type" value={unit?.type} />
+            <DetailItem label="Unit Type" value={unit?.unitType} />
             <DetailItem label="Floor" value={unit?.floor} />
             <DetailItem label="Size" value={unit?.sizeSqm ? `${unit.sizeSqm} sqm` : 'N/A'} />
           </div>

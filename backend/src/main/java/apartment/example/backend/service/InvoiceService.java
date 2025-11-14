@@ -9,13 +9,22 @@ import apartment.example.backend.repository.InvoiceRepository;
 import apartment.example.backend.repository.LeaseRepository;
 import apartment.example.backend.repository.PaymentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Invoice Service
@@ -36,6 +45,9 @@ public class InvoiceService {
 
     @Autowired
     private PaymentService paymentService;
+    
+    @Value("${file.upload-dir:uploads/payment-slips}")
+    private String uploadDir;
 
     /**
      * Create an invoice with multiple payment line items
@@ -130,10 +142,10 @@ public class InvoiceService {
     }
 
     /**
-     * Get invoice by ID
+     * Get invoice by ID with all details
      */
     public Invoice getInvoiceById(Long id) {
-        return invoiceRepository.findById(id)
+        return invoiceRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new RuntimeException("Invoice not found with id: " + id));
     }
 
@@ -150,6 +162,99 @@ public class InvoiceService {
      */
     public List<Invoice> getInvoicesByLeaseId(Long leaseId) {
         return invoiceRepository.findByLeaseId(leaseId);
+    }
+
+    /**
+     * Get all invoices for a tenant by email
+     */
+    public List<Invoice> getInvoicesByTenantEmail(String tenantEmail) {
+        return invoiceRepository.findByTenantEmail(tenantEmail);
+    }
+    
+    /**
+     * Upload payment slip for an invoice
+     */
+    @Transactional
+    public Invoice uploadPaymentSlip(Long invoiceId, MultipartFile slipFile) {
+        Invoice invoice = getInvoiceById(invoiceId);
+        
+        // Validate invoice status
+        if (invoice.getStatus() != Invoice.InvoiceStatus.PENDING && 
+            invoice.getStatus() != Invoice.InvoiceStatus.REJECTED) {
+            throw new RuntimeException("Invoice is not in a state that accepts payment slip uploads");
+        }
+        
+        try {
+            // Create upload directory if it doesn't exist
+            Path uploadPath = Paths.get(uploadDir);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+            
+            // Generate unique filename
+            String originalFilename = slipFile.getOriginalFilename();
+            String extension = originalFilename != null && originalFilename.contains(".") 
+                ? originalFilename.substring(originalFilename.lastIndexOf("."))
+                : ".jpg";
+            String filename = String.format("slip_%s_%s%s", 
+                invoiceId, 
+                UUID.randomUUID().toString(), 
+                extension);
+            
+            // Save file
+            Path filePath = uploadPath.resolve(filename);
+            Files.copy(slipFile.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+            
+            // Update invoice
+            invoice.setSlipUrl("/uploads/payment-slips/" + filename);
+            invoice.setSlipUploadedAt(LocalDateTime.now());
+            invoice.setStatus(Invoice.InvoiceStatus.WAITING_VERIFICATION);
+            
+            return invoiceRepository.save(invoice);
+            
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to upload payment slip: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Verify payment slip (Admin only)
+     */
+    @Transactional
+    public Invoice verifyPayment(Long invoiceId, boolean approved, String notes) {
+        Invoice invoice = getInvoiceById(invoiceId);
+        
+        // Validate invoice status
+        if (invoice.getStatus() != Invoice.InvoiceStatus.WAITING_VERIFICATION) {
+            throw new RuntimeException("Invoice is not waiting for verification");
+        }
+        
+        if (approved) {
+            // Approve payment
+            invoice.setStatus(Invoice.InvoiceStatus.PAID);
+            invoice.setVerifiedAt(LocalDateTime.now());
+            invoice.setVerificationNotes(notes);
+            
+            // Update all payment line items to PAID
+            for (Payment payment : invoice.getPayments()) {
+                payment.setStatus(PaymentStatus.PAID);
+                payment.setPaidDate(LocalDate.now());
+            }
+        } else {
+            // Reject payment
+            invoice.setStatus(Invoice.InvoiceStatus.REJECTED);
+            invoice.setVerifiedAt(LocalDateTime.now());
+            invoice.setVerificationNotes(notes);
+        }
+        
+        return invoiceRepository.save(invoice);
+    }
+    
+    /**
+     * Get all invoices waiting for verification
+     */
+    public List<Invoice> getInvoicesWaitingVerification() {
+        return invoiceRepository.findByStatus(Invoice.InvoiceStatus.WAITING_VERIFICATION);
     }
 
     /**

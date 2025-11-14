@@ -24,12 +24,19 @@ class APIClient {
   async request(endpoint, options = {}) {
     const token = localStorage.getItem('token');
     
+    // Don't set Content-Type for FormData - browser will set it with proper boundary
+    const headers = {
+      ...(token && { Authorization: `Bearer ${token}` }),
+      ...options.headers,
+    };
+    
+    // Only add Content-Type if not FormData
+    if (!(options.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json';
+    }
+    
     const config = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
-        ...options.headers,
-      },
+      headers: headers,
       ...options,
     };
 
@@ -131,9 +138,12 @@ class APIClient {
    * @returns {Promise<any>} Response data
    */
   async post(endpoint, data, options = {}) {
+    // Don't stringify FormData - it needs to be sent as-is with proper boundary
+    const body = data instanceof FormData ? data : JSON.stringify(data);
+    
     return this.request(endpoint, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: body,
       ...options,
     });
   }

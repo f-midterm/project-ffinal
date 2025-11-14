@@ -65,7 +65,7 @@ public class MaintenanceRequestController {
                     Optional<Unit> unit = unitRepository.findById(request.getUnitId());
                     if (unit.isPresent()) {
                         roomNumber = unit.get().getRoomNumber();
-                        unitType = unit.get().getType();
+                        unitType = unit.get().getUnitType();
                     }
                 }
                 

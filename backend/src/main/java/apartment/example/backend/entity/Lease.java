@@ -31,14 +31,12 @@ public class Lease {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "tenant_id", nullable = false)
-    @JsonIgnore
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private Tenant tenant;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "unit_id", nullable = false)
-    @JsonBackReference("unit-lease")
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private Unit unit;
@@ -84,6 +82,12 @@ public class Lease {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private List<Payment> payments;
+
+    @OneToMany(mappedBy = "lease", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private List<Invoice> invoices;
 
     @PrePersist
     protected void onCreate() {

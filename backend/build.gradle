@@ -24,6 +24,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
     
+    // === JSON Serialization - Handle Hibernate Lazy Loading ===
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-hibernate6'
+    
     // === PDF Generation ===
     implementation 'com.itextpdf:itext7-core:7.2.5'
     

@@ -19,6 +19,17 @@ import java.util.Optional;
 public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
 
     /**
+     * Find invoice by ID with all relationships eagerly fetched
+     */
+    @Query("SELECT i FROM Invoice i " +
+           "LEFT JOIN FETCH i.lease l " +
+           "LEFT JOIN FETCH l.tenant t " +
+           "LEFT JOIN FETCH l.unit u " +
+           "LEFT JOIN FETCH i.payments p " +
+           "WHERE i.id = :id")
+    Optional<Invoice> findByIdWithDetails(@Param("id") Long id);
+
+    /**
      * Find invoice by invoice number
      */
     Optional<Invoice> findByInvoiceNumber(String invoiceNumber);
@@ -44,4 +55,29 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
      * Check if invoice number already exists
      */
     boolean existsByInvoiceNumber(String invoiceNumber);
+
+    /**
+     * Find all invoices for a specific tenant by email
+     * Joins through Lease -> Tenant with eager fetching to avoid LazyInitializationException
+     */
+    @Query("SELECT DISTINCT i FROM Invoice i " +
+           "LEFT JOIN FETCH i.lease l " +
+           "LEFT JOIN FETCH l.tenant t " +
+           "LEFT JOIN FETCH l.unit u " +
+           "LEFT JOIN FETCH i.payments p " +
+           "WHERE t.email = :tenantEmail " +
+           "ORDER BY i.invoiceDate DESC")
+    List<Invoice> findByTenantEmail(@Param("tenantEmail") String tenantEmail);
+    
+    /**
+     * Find all invoices by status
+     */
+    @Query("SELECT DISTINCT i FROM Invoice i " +
+           "LEFT JOIN FETCH i.lease l " +
+           "LEFT JOIN FETCH l.tenant t " +
+           "LEFT JOIN FETCH l.unit u " +
+           "LEFT JOIN FETCH i.payments p " +
+           "WHERE i.status = :status " +
+           "ORDER BY i.slipUploadedAt DESC")
+    List<Invoice> findByStatus(@Param("status") Invoice.InvoiceStatus status);
 }

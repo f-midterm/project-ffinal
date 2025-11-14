@@ -91,20 +91,151 @@ export const getInvoicesByLeaseId = async (leaseId) => {
 };
 
 /**
+ * Retrieves all invoices for a specific tenant by email
+ * 
+ * @async
+ * @function getInvoicesByTenant
+ * @param {string} tenantEmail - Tenant email address
+ * @returns {Promise<Array<Invoice>>} Array of invoices with payment line items
+ * @throws {Error} When fetching invoices fails
+ * 
+ * @example
+ * const invoices = await getInvoicesByTenant('john@example.com');
+ * console.log(`Total invoices: ${invoices.length}`);
+ */
+export const getInvoicesByTenant = async (tenantEmail) => {
+  return await apiClient.get(`/invoices/tenant/${tenantEmail}`);
+};
+
+/**
  * Downloads Invoice PDF
  * 
  * @async
  * @function downloadInvoicePdf
  * @param {number} invoiceId - Invoice ID
- * @returns {Promise<Blob>} PDF file as Blob
+ * @param {string} invoiceNumber - Invoice number for filename
+ * @returns {Promise<void>} Triggers browser download
  * @throws {Error} When download fails
  * 
  * @example
- * const pdfBlob = await downloadInvoicePdf(1);
- * const url = window.URL.createObjectURL(pdfBlob);
- * window.open(url, '_blank');
+ * await downloadInvoicePdf(1, 'INV-20251113-1');
  */
-export const downloadInvoicePdf = async (invoiceId) => {
-  const response = await apiClient.get(`/invoices/${invoiceId}/pdf`);
-  return response;
+export const downloadInvoicePdf = async (invoiceId, invoiceNumber) => {
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/invoices/${invoiceId}/pdf`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/pdf',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to download invoice PDF');
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${invoiceNumber}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  } catch (error) {
+    console.error('Error downloading invoice PDF:', error);
+    throw error;
+  }
+};
+
+/**
+ * Views invoice PDF in new tab
+ * 
+ * @async
+ * @function viewInvoicePdf
+ * @param {number} invoiceId - Invoice ID
+ * @returns {Promise<void>} Opens PDF in new tab
+ * @throws {Error} When PDF generation fails
+ * 
+ * @example
+ * await viewInvoicePdf(1);
+ */
+export const viewInvoicePdf = async (invoiceId) => {
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/invoices/${invoiceId}/pdf`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/pdf',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to view invoice PDF');
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    
+    // Try to open in new tab
+    const newWindow = window.open(url, '_blank');
+    
+    // If popup blocked, fallback to download
+    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `invoice_${invoiceId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+    
+    // Clean up after a delay
+    setTimeout(() => window.URL.revokeObjectURL(url), 100);
+  } catch (error) {
+    console.error('Error viewing invoice PDF:', error);
+    throw error;
+  }
+};
+
+/**
+ * Upload payment slip for an invoice
+ * 
+ * @async
+ * @function uploadPaymentSlip
+ * @param {number} invoiceId - Invoice ID
+ * @param {File} slipFile - Payment slip image file
+ * @returns {Promise<{id: number, status: string, slipUrl: string}>} Updated invoice
+ * @throws {Error} When upload fails
+ * 
+ * @example
+ * const updatedInvoice = await uploadPaymentSlip(1, slipFile);
+ * console.log(`Status: ${updatedInvoice.status}`);
+ */
+export const uploadPaymentSlip = async (invoiceId, slipFile) => {
+  const formData = new FormData();
+  formData.append('slip', slipFile);
+  
+  // Don't set Content-Type - browser will set it automatically with boundary
+  return await apiClient.post(`/invoices/${invoiceId}/upload-slip`, formData);
+};
+
+/**
+ * Verify payment slip and approve/reject payment (Admin only)
+ * 
+ * @async
+ * @function verifyPayment
+ * @param {number} invoiceId - Invoice ID
+ * @param {boolean} approved - Whether to approve or reject
+ * @param {string} [notes] - Optional admin notes
+ * @returns {Promise<{id: number, status: string}>} Updated invoice
+ * @throws {Error} When verification fails
+ * 
+ * @example
+ * const invoice = await verifyPayment(1, true, 'Payment verified');
+ */
+export const verifyPayment = async (invoiceId, approved, notes = '') => {
+  return await apiClient.post(`/invoices/${invoiceId}/verify`, {
+    approved,
+    notes
+  });
 };

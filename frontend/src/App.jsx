@@ -26,6 +26,8 @@ import PaymentsHistoryPage from "./pages/admin/unit/payment_history/page";
 import UserNotificationsPage from "./pages/user/notifications/page";
 import AdminNotificationsPage from "./pages/admin/notifications/page";
 import BillingPage from "./pages/user/billing/page";
+import PaymentPage from "./pages/user/billing/payment/page";
+import InvoiceDetailPage from "./pages/user/billing/detail/page";
 import PurchaseBillPage from "./pages/user/billing/purchase_bill/page";
 import NotificationDetail from "./pages/user/notifications/detail/page";
 import UserMaintenancePage from "./pages/user/maintenance/page";
@@ -95,6 +97,8 @@ function App() {
             <Route path="notifications" element={<UserNotificationsPage />} />
             <Route path="notifications/:id" element={<NotificationDetail />} />
             <Route path="billing" element={<BillingPage />} />
+            <Route path="billing/payment/:invoiceId" element={<PaymentPage />} />
+            <Route path="billing/detail/:invoiceId" element={<InvoiceDetailPage />} />
             <Route path="billing/:id" element={<PurchaseBillPage />} />
             <Route path="maintenance" element={<UserMaintenancePage />} />
           </Route>

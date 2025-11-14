@@ -147,8 +147,13 @@ CREATE TABLE invoices (
     invoice_date DATE NOT NULL,
     due_date DATE NOT NULL,
     total_amount DECIMAL(10,2) NOT NULL,
-    status ENUM('PENDING', 'PAID', 'OVERDUE', 'PARTIAL', 'CANCELLED') NOT NULL DEFAULT 'PENDING',
+    status ENUM('PENDING', 'WAITING_VERIFICATION', 'PAID', 'OVERDUE', 'PARTIAL', 'REJECTED', 'CANCELLED') NOT NULL DEFAULT 'PENDING',
     notes TEXT,
+    slip_url VARCHAR(500),  -- Payment slip image URL
+    slip_uploaded_at DATETIME,  -- When slip was uploaded
+    verified_at DATETIME,  -- When payment was verified
+    verified_by_user_id BIGINT,  -- Admin who verified
+    verification_notes TEXT,  -- Admin notes on verification
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at DATETIME NULL,
@@ -157,11 +162,14 @@ CREATE TABLE invoices (
     FOREIGN KEY (lease_id) REFERENCES leases(id) ON DELETE RESTRICT,
     FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (verified_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
     INDEX idx_invoice_number (invoice_number),
     INDEX idx_lease (lease_id),
     INDEX idx_invoice_date (invoice_date),
     INDEX idx_due_date (due_date),
     INDEX idx_status (status),
+    INDEX idx_slip_uploaded (slip_uploaded_at),
+    INDEX idx_verified (verified_at),
     CONSTRAINT chk_invoice_total_amount CHECK (total_amount > 0),
     CONSTRAINT chk_invoice_dates CHECK (due_date >= invoice_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

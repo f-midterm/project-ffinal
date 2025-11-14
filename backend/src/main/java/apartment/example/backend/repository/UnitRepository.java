@@ -20,7 +20,7 @@ public interface UnitRepository extends JpaRepository<Unit, Long> {
     
     List<Unit> findByStatus(UnitStatus status);
     
-    List<Unit> findByType(String type);
+    List<Unit> findByUnitType(String unitType);
     
     List<Unit> findByRentAmountBetween(BigDecimal minRent, BigDecimal maxRent);
     

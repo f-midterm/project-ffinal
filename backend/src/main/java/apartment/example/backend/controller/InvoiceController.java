@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -140,6 +141,21 @@ public class InvoiceController {
         List<Invoice> invoices = invoiceService.getInvoicesByLeaseId(leaseId);
         return ResponseEntity.ok(invoices);
     }
+
+    /**
+     * Get all invoices for a tenant by email
+     * 
+     * GET /invoices/tenant/{tenantEmail}
+     */
+    @GetMapping("/tenant/{tenantEmail}")
+    public ResponseEntity<List<Invoice>> getInvoicesByTenantEmail(@PathVariable String tenantEmail) {
+        try {
+            List<Invoice> invoices = invoiceService.getInvoicesByTenantEmail(tenantEmail);
+            return ResponseEntity.ok(invoices);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
     
     /**
      * Download Invoice PDF
@@ -228,6 +244,97 @@ public class InvoiceController {
             return notes;
         }
 
+        public void setNotes(String notes) {
+            this.notes = notes;
+        }
+    }
+    
+    /**
+     * Upload payment slip for an invoice
+     * 
+     * POST /invoices/{id}/upload-slip
+     */
+    @PostMapping("/{id}/upload-slip")
+    public ResponseEntity<?> uploadPaymentSlip(
+            @PathVariable Long id,
+            @RequestParam("slip") MultipartFile slipFile) {
+        try {
+            if (slipFile.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Please select a file"));
+            }
+            
+            // Validate file type
+            String contentType = slipFile.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Only image files are allowed"));
+            }
+            
+            // Validate file size (5MB max)
+            if (slipFile.getSize() > 5 * 1024 * 1024) {
+                return ResponseEntity.badRequest().body(Map.of("error", "File size must not exceed 5MB"));
+            }
+            
+            Invoice invoice = invoiceService.uploadPaymentSlip(id, slipFile);
+            return ResponseEntity.ok(invoice);
+            
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    /**
+     * Verify payment slip (Admin only)
+     * 
+     * POST /invoices/{id}/verify
+     * 
+     * Request Body:
+     * {
+     *   "approved": true,
+     *   "notes": "Payment verified successfully"
+     * }
+     */
+    @PostMapping("/{id}/verify")
+    public ResponseEntity<?> verifyPayment(
+            @PathVariable Long id,
+            @RequestBody VerifyPaymentRequest request) {
+        try {
+            Invoice invoice = invoiceService.verifyPayment(id, request.isApproved(), request.getNotes());
+            return ResponseEntity.ok(invoice);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    /**
+     * Get all invoices waiting for verification (Admin only)
+     * 
+     * GET /invoices/waiting-verification
+     */
+    @GetMapping("/waiting-verification")
+    public ResponseEntity<List<Invoice>> getInvoicesWaitingVerification() {
+        List<Invoice> invoices = invoiceService.getInvoicesWaitingVerification();
+        return ResponseEntity.ok(invoices);
+    }
+    
+    // Request DTO for payment verification
+    static class VerifyPaymentRequest {
+        private boolean approved;
+        private String notes;
+        
+        public boolean isApproved() {
+            return approved;
+        }
+        
+        public void setApproved(boolean approved) {
+            this.approved = approved;
+        }
+        
+        public String getNotes() {
+            return notes;
+        }
+        
         public void setNotes(String notes) {
             this.notes = notes;
         }

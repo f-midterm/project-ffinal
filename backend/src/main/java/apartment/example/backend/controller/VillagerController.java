@@ -118,7 +118,7 @@ public class VillagerController {
             unitDto.setRoomNumber(lease.getUnit().getRoomNumber());
             unitDto.setFloor(lease.getUnit().getFloor());
             unitDto.setStatus(lease.getUnit().getStatus().toString());
-            unitDto.setType(lease.getUnit().getType());
+            unitDto.setType(lease.getUnit().getUnitType());
             unitDto.setRentAmount(lease.getUnit().getRentAmount());
             unitDto.setSizeSqm(lease.getUnit().getSizeSqm());
             unitDto.setDescription(lease.getUnit().getDescription());
@@ -156,7 +156,7 @@ public class VillagerController {
         unitDto.setId(unit.getId());
         unitDto.setRoomNumber(unit.getRoomNumber());
         unitDto.setFloor(unit.getFloor());
-        unitDto.setType(unit.getType());
+        unitDto.setType(unit.getUnitType());
         dto.setUnit(unitDto);
         
         return dto;

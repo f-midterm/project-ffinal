@@ -73,8 +73,25 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/settings/**").authenticated()
                         .requestMatchers("/settings/**").hasAnyRole("ADMIN")
                         
+                        // Invoices - Tenants can view their own invoices
+                        // IMPORTANT: Specific routes MUST come before catch-all patterns
+                        .requestMatchers(HttpMethod.POST, "/invoices/{id}/upload-slip").authenticated()  // User can upload payment slip
+                        .requestMatchers(HttpMethod.POST, "/invoices/{id}/verify").hasAnyRole("ADMIN")  // Admin can verify payments
+                        .requestMatchers(HttpMethod.GET, "/invoices/waiting-verification").hasAnyRole("ADMIN")  // Admin can view pending verifications
+                        .requestMatchers(HttpMethod.GET, "/invoices/tenant/**").authenticated()  // User can view own invoices by email
+                        .requestMatchers(HttpMethod.GET, "/invoices/{id}").authenticated()  // User can view invoice details by ID
+                        .requestMatchers(HttpMethod.GET, "/invoices/{id}/pdf").authenticated()  // User can download invoice PDF
+                        .requestMatchers("/invoices/**").hasAnyRole("ADMIN")  // Admin can manage all invoices
+                        
+                        // Serve uploaded payment slips
+                        .requestMatchers("/uploads/payment-slips/**").authenticated()  // Authenticated users can view slips
+                        
+                        // Tenants - Users can view their own profile
+                        .requestMatchers(HttpMethod.GET, "/tenants/*").authenticated()  // User can view own tenant profile by ID
+                        .requestMatchers("/tenants/**").hasAnyRole("ADMIN")  // Admin can manage all tenants
+                        
                         // Admin-only endpoints
-                        .requestMatchers("/admin/**", "/tenants/**", "/leases/**", 
+                        .requestMatchers("/admin/**", "/leases/**", 
                                        "/payments/**", "/maintenance-requests/**").hasAnyRole("ADMIN")
                         // Villager endpoints (villagers can access their own data)
                         .requestMatchers("/villager/**").hasAnyRole("VILLAGER", "ADMIN")

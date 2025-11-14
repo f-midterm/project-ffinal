@@ -140,9 +140,9 @@ function SendInvoicePage() {
             
             setInvoiceNumber(invoice.invoiceNumber);
 
-            // // Success - navigate back
-            // alert(`✅ ส่งบิลเรียบร้อยแล้ว\nเลขที่ใบแจ้งหนี้: ${invoice.invoiceNumber}`);
-            // navigate(`/admin/unit/${unit.id}`);
+            // Success - navigate back
+            alert(`✅ Sent invoice successfully\nInvoice Number: ${invoice.invoiceNumber}`);
+            navigate(`/admin/unit/${unit.id}`);
         } catch (err) {
             console.error('Failed to create invoice:', err);
             console.error('Error response:', err.response);

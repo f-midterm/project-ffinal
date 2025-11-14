@@ -372,7 +372,7 @@ public class PdfService {
                     .setKeepTogether(true);
             
             addFormalDetailRow(propertyTable, "Unit Number:", "Room " + unit.getRoomNumber());
-            addFormalDetailRow(propertyTable, "Unit Type:", unit.getType());
+            addFormalDetailRow(propertyTable, "Unit Type:", unit.getUnitType());
             addFormalDetailRow(propertyTable, "Floor Level:", String.valueOf(unit.getFloor()));
             addFormalDetailRow(propertyTable, "Unit Size:", unit.getSizeSqm() + " square meters");
             addFormalDetailRow(propertyTable, "Building:", "BeLiv Apartment Complex");

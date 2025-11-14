@@ -141,7 +141,7 @@ function UnitDetail({ selectedUnitId, onClose, isLoading }) {
         emergencyContact: userProfile.emergencyContact || '',
         emergencyPhone: userProfile.emergencyPhone || '',
         leaseDurationMonths: leaseDuration,
-        notes: `Rental request for Unit ${unit.roomNumber} (${unit.type})`
+        notes: `Rental request for Unit ${unit.roomNumber} (${unit.unitType})`
       };
 
       console.log('Submitting authenticated rental request:', rentalRequestData);
@@ -185,8 +185,8 @@ function UnitDetail({ selectedUnitId, onClose, isLoading }) {
       {/* Header with Image */}
       <div>
         <img 
-          src={getImageForUnitType(unit.type)}
-          alt={`${unit.type} room`}
+          src={getImageForUnitType(unit.unitType)}
+          alt={`${unit.unitType} room`}
           className="w-full h-48 object-cover rounded-t-lg"
         />
       </div>
@@ -203,7 +203,7 @@ function UnitDetail({ selectedUnitId, onClose, isLoading }) {
         )}
         
         <div className="space-y-2">
-          <p><span className="font-semibold">Type:</span> {unit.type}</p>
+          <p><span className="font-semibold">Type:</span> {unit.unitType}</p>
           <p><span className="font-semibold">Rent:</span> {unit.rentAmount}฿/month</p>
           <p><span className="font-semibold">Floor:</span> {unit.floor}</p>
           <p><span className="font-semibold">Size:</span> {unit.sizeSqm} sqm</p>

@@ -275,7 +275,7 @@ function RentalRequestDetailPage() {
             </div>
             <div>
               <p className="text-sm font-medium text-gray-600">Type</p>
-              <p className="text-base text-gray-900">{request.unit.type}</p>
+              <p className="text-base text-gray-900">{request.unit.unitType}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-gray-600">Monthly Rent</p>

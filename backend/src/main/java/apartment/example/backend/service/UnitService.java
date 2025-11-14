@@ -47,7 +47,7 @@ public class UnitService {
     }
 
     public List<Unit> getUnitsByType(String type) {
-        return unitRepository.findByType(type);
+        return unitRepository.findByUnitType(type);
     }
 
     public List<Unit> getAvailableUnits() {
@@ -89,7 +89,7 @@ public class UnitService {
         unit.setRoomNumber(unitDetails.getRoomNumber());
         unit.setFloor(unitDetails.getFloor());
         unit.setStatus(unitDetails.getStatus());
-        unit.setType(unitDetails.getType());
+        unit.setUnitType(unitDetails.getUnitType());
         unit.setRentAmount(unitDetails.getRentAmount());
         unit.setSizeSqm(unitDetails.getSizeSqm());
         unit.setDescription(unitDetails.getDescription());

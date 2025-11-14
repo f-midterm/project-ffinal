@@ -174,7 +174,7 @@ public class PaymentController {
                     data.put("tenantEmail", lease.getTenant().getEmail());
                     data.put("unitNumber", lease.getUnit().getRoomNumber());
                     data.put("monthlyRent", lease.getRentAmount());
-                    data.put("unitType", lease.getUnit().getType());
+                    data.put("unitType", lease.getUnit().getUnitType());
                     
                     return data;
                 }).collect(Collectors.toList());
@@ -780,7 +780,7 @@ public class PaymentController {
                 unitDto.setId(unit.getId());
                 unitDto.setRoomNumber(unit.getRoomNumber());
                 unitDto.setFloor(unit.getFloor());
-                unitDto.setType(unit.getType());
+                unitDto.setType(unit.getUnitType());
                 dto.setUnit(unitDto);
             }
         }

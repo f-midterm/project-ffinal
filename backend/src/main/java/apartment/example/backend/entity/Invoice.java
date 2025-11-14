@@ -61,6 +61,21 @@ public class Invoice {
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 
+    @Column(name = "slip_url", length = 500)
+    private String slipUrl;
+
+    @Column(name = "slip_uploaded_at")
+    private LocalDateTime slipUploadedAt;
+
+    @Column(name = "verified_at")
+    private LocalDateTime verifiedAt;
+
+    @Column(name = "verified_by_user_id")
+    private Long verifiedByUserId;
+
+    @Column(name = "verification_notes", columnDefinition = "TEXT")
+    private String verificationNotes;
+
     @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference("invoice-payments")
     @ToString.Exclude
@@ -107,10 +122,12 @@ public class Invoice {
 
     // Enum for Invoice Status
     public enum InvoiceStatus {
-        PENDING,
-        PAID,
-        OVERDUE,
-        PARTIAL,
-        CANCELLED
+        PENDING,              // รอชำระเงิน
+        WAITING_VERIFICATION, // รอตรวจสอบสลิป
+        PAID,                 // ชำระเงินสำเร็จ
+        OVERDUE,              // เกินกำหนด
+        PARTIAL,              // ชำระบางส่วน
+        REJECTED,             // สลิปถูกปฏิเสธ
+        CANCELLED             // ยกเลิก
     }
 }
