@@ -48,7 +48,21 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./backend/gradlew
 
-      # 5. Build backend JAR (skip tests - wait for tester)
+      # 5. Run backend unit tests
+      - name: Run Unit Tests
+        working-directory: ./backend
+        run: ./gradlew test --info
+
+      # 6. Upload test results
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: backend/build/reports/tests/test/
+          retention-days: 30
+
+      # 7. Build backend JAR (skip tests - already ran above)
       - name: Build backend application
         working-directory: ./backend
         run: ./gradlew clean build -x test
@@ -79,13 +93,13 @@ jobs:
           # Add this to prevent provenance issues
           provenance: false
 
-      # 7. Test deployment readiness
+      # 10. Test deployment readiness
       - name: Backend CI Summary
         run: |
           echo "🎉 Backend CI Pipeline Completed Successfully!"
           echo ""
           echo "✅ Java 21 & Gradle setup"
-          echo "⏭️  Backend tests skipped (waiting for tester)"
+          echo "✅ Unit tests executed and passed"
           echo "✅ JAR file built successfully"
           echo "✅ Docker image built and pushed"
           echo ""
