@@ -28,6 +28,7 @@ import AdminNotificationsPage from "./pages/admin/notifications/page";
 import BillingPage from "./pages/user/billing/page";
 import PurchaseBillPage from "./pages/user/billing/purchase_bill/page";
 import NotificationDetail from "./pages/user/notifications/detail/page";
+import UserMaintenancePage from "./pages/user/maintenance/page";
 
 
 function App() {
@@ -95,6 +96,7 @@ function App() {
             <Route path="notifications/:id" element={<NotificationDetail />} />
             <Route path="billing" element={<BillingPage />} />
             <Route path="billing/:id" element={<PurchaseBillPage />} />
+            <Route path="maintenance" element={<UserMaintenancePage />} />
           </Route>
 
           {/* Public Routes */}
