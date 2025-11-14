@@ -8,7 +8,7 @@ on:
       - 'backend/**'
       - '.github/workflows/ci-backend.yml'
   pull_request:
-    branches: [ "main", "develop" ]
+    branches: [ "main", "develop",  "feature/**" ]
     paths:
       - 'backend/**'
 
@@ -64,12 +64,12 @@ jobs:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ env.DOCKER_TOKEN }}
 
-      # 9. Build and push backend Docker image
+      # 6. Build and push backend Docker image
       - name: Build and push backend image
         uses: docker/build-push-action@v5
         with:
           context: ./backend
-          file: ./backend/Dockerfile
+          file: ./backend/Dockerfile.prod
           push: true
           tags: |
             ${{ env.DOCKER_USERNAME }}/apartment-backend:latest
