@@ -1,8 +1,23 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react';
 import { FiUpload } from "react-icons/fi";
 import { SiFormspree } from "react-icons/si";
+import UserMaintenanceSkelleton from '../../../components/skeleton/user_maintenance_skelleton';
 
 function UserMaintenancePage() {
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 2000); 
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return <UserMaintenanceSkelleton />;
+  }
+
   return (
     <div className='flex flex-col'>
         <form>
@@ -60,4 +75,4 @@ function UserMaintenancePage() {
   )
 }
 
-export default UserMaintenancePage
+export default UserMaintenancePage;
