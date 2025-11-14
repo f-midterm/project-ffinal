@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { FiChevronRight } from "react-icons/fi";
 
-
 function BillingContentCard() {
   return (
     <div className='flex justify-between gap-16 items-center bg-white rounded-xl p-6 shadow-md hover:translate-y-[-1px] hover:shadow-lg cursor-pointer'>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import NotificationsCard from '../../../components/card/notifications_card';
 import { MdOutlineNotificationsPaused } from "react-icons/md";
+import { useNavigate, useParams } from 'react-router-dom';
 
 function UserNotificationsPage() {
 
