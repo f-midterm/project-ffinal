@@ -30,6 +30,8 @@ function AdminNotificationsPage() {
 
                 <div className='border-b border-gray-400 mb-4'></div>
 
+                <div className='text-gray-400 mb-2'>Date :: Time {/* Example : 22/11/2023 :: 18:00 */}</div>
+
                 <div className='flex gap-6 mb-6 items-center '>
                     <div className='w-full'>
                         <NotificationsCard />
@@ -47,6 +49,8 @@ function AdminNotificationsPage() {
                 </div>
 
                 <div className='border-b border-gray-400 mb-4'></div>
+
+                <div className='text-gray-400 mb-2'>Date :: Time {/* Example : 22/11/2023 :: 18:00 */}</div>
 
                 <div className='flex gap-6 mb-6 items-center '>
                     <div className='w-full'><NotificationsCard /></div>
