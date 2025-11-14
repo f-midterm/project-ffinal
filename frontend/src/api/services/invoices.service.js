@@ -89,3 +89,22 @@ export const getInvoiceByNumber = async (invoiceNumber) => {
 export const getInvoicesByLeaseId = async (leaseId) => {
   return await apiClient.get(`/invoices/lease/${leaseId}`);
 };
+
+/**
+ * Downloads Invoice PDF
+ * 
+ * @async
+ * @function downloadInvoicePdf
+ * @param {number} invoiceId - Invoice ID
+ * @returns {Promise<Blob>} PDF file as Blob
+ * @throws {Error} When download fails
+ * 
+ * @example
+ * const pdfBlob = await downloadInvoicePdf(1);
+ * const url = window.URL.createObjectURL(pdfBlob);
+ * window.open(url, '_blank');
+ */
+export const downloadInvoicePdf = async (invoiceId) => {
+  const response = await apiClient.get(`/invoices/${invoiceId}/pdf`);
+  return response;
+};
