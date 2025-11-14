@@ -220,6 +220,21 @@ export const uploadPaymentSlip = async (invoiceId, slipFile) => {
 };
 
 /**
+ * Get invoices waiting for admin verification
+ * 
+ * @async
+ * @function getWaitingVerificationInvoices
+ * @returns {Promise<Array>} List of invoices with WAITING_VERIFICATION status
+ * @throws {Error} When fetch fails
+ * 
+ * @example
+ * const pendingInvoices = await getWaitingVerificationInvoices();
+ */
+export const getWaitingVerificationInvoices = async () => {
+  return await apiClient.get('/invoices/waiting-verification');
+};
+
+/**
  * Verify payment slip and approve/reject payment (Admin only)
  * 
  * @async

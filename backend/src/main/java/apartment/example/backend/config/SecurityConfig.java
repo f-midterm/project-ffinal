@@ -55,6 +55,9 @@ public class SecurityConfig {
                         // Prometheus metrics endpoint - allow unauthenticated access for Prometheus scraping
                         .requestMatchers("/actuator/prometheus", "/actuator/health", "/actuator/info").permitAll()
                         
+                        // Serve uploaded payment slips - public access for easier viewing
+                        .requestMatchers("/uploads/**").permitAll()
+                        
                         // PDF Download endpoints - allow authenticated users
                         .requestMatchers(HttpMethod.GET, "/leases/*/agreement", "/invoices/*/pdf").authenticated()
                         
@@ -82,9 +85,6 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/invoices/{id}").authenticated()  // User can view invoice details by ID
                         .requestMatchers(HttpMethod.GET, "/invoices/{id}/pdf").authenticated()  // User can download invoice PDF
                         .requestMatchers("/invoices/**").hasAnyRole("ADMIN")  // Admin can manage all invoices
-                        
-                        // Serve uploaded payment slips
-                        .requestMatchers("/uploads/payment-slips/**").authenticated()  // Authenticated users can view slips
                         
                         // Tenants - Users can view their own profile
                         .requestMatchers(HttpMethod.GET, "/tenants/*").authenticated()  // User can view own tenant profile by ID

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FaHome, FaBolt, FaTint, FaWrench, FaFileInvoice, FaArrowLeft, FaDownload, FaExclamationCircle, FaUpload, FaCheckCircle, FaClock } from 'react-icons/fa';
 import { getInvoiceById, downloadInvoicePdf, uploadPaymentSlip } from '../../../../api/services/invoices.service';
+import { getBackendResourceUrl } from '../../../../api/client/apiClient';
 import { QRCodeCanvas } from 'qrcode.react';
 import generatePayload from 'promptpay-qr';
 
@@ -90,8 +91,9 @@ function PaymentPage() {
     try {
       setUploading(true);
       await uploadPaymentSlip(invoice.id, slipFile);
-      alert('Payment slip uploaded successfully! Waiting for admin verification.');
-      fetchInvoice(); // Refresh invoice data
+      alert('Payment slip uploaded successfully! Please refresh the page to see the updated status.');
+      // Don't auto-refresh to avoid 403 - let user refresh manually
+      // fetchInvoice();
       setSlipFile(null);
       setSlipPreview(null);
     } catch (err) {
@@ -381,7 +383,7 @@ function PaymentPage() {
                 <div className='mt-4'>
                   <p className='text-sm text-blue-700 mb-2'>Submitted Payment Slip:</p>
                   <img 
-                    src={invoice.slipUrl} 
+                    src={getBackendResourceUrl(invoice.slipUrl)}
                     alt="Submitted Payment Slip" 
                     className='max-w-xs rounded-lg shadow-md'
                   />

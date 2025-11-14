@@ -9,6 +9,23 @@
 
 const API_BASE_URL = '/api';
 
+// Backend URL for static resources (images, files)
+// Use relative path to go through Vite proxy in development
+// In production, same origin will work
+const BACKEND_URL = '';
+
+/**
+ * Build full URL for backend static resources (images, files)
+ * @param {string} path - Relative path from backend (e.g., /uploads/payment-slips/...)
+ * @returns {string} Full URL to access the resource
+ */
+export const getBackendResourceUrl = (path) => {
+  if (!path) return '';
+  // Return path as-is - will go through proxy /api or direct in production
+  // Need to proxy /uploads/** to backend in vite.config.js
+  return path;
+};
+
 /**
  * API Client class for making HTTP requests
  */

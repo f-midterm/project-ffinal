@@ -20,6 +20,11 @@ export default defineConfig({
         target: 'http://backend:8080',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
+      },
+      // Proxy uploaded files (payment slips, etc.)
+      '/uploads': {
+        target: 'http://backend:8080',
+        changeOrigin: true
       }
     },
     
