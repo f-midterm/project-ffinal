@@ -3,6 +3,7 @@ package apartment.example.backend.service;
 import apartment.example.backend.entity.Invoice;
 import apartment.example.backend.entity.Lease;
 import apartment.example.backend.entity.Payment;
+import apartment.example.backend.entity.enums.InvoiceType;
 import apartment.example.backend.entity.enums.PaymentStatus;
 import apartment.example.backend.entity.enums.PaymentType;
 import apartment.example.backend.repository.InvoiceRepository;
@@ -65,7 +66,8 @@ public class InvoiceService {
             LocalDate invoiceDate, 
             LocalDate dueDate,
             List<PaymentItem> paymentItems,
-            String notes) {
+            String notes,
+            InvoiceType invoiceType) {
         
         // Validate lease exists
         Lease lease = leaseRepository.findById(leaseId)
@@ -87,6 +89,7 @@ public class InvoiceService {
         invoice.setDueDate(dueDate);
         invoice.setTotalAmount(totalAmount);
         invoice.setStatus(Invoice.InvoiceStatus.PENDING);
+        invoice.setInvoiceType(invoiceType);
         invoice.setNotes(notes);
 
         // Save invoice first to get ID
@@ -112,6 +115,17 @@ public class InvoiceService {
 
         // Save invoice with payments
         return invoiceRepository.save(invoice);
+    }
+
+    // Overloaded method for backward compatibility
+    @Transactional
+    public Invoice createInvoiceWithPayments(
+            Long leaseId, 
+            LocalDate invoiceDate, 
+            LocalDate dueDate,
+            List<PaymentItem> paymentItems,
+            String notes) {
+        return createInvoiceWithPayments(leaseId, invoiceDate, dueDate, paymentItems, notes, InvoiceType.MONTHLY_RENT);
     }
 
     /**

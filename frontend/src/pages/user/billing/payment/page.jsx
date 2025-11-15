@@ -27,6 +27,11 @@ function PaymentPage() {
   const [slipPreview, setSlipPreview] = useState(null);
   const fileInputRef = useRef(null);
   
+  // Calculate late fee
+  const [daysLate, setDaysLate] = useState(0);
+  const [lateFee, setLateFee] = useState(0);
+  const [totalWithLateFee, setTotalWithLateFee] = useState(0);
+  
   // PromptPay configuration - ใส่เบอร์โทรหรือ ID ของร้าน
   const PROMPTPAY_ID = '0624243432'; // เปลี่ยนเป็นเบอร์จริง
 
@@ -40,6 +45,24 @@ function PaymentPage() {
       setError(null);
       const invoiceData = await getInvoiceById(invoiceId);
       setInvoice(invoiceData);
+      
+      // Calculate late fee if overdue
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const dueDate = new Date(invoiceData.dueDate);
+      dueDate.setHours(0, 0, 0, 0);
+      
+      if (dueDate < today && invoiceData.status !== 'PAID') {
+        const days = Math.floor((today - dueDate) / (1000 * 60 * 60 * 24));
+        const fee = days * 300; // 300 baht per day
+        setDaysLate(days);
+        setLateFee(fee);
+        setTotalWithLateFee(invoiceData.totalAmount + fee);
+      } else {
+        setDaysLate(0);
+        setLateFee(0);
+        setTotalWithLateFee(invoiceData.totalAmount);
+      }
     } catch (err) {
       console.error('Error fetching invoice:', err);
       setError('Failed to load invoice details. Please try again later.');
@@ -254,12 +277,42 @@ function PaymentPage() {
               })}
             </div>
 
-            <div className='mt-6 pt-4 border-t-2 border-gray-300'>
-              <div className='flex justify-between items-center'>
-                <span className='text-xl font-bold text-gray-800'>Total Amount</span>
-                <span className='text-2xl font-bold text-blue-600'>฿{formatCurrency(invoice.totalAmount)}</span>
+        <div className='mt-6 pt-4 border-t-2 border-gray-300'>
+          {daysLate > 0 && (
+            <div className='mb-4'>
+              <div className='bg-red-50 border border-red-200 rounded-lg p-4 mb-3'>
+                <div className='flex items-center gap-2 text-red-700 mb-2'>
+                  <FaExclamationCircle />
+                  <span className='font-medium'>Late Payment Fee</span>
+                </div>
+                <p className='text-sm text-red-600 mb-2'>
+                  This invoice is <strong>{daysLate} day{daysLate > 1 ? 's' : ''}</strong> overdue. Late fee: 300 ฿/day
+                </p>
+                <div className='flex justify-between items-center text-red-700 font-medium'>
+                  <span>Late Fee ({daysLate} days × 300 ฿):</span>
+                  <span>+฿{formatCurrency(lateFee)}</span>
+                </div>
               </div>
             </div>
+          )}
+          
+          <div className='flex justify-between items-center mb-2'>
+            <span className='text-lg font-medium text-gray-700'>Subtotal</span>
+            <span className='text-lg font-medium text-gray-800'>฿{formatCurrency(invoice.totalAmount)}</span>
+          </div>
+          
+          {daysLate > 0 && (
+            <div className='flex justify-between items-center mb-2'>
+              <span className='text-lg font-medium text-red-600'>Late Fee</span>
+              <span className='text-lg font-medium text-red-600'>+฿{formatCurrency(lateFee)}</span>
+            </div>
+          )}
+          
+          <div className='flex justify-between items-center pt-3 border-t border-gray-200'>
+            <span className='text-xl font-bold text-gray-800'>Total Amount</span>
+            <span className={`text-2xl font-bold ${daysLate > 0 ? 'text-red-600' : 'text-blue-600'}`}>
+              ฿{formatCurrency(totalWithLateFee)}
+            </span>
           </div>
 
           {/* Unit Information */}
@@ -295,7 +348,7 @@ function PaymentPage() {
           <div className='flex flex-col items-center gap-4'>
             <div className='bg-white p-6 rounded-lg border-4 border-blue-500'>
               <QRCodeCanvas
-                value={generatePayload(PROMPTPAY_ID, { amount: parseFloat(invoice.totalAmount) })}
+                value={generatePayload(PROMPTPAY_ID, { amount: parseFloat(totalWithLateFee) })}
                 size={256}
                 level='H'
                 includeMargin={true}
@@ -303,7 +356,14 @@ function PaymentPage() {
             </div>
             <div className='text-center'>
               <p className='text-gray-600 mb-2'>Scan QR Code with your banking app</p>
-              <p className='text-2xl font-bold text-blue-600'>฿{formatCurrency(invoice.totalAmount)}</p>
+              <p className={`text-2xl font-bold ${daysLate > 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                ฿{formatCurrency(totalWithLateFee)}
+              </p>
+              {daysLate > 0 && (
+                <p className='text-sm text-red-600 mt-1'>
+                  Includes ฿{formatCurrency(lateFee)} late fee ({daysLate} day{daysLate > 1 ? 's' : ''})
+                </p>
+              )}
               <p className='text-sm text-gray-500 mt-2'>Invoice: {invoice.invoiceNumber}</p>
             </div>
           </div>

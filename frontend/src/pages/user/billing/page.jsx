@@ -13,6 +13,7 @@ function BillingPage() {
     const [error, setError] = useState(null);
     const [invoices, setInvoices] = useState([]);
     const [upcomingInvoices, setUpcomingInvoices] = useState([]);
+    const [overdueInvoices, setOverdueInvoices] = useState([]);
     const [finishedInvoices, setFinishedInvoices] = useState([]);
     const [sortBy, setSortBy] = useState('newest');
 
@@ -44,18 +45,56 @@ function BillingPage() {
             
             // Fetch invoices by user email
             const invoicesData = await getInvoicesByTenant(user.email);
-            setInvoices(invoicesData);
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Reset time to start of day
+
+            // Filter invoices that have reached their invoice date
+            const visibleInvoices = invoicesData.filter(inv => {
+                const invoiceDate = new Date(inv.invoiceDate);
+                invoiceDate.setHours(0, 0, 0, 0);
+                return invoiceDate <= today; // Only show if invoice date has arrived
+            });
+
+            setInvoices(visibleInvoices);
+
+            // Calculate late fees for overdue invoices
+            const invoicesWithLateFees = visibleInvoices.map(inv => {
+                if (inv.status === 'OVERDUE' || (inv.status === 'PENDING' && new Date(inv.dueDate) < today)) {
+                    const dueDate = new Date(inv.dueDate);
+                    dueDate.setHours(0, 0, 0, 0);
+                    const daysLate = Math.floor((today - dueDate) / (1000 * 60 * 60 * 24));
+                    
+                    if (daysLate > 0) {
+                        const lateFee = daysLate * 300; // 300 baht per day
+                        return {
+                            ...inv,
+                            daysLate,
+                            lateFee,
+                            totalWithLateFee: inv.totalAmount + lateFee
+                        };
+                    }
+                }
+                return inv;
+            });
 
             // Split invoices by status
-            const upcoming = invoicesData.filter(inv => 
-                inv.status === 'PENDING' || inv.status === 'OVERDUE' || inv.status === 'PARTIAL'
+            const overdue = invoicesWithLateFees.filter(inv => 
+                (inv.status === 'OVERDUE' || (inv.status === 'PENDING' && new Date(inv.dueDate) < today)) && inv.daysLate > 0
             );
-            const finished = invoicesData.filter(inv => inv.status === 'PAID');
+            
+            const upcoming = invoicesWithLateFees.filter(inv => 
+                (inv.status === 'PENDING' && new Date(inv.dueDate) >= today) || inv.status === 'PARTIAL'
+            );
+            
+            const finished = invoicesWithLateFees.filter(inv => inv.status === 'PAID');
 
-            // Sort by date (newest first by default)
+            // Sort by date
+            const sortedOverdue = overdue.sort((a, b) => new Date(b.dueDate) - new Date(a.dueDate));
             const sortedUpcoming = upcoming.sort((a, b) => new Date(b.dueDate) - new Date(a.dueDate));
             const sortedFinished = finished.sort((a, b) => new Date(b.invoiceDate) - new Date(a.invoiceDate));
 
+            setOverdueInvoices(sortedOverdue);
             setUpcomingInvoices(sortedUpcoming);
             setFinishedInvoices(sortedFinished);
         } catch (err) {
@@ -108,6 +147,49 @@ function BillingPage() {
             {/* History and Upcoming */}
             {invoices.length > 0 && (
                 <div className='flex flex-col'>
+                    {/* Overdue Section */}
+                    {overdueInvoices.length > 0 && (
+                        <>
+                            <div className='mb-4 text-xl font-medium text-red-600'>
+                                Overdue ({overdueInvoices.length})
+                            </div>
+
+                            <div className='border-b border-red-400 mb-4'></div>
+
+                            <div className='bg-red-50 border border-red-200 rounded-lg p-4 mb-4'>
+                                <p className='text-sm text-red-700'>
+                                    ⚠️ <strong>Warning:</strong> These invoices are overdue. Late fee: 300 ฿/day
+                                </p>
+                            </div>
+
+                            <div className='flex flex-col gap-4 mb-8'>
+                                {overdueInvoices.map(invoice => (
+                                    <div key={invoice.id} className='relative'>
+                                        <BillingContentCard 
+                                            invoice={invoice}
+                                            onClick={() => handleInvoiceClick(invoice)}
+                                        />
+                                        {invoice.daysLate > 0 && (
+                                            <div className='mt-2 p-3 bg-red-100 border border-red-300 rounded-lg'>
+                                                <div className='flex justify-between items-center text-sm'>
+                                                    <span className='text-red-700'>
+                                                        Overdue <strong>{invoice.daysLate}</strong> day{invoice.daysLate > 1 ? 's' : ''}
+                                                    </span>
+                                                    <span className='text-red-700 font-medium'>
+                                                        Late Fee: +{invoice.lateFee.toLocaleString()} ฿
+                                                    </span>
+                                                </div>
+                                                <div className='text-right text-sm text-red-800 font-bold mt-1'>
+                                                    Total: {invoice.totalWithLateFee.toLocaleString()} ฿
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    )}
+
                     {/* Upcoming Section */}
                     <div className='mb-4 text-xl font-medium'>
                         Upcoming {upcomingInvoices.length > 0 && `(${upcomingInvoices.length})`}
