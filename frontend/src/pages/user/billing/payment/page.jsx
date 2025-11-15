@@ -478,31 +478,6 @@ function PaymentPage() {
               </div>
             </div>
           </div>
-
-        {/* Unit Information */}
-        <div className='bg-white rounded-xl shadow-md p-6 mb-6'>
-            <h2 className='text-xl font-bold text-gray-800 mb-4'>Property Information</h2>
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-              <div>
-                <p className='text-sm text-gray-500'>Unit Number</p>
-                <p className='text-gray-800 font-medium'>{invoice.lease?.unit?.roomNumber || 'N/A'}</p>
-              </div>
-              <div>
-                <p className='text-sm text-gray-500'>Unit Type</p>
-                <p className='text-gray-800 font-medium'>{invoice.lease?.unit?.unitType || 'N/A'}</p>
-              </div>
-              <div>
-                <p className='text-sm text-gray-500'>Tenant Name</p>
-                <p className='text-gray-800 font-medium'>
-                  {invoice.lease?.tenant ? `${invoice.lease.tenant.firstName} ${invoice.lease.tenant.lastName}` : 'N/A'}
-                </p>
-              </div>
-              <div>
-                <p className='text-sm text-gray-500'>Contact</p>
-                <p className='text-gray-800 font-medium'>{invoice.lease?.tenant?.phone || 'N/A'}</p>
-              </div>
-            </div>
-          </div>
       </div>
 
       {/* QR Code Payment Section */}
