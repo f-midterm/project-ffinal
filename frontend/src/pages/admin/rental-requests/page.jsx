@@ -101,7 +101,7 @@ function RentalRequestsPage() {
             ) : sortedRequests.length === 0 ? (
                 /* Empty State */
                 <div className="p-16 flex flex-col items-center justify-center text-center">
-                    <div className="w-28 h-28 bg-gray-200 rounded-full flex items-center justify-center mb-6">
+                    <div className="p-12 bg-gray-200 rounded-full flex items-center justify-center mb-6">
                         <HiOutlineInbox className="h-16 w-16 text-gray-600" />
                     </div>
                     <h2 className="text-xl font-semibold text-gray-900 mb-2">
