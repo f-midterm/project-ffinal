@@ -60,7 +60,7 @@ export const useAuth = () => {
     };
 
     loadUser();
-  }, []);
+  }, []); // Run only once on mount
 
   /**
    * Login user with username and password

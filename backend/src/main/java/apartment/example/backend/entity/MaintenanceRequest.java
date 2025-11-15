@@ -14,7 +14,7 @@ public class MaintenanceRequest {
     @Column(name = "tenant_id")
     private Long tenantId;
 
-    @Column(name = "unit_id", nullable = false)
+    @Column(name = "unit_id")
     private Long unitId;
 
     @Column(nullable = false, length = 200)
@@ -53,6 +53,9 @@ public class MaintenanceRequest {
 
     @Column(name = "completion_notes", columnDefinition = "TEXT")
     private String completionNotes;
+
+    @Column(name = "attachment_urls", columnDefinition = "TEXT")
+    private String attachmentUrls;
 
     @Column(name = "submitted_date", nullable = false)
     private LocalDateTime submittedDate = LocalDateTime.now();
@@ -165,4 +168,7 @@ public class MaintenanceRequest {
 
     public LocalDateTime getDeletedAt() { return deletedAt; }
     public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
+
+    public String getAttachmentUrls() { return attachmentUrls; }
+    public void setAttachmentUrls(String attachmentUrls) { this.attachmentUrls = attachmentUrls; }
 }

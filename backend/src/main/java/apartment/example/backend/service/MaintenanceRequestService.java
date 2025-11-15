@@ -6,19 +6,27 @@ import apartment.example.backend.entity.MaintenanceRequest.Category;
 import apartment.example.backend.entity.MaintenanceRequest.RequestStatus;
 import apartment.example.backend.repository.MaintenanceRequestRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import jakarta.transaction.Transactional;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class MaintenanceRequestService {
 
     @Autowired
     private MaintenanceRequestRepository maintenanceRequestRepository;
+
+    @Value("${file.maintenance-upload-dir:uploads/maintenance-attachments}")
+    private String uploadDir;
 
     // Create a new maintenance request
     public MaintenanceRequest createMaintenanceRequest(MaintenanceRequest request) {
@@ -198,6 +206,61 @@ public MaintenanceRequest updateMaintenanceRequest(Long id, MaintenanceRequest r
         stats.put("COMPLETED", maintenanceRequestRepository.countByStatus(RequestStatus.COMPLETED));
         stats.put("CANCELLED", maintenanceRequestRepository.countByStatus(RequestStatus.CANCELLED));
         return stats;
+    }
+
+    /**
+     * Upload attachments for a maintenance request
+     */
+    @Transactional
+    public MaintenanceRequest uploadAttachments(Long requestId, MultipartFile[] files) {
+        MaintenanceRequest request = getMaintenanceRequestById(requestId)
+                .orElseThrow(() -> new RuntimeException("Maintenance request not found"));
+
+        try {
+            // Create upload directory if it doesn't exist
+            Path uploadPath = Paths.get(uploadDir);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+
+            List<String> fileUrls = new ArrayList<>();
+
+            // Save each file
+            for (MultipartFile file : files) {
+                if (!file.isEmpty()) {
+                    // Generate unique filename
+                    String originalFilename = file.getOriginalFilename();
+                    String extension = originalFilename != null && originalFilename.contains(".")
+                            ? originalFilename.substring(originalFilename.lastIndexOf("."))
+                            : "";
+                    String filename = String.format("maintenance_%s_%s%s",
+                            requestId,
+                            UUID.randomUUID().toString(),
+                            extension);
+
+                    // Save file
+                    Path filePath = uploadPath.resolve(filename);
+                    Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+                    // Add URL to list
+                    fileUrls.add("/uploads/maintenance-attachments/" + filename);
+                }
+            }
+
+            // Update request with file URLs
+            if (!fileUrls.isEmpty()) {
+                String existingUrls = request.getAttachmentUrls();
+                if (existingUrls != null && !existingUrls.isEmpty()) {
+                    fileUrls.add(0, existingUrls);
+                }
+                request.setAttachmentUrls(String.join(",", fileUrls));
+            }
+
+            return maintenanceRequestRepository.save(request);
+
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to upload attachments: " + e.getMessage());
+        }
     }
 
     // Get statistics by priority

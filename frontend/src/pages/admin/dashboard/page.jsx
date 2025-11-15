@@ -8,19 +8,25 @@ import { Link } from 'react-router-dom';
 import UnitCard from '../../../components/card/unit_card';
 import { getAllUnits } from '../../../api/services/units.service';
 import { getAllRentalRequests } from '../../../api/services/rentalRequests.service';
+import { getAllMaintenanceRequests } from '../../../api/services/maintenance.service';
+import { getAllPayments } from '../../../api/services/payments.service';
 import AdminDashboardSkeleton from '../../../components/skeleton/admin_dashboard_skeleton';
 
 function AdminDashboard() {
   const [unitsByFloor, setUnitsByFloor] = useState({});
   const [rentalRequestsCount, setRentalRequestsCount] = useState(0);
+  const [maintenanceRequestsCount, setMaintenanceRequestsCount] = useState(0);
+  const [paymentRequestsCount, setPaymentRequestsCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [units, rentalRequests] = await Promise.all([
+        const [units, rentalRequests, maintenanceRequests, payments] = await Promise.all([
           getAllUnits(),
-          getAllRentalRequests()
+          getAllRentalRequests(),
+          getAllMaintenanceRequests(),
+          getAllPayments()
         ]);
 
         const groupedUnits = units.reduce((acc, unit) => {
@@ -33,6 +39,8 @@ function AdminDashboard() {
         }, {});
         setUnitsByFloor(groupedUnits);
         setRentalRequestsCount(rentalRequests.length);
+        setMaintenanceRequestsCount(maintenanceRequests.length);
+        setPaymentRequestsCount(payments.length);
       } catch (error) {
         console.error("Failed to fetch data:", error);
       } finally {
@@ -69,17 +77,18 @@ function AdminDashboard() {
 
         {/* Maintenance Requests */}
         <Link to="maintenance-requests" className='hover:translate-y-[-1px] hover:shadow-lg'>
-          <StatCard icon={<PiHammer />} title={"Maintenane Requests"} value={`2 Requests`} color={"yellow"} />
+          <StatCard icon={<PiHammer />} title={"Maintenane Requests"} value={`${maintenanceRequestsCount} Requests`} color={"yellow"} />
         </Link>
           
         {/*  */}
         <Link to="/admin/payment-requests" className='hover:translate-y-[-1px] hover:shadow-lg'>
-          <StatCard icon={<GrDocumentText />} title={"Payment Requests"} value={`3 Upcoming`} color={"red"} />
+          <StatCard icon={<GrDocumentText />} title={"Payment Requests"} value={`${paymentRequestsCount} Upcoming`} color={"red"} />
         </Link>
 
         <Link to="/admin/billing/bulk-import" className='hover:translate-y-[-1px] hover:shadow-lg'>
           <StatCard icon={<GrDocumentText />} title={"Quick Import from CSV"} value={`25 - 30 Every month`} color={"blue"} />
         </Link>
+
        </div>
 
 

@@ -9,9 +9,12 @@ import apartment.example.backend.dto.CreateProfileResponse;
 import apartment.example.backend.dto.UserProfileDto;
 import apartment.example.backend.entity.User;
 import apartment.example.backend.entity.Tenant;
+import apartment.example.backend.entity.Lease;
 import apartment.example.backend.entity.enums.TenantStatus;
+import apartment.example.backend.entity.enums.LeaseStatus;
 import apartment.example.backend.repository.UserRepository;
 import apartment.example.backend.repository.TenantRepository;
+import apartment.example.backend.repository.LeaseRepository;
 import apartment.example.backend.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +41,7 @@ public class AuthService {
     private final UserDetailsService userDetailsService;
     private final UserRepository userRepository;
     private final TenantRepository tenantRepository;
+    private final LeaseRepository leaseRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
 
@@ -259,12 +263,22 @@ public class AuthService {
         // Try to fetch tenant profile if exists
         tenantRepository.findByEmail(user.getEmail()).ifPresent(tenant -> {
             log.info("Found tenant profile for user: {}", user.getUsername());
+            profileDto.setTenantId(tenant.getId());
             profileDto.setFirstName(tenant.getFirstName());
             profileDto.setLastName(tenant.getLastName());
             profileDto.setPhone(tenant.getPhone());
             profileDto.setOccupation(tenant.getOccupation());
             profileDto.setEmergencyContact(tenant.getEmergencyContact());
             profileDto.setEmergencyPhone(tenant.getEmergencyPhone());
+            
+            // Fetch active lease to get unit_id
+            leaseRepository.findByTenantIdAndStatus(tenant.getId(), LeaseStatus.ACTIVE)
+                .stream()
+                .findFirst()
+                .ifPresent(lease -> {
+                    log.info("Found active lease for tenant: unit_id={}", lease.getUnit().getId());
+                    profileDto.setUnitId(lease.getUnit().getId());
+                });
         });
         
         return profileDto;

@@ -43,25 +43,121 @@ export const getMaintenanceRequestById = async (id) => {
 };
 
 /**
+ * Retrieves maintenance requests by tenant ID
+ * 
+ * @async
+ * @function getRequestsByTenantId
+ * @param {number} tenantId - Tenant ID
+ * @returns {Promise<Array>} Array of maintenance requests for the tenant
+ * @throws {Error} When fetch fails
+ */
+export const getRequestsByTenantId = async (tenantId) => {
+  return await apiClient.get(`/maintenance-requests/tenant/${tenantId}`);
+};
+
+/**
+ * Retrieves maintenance requests by unit ID
+ * 
+ * @async
+ * @function getRequestsByUnitId
+ * @param {number} unitId - Unit ID
+ * @returns {Promise<Array>} Array of maintenance requests for the unit
+ * @throws {Error} When fetch fails
+ */
+export const getRequestsByUnitId = async (unitId) => {
+  return await apiClient.get(`/maintenance-requests/unit/${unitId}`);
+};
+
+/**
+ * Retrieves maintenance requests by status
+ * 
+ * @async
+ * @function getRequestsByStatus
+ * @param {string} status - Request status (SUBMITTED, WAITING_FOR_REPAIR, APPROVED, IN_PROGRESS, COMPLETED, CANCELLED)
+ * @returns {Promise<Array>} Array of maintenance requests with the specified status
+ * @throws {Error} When fetch fails
+ */
+export const getRequestsByStatus = async (status) => {
+  return await apiClient.get(`/maintenance-requests/status/${status}`);
+};
+
+/**
+ * Retrieves maintenance requests by priority
+ * 
+ * @async
+ * @function getRequestsByPriority
+ * @param {string} priority - Priority level (LOW, MEDIUM, HIGH, URGENT)
+ * @returns {Promise<Array>} Array of maintenance requests with the specified priority
+ * @throws {Error} When fetch fails
+ */
+export const getRequestsByPriority = async (priority) => {
+  return await apiClient.get(`/maintenance-requests/priority/${priority}`);
+};
+
+/**
+ * Retrieves maintenance requests by category
+ * 
+ * @async
+ * @function getRequestsByCategory
+ * @param {string} category - Category (PLUMBING, ELECTRICAL, HVAC, APPLIANCE, STRUCTURAL, CLEANING, OTHER)
+ * @returns {Promise<Array>} Array of maintenance requests in the specified category
+ * @throws {Error} When fetch fails
+ */
+export const getRequestsByCategory = async (category) => {
+  return await apiClient.get(`/maintenance-requests/category/${category}`);
+};
+
+/**
+ * Retrieves open maintenance requests
+ * 
+ * @async
+ * @function getOpenRequests
+ * @returns {Promise<Array>} Array of open maintenance requests
+ * @throws {Error} When fetch fails
+ */
+export const getOpenRequests = async () => {
+  return await apiClient.get('/maintenance-requests/open');
+};
+
+/**
+ * Retrieves high priority maintenance requests
+ * 
+ * @async
+ * @function getHighPriorityRequests
+ * @returns {Promise<Array>} Array of high priority maintenance requests
+ * @throws {Error} When fetch fails
+ */
+export const getHighPriorityRequests = async () => {
+  return await apiClient.get('/maintenance-requests/high-priority');
+};
+
+/**
  * Creates a new maintenance request
  * 
  * @async
  * @function createMaintenanceRequest
  * @param {object} requestData - Maintenance request creation data
  * @param {number} requestData.unitId - ID of the unit requiring maintenance
+ * @param {number} [requestData.tenantId] - ID of the tenant making the request
+ * @param {string} requestData.title - Title of the maintenance request
  * @param {string} requestData.description - Detailed description of the issue
+ * @param {string} [requestData.category='OTHER'] - Category (PLUMBING, ELECTRICAL, HVAC, APPLIANCE, STRUCTURAL, CLEANING, OTHER)
  * @param {string} [requestData.priority='MEDIUM'] - Priority level (LOW, MEDIUM, HIGH, URGENT)
- * @param {string} [requestData.status='PENDING'] - Request status (PENDING, IN_PROGRESS, COMPLETED, CANCELLED)
- * @param {string} [requestData.requestDate] - Request date (ISO format, defaults to current date)
- * @returns {Promise<{id: number, unit: object, description: string, status: string, priority: string, requestDate: string}>} Created maintenance request
+ * @param {string} [requestData.urgency='MEDIUM'] - Urgency level (LOW, MEDIUM, HIGH, EMERGENCY)
+ * @param {string} [requestData.preferredTime] - Preferred time for repair
+ * @returns {Promise<object>} Created maintenance request
  * @throws {Error} When creation fails
  * 
  * @example
  * const newRequest = await createMaintenanceRequest({
  *   unitId: 5,
- *   description: 'Leaking faucet in kitchen',
+ *   tenantId: 10,
+ *   title: 'Leaking faucet in kitchen',
+ *   description: 'The kitchen faucet has been leaking for 2 days',
+ *   category: 'PLUMBING',
  *   priority: 'HIGH',
- *   status: 'PENDING'
+ *   urgency: 'HIGH',
+ *   preferredTime: 'Weekday mornings'
  * });
  */
 export const createMaintenanceRequest = async (requestData) => {
@@ -75,21 +171,121 @@ export const createMaintenanceRequest = async (requestData) => {
  * @function updateMaintenanceRequest
  * @param {number} id - Maintenance request ID to update
  * @param {object} requestData - Updated request data
+ * @param {string} [requestData.title] - Updated title
  * @param {string} [requestData.description] - Updated description
  * @param {string} [requestData.status] - Updated status
  * @param {string} [requestData.priority] - Updated priority
- * @param {string} [requestData.completionDate] - Completion date (ISO format)
- * @returns {Promise<{id: number, unit: object, description: string, status: string, priority: string, requestDate: string, completionDate: string}>} Updated maintenance request
+ * @param {string} [requestData.category] - Updated category
+ * @param {string} [requestData.preferredTime] - Updated preferred time
+ * @returns {Promise<object>} Updated maintenance request
  * @throws {Error} When update fails or request not found
  * 
  * @example
  * const updated = await updateMaintenanceRequest(1, {
- *   status: 'COMPLETED',
- *   completionDate: '2024-01-15'
+ *   status: 'IN_PROGRESS',
+ *   priority: 'HIGH'
  * });
  */
 export const updateMaintenanceRequest = async (id, requestData) => {
   return await apiClient.put(`/maintenance-requests/${id}`, requestData);
+};
+
+/**
+ * Updates the status of a maintenance request
+ * 
+ * @async
+ * @function updateRequestStatus
+ * @param {number} id - Maintenance request ID
+ * @param {object} statusData - Status update data
+ * @param {string} statusData.status - New status (SUBMITTED, WAITING_FOR_REPAIR, APPROVED, IN_PROGRESS, COMPLETED, CANCELLED)
+ * @param {string} [statusData.notes] - Optional notes about the status change
+ * @returns {Promise<object>} Updated maintenance request
+ * @throws {Error} When update fails
+ * 
+ * @example
+ * const updated = await updateRequestStatus(1, {
+ *   status: 'COMPLETED',
+ *   notes: 'Fixed the leaking faucet. Replaced the washer.'
+ * });
+ */
+export const updateRequestStatus = async (id, statusData) => {
+  return await apiClient.put(`/maintenance-requests/${id}/status`, statusData);
+};
+
+/**
+ * Updates the priority of a maintenance request
+ * 
+ * @async
+ * @function updateRequestPriority
+ * @param {number} id - Maintenance request ID
+ * @param {object} priorityData - Priority update data
+ * @param {string} priorityData.priority - New priority (LOW, MEDIUM, HIGH, URGENT)
+ * @returns {Promise<object>} Updated maintenance request
+ * @throws {Error} When update fails
+ * 
+ * @example
+ * const updated = await updateRequestPriority(1, { priority: 'URGENT' });
+ */
+export const updateRequestPriority = async (id, priorityData) => {
+  return await apiClient.put(`/maintenance-requests/${id}/priority`, priorityData);
+};
+
+/**
+ * Assigns a maintenance request to a technician
+ * 
+ * @async
+ * @function assignMaintenanceRequest
+ * @param {number} id - Maintenance request ID
+ * @param {object} assignData - Assignment data
+ * @param {number} assignData.assignedToUserId - User ID of the technician
+ * @returns {Promise<object>} Updated maintenance request with assignment
+ * @throws {Error} When assignment fails
+ * 
+ * @example
+ * const assigned = await assignMaintenanceRequest(1, { assignedToUserId: 5 });
+ */
+export const assignMaintenanceRequest = async (id, assignData) => {
+  return await apiClient.put(`/maintenance-requests/${id}/assign`, assignData);
+};
+
+/**
+ * Completes a maintenance request
+ * 
+ * @async
+ * @function completeMaintenanceRequest
+ * @param {number} id - Maintenance request ID
+ * @param {object} completionData - Completion data
+ * @param {string} completionData.completionNotes - Notes about the completed work
+ * @returns {Promise<object>} Completed maintenance request
+ * @throws {Error} When completion fails
+ * 
+ * @example
+ * const completed = await completeMaintenanceRequest(1, {
+ *   completionNotes: 'Replaced broken pipe and tested for leaks. All working properly.'
+ * });
+ */
+export const completeMaintenanceRequest = async (id, completionData) => {
+  return await apiClient.put(`/maintenance-requests/${id}/complete`, completionData);
+};
+
+/**
+ * Rejects/cancels a maintenance request
+ * 
+ * @async
+ * @function rejectMaintenanceRequest
+ * @param {number} id - Maintenance request ID
+ * @param {object} rejectionData - Rejection data
+ * @param {string} rejectionData.rejectionReason - Reason for rejection
+ * @returns {Promise<object>} Cancelled maintenance request
+ * @throws {Error} When rejection fails
+ * 
+ * @example
+ * const rejected = await rejectMaintenanceRequest(1, {
+ *   rejectionReason: 'Not covered under maintenance agreement'
+ * });
+ */
+export const rejectMaintenanceRequest = async (id, rejectionData) => {
+  return await apiClient.put(`/maintenance-requests/${id}/reject`, rejectionData);
 };
 
 /**
@@ -110,6 +306,22 @@ export const deleteMaintenanceRequest = async (id) => {
 };
 
 /**
+ * Retrieves maintenance request statistics
+ * 
+ * @async
+ * @function getMaintenanceStats
+ * @returns {Promise<object>} Statistics object with counts by status
+ * @throws {Error} When fetching stats fails
+ * 
+ * @example
+ * const stats = await getMaintenanceStats();
+ * console.log(`Total: ${stats.TOTAL}, Pending: ${stats.SUBMITTED}`);
+ */
+export const getMaintenanceStats = async () => {
+  return await apiClient.get('/maintenance-requests/stats');
+};
+
+/**
  * Retrieves pending maintenance requests only
  * 
  * @async
@@ -123,24 +335,7 @@ export const deleteMaintenanceRequest = async (id) => {
  */
 export const getPendingRequests = async () => {
   const requests = await getAllMaintenanceRequests();
-  return requests.filter(request => request.status === 'PENDING');
-};
-
-/**
- * Retrieves high priority maintenance requests
- * 
- * @async
- * @function getHighPriorityRequests
- * @returns {Promise<Array<{id: number, unit: object, description: string, status: string, requestDate: string}>>} Array of high priority requests
- * @throws {Error} When fetching fails
- * 
- * @example
- * const urgent = await getHighPriorityRequests();
- * console.log(`${urgent.length} high priority requests`);
- */
-export const getHighPriorityRequests = async () => {
-  const requests = await getAllMaintenanceRequests();
   return requests.filter(request => 
-    request.priority === 'HIGH' || request.priority === 'URGENT'
+    request.status === 'SUBMITTED' || request.status === 'WAITING_FOR_REPAIR'
   );
 };

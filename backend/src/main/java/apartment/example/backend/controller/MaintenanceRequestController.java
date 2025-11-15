@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -36,10 +37,56 @@ public class MaintenanceRequestController {
     @PostMapping
     public ResponseEntity<MaintenanceRequest> createMaintenanceRequest(@RequestBody MaintenanceRequest request) {
         try {
+            log.info("Creating maintenance request: title={}, category={}, priority={}, unitId={}, tenantId={}, createdByUserId={}", 
+                    request.getTitle(), request.getCategory(), request.getPriority(), 
+                    request.getUnitId(), request.getTenantId(), request.getCreatedByUserId());
             MaintenanceRequest createdRequest = maintenanceRequestService.createMaintenanceRequest(request);
+            log.info("Successfully created maintenance request with ID: {}", createdRequest.getId());
             return ResponseEntity.status(HttpStatus.CREATED).body(createdRequest);
         } catch (Exception e) {
+            log.error("Error creating maintenance request: ", e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+    }
+
+    /**
+     * Upload attachments for a maintenance request
+     * POST /maintenance-requests/{id}/upload-attachments
+     */
+    @PostMapping("/{id}/upload-attachments")
+    public ResponseEntity<?> uploadAttachments(
+            @PathVariable Long id,
+            @RequestParam("files") MultipartFile[] files) {
+        try {
+            if (files == null || files.length == 0) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Please select at least one file"));
+            }
+
+            // Validate total size (15MB)
+            long totalSize = 0;
+            for (MultipartFile file : files) {
+                totalSize += file.getSize();
+            }
+            if (totalSize > 15 * 1024 * 1024) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Total file size must not exceed 15MB"));
+            }
+
+            // Validate file types
+            for (MultipartFile file : files) {
+                String contentType = file.getContentType();
+                if (contentType == null || 
+                    (!contentType.startsWith("image/") && !contentType.equals("application/pdf"))) {
+                    return ResponseEntity.badRequest().body(
+                        Map.of("error", "Only image files and PDF are allowed"));
+                }
+            }
+
+            MaintenanceRequest request = maintenanceRequestService.uploadAttachments(id, files);
+            return ResponseEntity.ok(request);
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
         }
     }
 
