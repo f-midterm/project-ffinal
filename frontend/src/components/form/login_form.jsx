@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { VscEye, VscEyeClosed } from "react-icons/vsc";
 import { login } from '../../api';
@@ -13,6 +13,14 @@ function LoginForm() {
     const navigate = useNavigate();
     const location = useLocation();    
     const [showPassword, setShowPassword] = useState(false)
+
+    // Check for session expired message
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('session') === 'expired') {
+            setError('Your session has expired. Please login again.');
+        }
+    }, []);
 
     const togglePassword = useCallback(() => {
         setShowPassword(prev => !prev);

@@ -7,6 +7,8 @@
  * @module api/client/apiClient
  */
 
+import { jwtDecode } from 'jwt-decode';
+
 const API_BASE_URL = '/api';
 
 // Backend URL for static resources (images, files)
@@ -40,6 +42,13 @@ class APIClient {
    */
   async request(endpoint, options = {}) {
     const token = localStorage.getItem('token');
+    
+    // Validate token before making request
+    if (token && !this.isTokenValid(token)) {
+      console.warn('Token expired - logging out');
+      this.handleLogout();
+      return Promise.reject(new Error('Session expired. Please login again.'));
+    }
     
     // Don't set Content-Type for FormData - browser will set it with proper boundary
     const headers = {
@@ -111,6 +120,13 @@ class APIClient {
    * @returns {Promise<string>} Error message
    */
   async handleErrorResponse(response) {
+    // Handle authentication errors - auto logout
+    if (response.status === 401 || response.status === 403) {
+      console.warn('Authentication failed - logging out');
+      this.handleLogout();
+      return 'Session expired. Please login again.';
+    }
+    
     let errorMessage = `HTTP error! status: ${response.status}`;
     
     try {
@@ -209,6 +225,36 @@ class APIClient {
       body: JSON.stringify(data),
       ...options,
     });
+  }
+
+  /**
+   * Validates JWT token expiration
+   * 
+   * @private
+   * @param {string} token - JWT token
+   * @returns {boolean} True if token is valid and not expired
+   */
+  isTokenValid(token) {
+    try {
+      const decoded = jwtDecode(token);
+      const currentTime = Date.now() / 1000;
+      return decoded.exp > currentTime;
+    } catch (error) {
+      console.error('Invalid token:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Handles user logout - clears storage and redirects to login
+   * 
+   * @private
+   */
+  handleLogout() {
+    localStorage.clear();
+    sessionStorage.clear();
+    // Redirect to login with expired message
+    window.location.href = '/login?session=expired';
   }
 }
 
