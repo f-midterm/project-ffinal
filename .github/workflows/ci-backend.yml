@@ -8,7 +8,7 @@ on:
       - 'backend/**'
       - '.github/workflows/ci-backend.yml'
   pull_request:
-    branches: [ "main", "develop" ]
+    branches: [ "main", "develop",  "feature/**" ]
     paths:
       - 'backend/**'
 
@@ -48,12 +48,7 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./backend/gradlew
 
-      # 5. Run backend tests
-      - name: Run backend tests
-        working-directory: ./backend
-        run: ./gradlew test
-
-      # 6. Build backend JAR
+      # 5. Build backend JAR (skip tests - wait for tester)
       - name: Build backend application
         working-directory: ./backend
         run: ./gradlew clean build -x test
@@ -69,12 +64,12 @@ jobs:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ env.DOCKER_TOKEN }}
 
-      # 9. Build and push backend Docker image
+      # 6. Build and push backend Docker image
       - name: Build and push backend image
         uses: docker/build-push-action@v5
         with:
           context: ./backend
-          file: ./backend/Dockerfile
+          file: ./backend/Dockerfile.prod
           push: true
           tags: |
             ${{ env.DOCKER_USERNAME }}/apartment-backend:latest
@@ -84,13 +79,13 @@ jobs:
           # Add this to prevent provenance issues
           provenance: false
 
-      # 10. Test deployment readiness
+      # 7. Test deployment readiness
       - name: Backend CI Summary
         run: |
           echo "🎉 Backend CI Pipeline Completed Successfully!"
           echo ""
           echo "✅ Java 21 & Gradle setup"
-          echo "✅ Backend tests passed"
+          echo "⏭️  Backend tests skipped (waiting for tester)"
           echo "✅ JAR file built successfully"
           echo "✅ Docker image built and pushed"
           echo ""

@@ -70,6 +70,38 @@ public class LeaseController {
                 .map(lease -> ResponseEntity.ok(lease))
                 .orElse(ResponseEntity.notFound().build());
     }
+    
+    /**
+     * Download Lease Agreement PDF
+     * 
+     * GET /leases/{id}/agreement
+     */
+    @GetMapping("/{id}/agreement")
+    public ResponseEntity<byte[]> downloadLeaseAgreement(@PathVariable Long id) {
+        try {
+            Lease lease = leaseService.getLeaseById(id)
+                    .orElseThrow(() -> new RuntimeException("Lease not found"));
+            
+            byte[] pdfBytes = pdfService.generateLeaseAgreementPdf(lease);
+            
+            // Generate filename: lease_agreement_Si101_TestCase.pdf
+            String unitNumber = lease.getUnit().getRoomNumber();
+            String tenantName = lease.getTenant().getFirstName() + lease.getTenant().getLastName();
+            // Remove spaces and special characters
+            tenantName = tenantName.replaceAll("[^a-zA-Z0-9]", "");
+            String filename = "lease_agreement_Si" + unitNumber + "_" + tenantName + ".pdf";
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("attachment", filename);
+            headers.set("X-Filename", filename);
+            
+            return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+        } catch (Exception e) {
+            log.error("Error generating lease agreement PDF: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 
     @GetMapping("/ending-soon")
     public ResponseEntity<List<Lease>> getLeasesEndingSoon(@RequestParam(defaultValue = "30") int days) {

@@ -55,6 +55,9 @@ public class SecurityConfig {
                         // Prometheus metrics endpoint - allow unauthenticated access for Prometheus scraping
                         .requestMatchers("/actuator/prometheus", "/actuator/health", "/actuator/info").permitAll()
                         
+                        // PDF Download endpoints - allow authenticated users
+                        .requestMatchers(HttpMethod.GET, "/leases/*/agreement", "/invoices/*/pdf").authenticated()
+                        
                         // Units - Read access for authenticated users, Write access for ADMIN only
                         .requestMatchers(HttpMethod.GET, "/units/**").authenticated()  // Any authenticated user can view
                         .requestMatchers("/units/**").hasAnyRole("ADMIN")  // Only ADMIN can create/update/delete

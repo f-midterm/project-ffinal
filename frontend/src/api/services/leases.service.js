@@ -128,3 +128,22 @@ export const getActiveLeases = async () => {
   const leases = await getAllLeases();
   return leases.filter(lease => lease.status === 'ACTIVE');
 };
+
+/**
+ * Downloads Lease Agreement PDF
+ * 
+ * @async
+ * @function downloadLeaseAgreementPdf
+ * @param {number} leaseId - Lease ID
+ * @returns {Promise<Blob>} PDF file as Blob
+ * @throws {Error} When download fails
+ * 
+ * @example
+ * const pdfBlob = await downloadLeaseAgreementPdf(1);
+ * const url = window.URL.createObjectURL(pdfBlob);
+ * window.open(url, '_blank');
+ */
+export const downloadLeaseAgreementPdf = async (leaseId) => {
+  const response = await apiClient.get(`/leases/${leaseId}/agreement`);
+  return response;
+};

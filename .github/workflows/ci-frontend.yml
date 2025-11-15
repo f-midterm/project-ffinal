@@ -9,7 +9,7 @@ on:
       - 'frontend/**'
       - '.github/workflows/ci-frontend.yml'
   pull_request:
-    branches: [ "main", "develop" ] # Triggers on pull requests targeting 'main' or 'develop'
+    branches: [ "main", "develop", "feature/**" ] # Triggers on pull requests targeting 'main' or 'develop'
     paths:
       - 'frontend/**'
 
@@ -90,10 +90,11 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
-          file: ./frontend/Dockerfile
+          file: ./frontend/Dockerfile.prod
           push: true
           tags: |
             ${{ env.DOCKER_USERNAME }}/apartment-frontend:latest
             ${{ env.DOCKER_USERNAME }}/apartment-frontend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          provenance: false
