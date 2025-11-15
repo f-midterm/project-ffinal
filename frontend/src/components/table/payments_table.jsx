@@ -26,9 +26,6 @@ function PaymentsTable() {
             <div className='flex lg:gap-2 gap-1 items-center btn border-2 lg:py-2 lg:px-4 p-1 rounded-lg hover:translate-y-[-1px] hover:shadow-md cursor-pointer text-xs lg:text-base'>
               <BiSort />Sort
             </div>
-            <div className='flex items-center btn bg-blue-500 lg:py-2 lg:px-4 p-1 rounded-lg text-white hover:translate-y-[-1px] hover:shadow-md cursor-pointer text-xs lg:text-base'>
-              + Payments
-            </div>
           </div>
       </div>
 

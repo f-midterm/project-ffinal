@@ -34,8 +34,8 @@ function PaymentsPage() {
             </div>
 
             {/* Generate Bill for pend to users */}
-            <Link to="/admin/billing" className='btn bg-blue-500 text-white lg:px-6 px-4 lg:py-3 py-2 lg:text-lg text-sm rounded-lg text-lg hover:translate-y-[-1px] hover:shadow-md cursor-pointer'>
-                Generate Bill
+            <Link to="" className='btn bg-gray-200 shadow-md text-gray-700 lg:px-6 px-4 py-2 lg:text-lg text-sm rounded-lg text-lg hover:translate-y-[-1px] hover:shadow-lg hover:bg-gray-300 transition-all duration-300 cursor-pointer'>
+                Download All Bill
             </Link>
         </div>
 
