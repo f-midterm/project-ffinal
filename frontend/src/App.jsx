@@ -31,6 +31,8 @@ import InvoiceDetailPage from "./pages/user/billing/detail/page";
 import PurchaseBillPage from "./pages/user/billing/purchase_bill/page";
 import NotificationDetail from "./pages/user/notifications/detail/page";
 import UserMaintenancePage from "./pages/user/maintenance/page";
+import MaintenanceRequestsPage from "./pages/admin/maintenance-requests/page";  
+import MaintenanceRequestsDetailPage from "./pages/admin/maintenance-requests/[id]/page";
 
 
 function App() {
@@ -53,6 +55,8 @@ function App() {
             <Route path="tenants" element={<TenantsPage />} />
             <Route path="payments" element={<PaymentsPage />} />
             <Route path="maintenance" element={<MaintenancePage />} />
+            <Route path="maintenance-requests" element={<MaintenanceRequestsPage />} />
+            <Route path="maintenance-requests/:id" element={<MaintenanceRequestsDetailPage />} />
             <Route path="rental-requests" element={<RentalRequestsPage />} />
             <Route path="rental-requests/:id" element={<RentalRequestDetailPage />} />
             <Route path="unit/:id" element={<UnitPage />} />
