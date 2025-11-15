@@ -453,6 +453,18 @@ function PaymentPage() {
           id="qr-code-section"
           className="bg-white rounded-xl shadow-md p-6 mb-6"
         >
+          {/* Payment method */}
+          <div className="text-xl font-medium">Payment Method</div>
+          <div className="flex justify-between items-center mb-6 p-4 border-b border-gray-200 gap-2">
+            <button className="w-full border-2 border-gray-300 p-4 rounded-lg hover:bg-gray-100">Full payment</button>
+            <button className="w-full border-2 border-gray-300 p-4 rounded-lg hover:bg-gray-100">Installment plan</button>
+          </div>
+
+          {/* If using Installment Plan gonna show this Caution */}
+          <div className="border-l-4 border-amber-500 p-6 bg-amber-100 mb-6">
+            
+          </div>
+
           <h2 className="text-xl font-bold text-gray-800 mb-4 text-center">
             Scan to Pay with PromptPay
           </h2>
@@ -609,7 +621,7 @@ function PaymentPage() {
 
       {/* Notes */}
       {invoice.notes && (
-        <div className="bg-blue-50 rounded-xl p-6 mb-6">
+        <div className="bg-blue-50 border-l-4 border-blue-500 ounded-xl p-6 mb-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-2">Notes</h3>
           <p className="text-gray-700">{invoice.notes}</p>
         </div>
