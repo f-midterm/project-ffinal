@@ -73,8 +73,8 @@ function AdminDashboard() {
         </Link>
           
         {/* Lease Renewals */}
-        <Link to="lease-renewals" className='hover:translate-y-[-1px] hover:shadow-lg'>
-          <StatCard icon={<GrDocumentText />} title={"Lease Renewals"} value={`3 Upcoming`} color={"red"} />
+        <Link to="payment-requests" className='hover:translate-y-[-1px] hover:shadow-lg'>
+          <StatCard icon={<GrDocumentText />} title={"Payment Requests"} value={`3 Upcoming`} color={"red"} />
         </Link>
       </div>
       
