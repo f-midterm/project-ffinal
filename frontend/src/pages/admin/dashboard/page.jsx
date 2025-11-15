@@ -9,39 +9,52 @@ import UnitCard from '../../../components/card/unit_card';
 import { getAllUnits } from '../../../api/services/units.service';
 import { getAllRentalRequests } from '../../../api/services/rentalRequests.service';
 import AdminDashboardSkeleton from '../../../components/skeleton/admin_dashboard_skeleton';
+import AddFloorModal from '../../../components/modal/add_floor_modal';
+import AddRoomModal from '../../../components/modal/add_room_modal';
 
 function AdminDashboard() {
   const [unitsByFloor, setUnitsByFloor] = useState({});
   const [rentalRequestsCount, setRentalRequestsCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [isAddFloorModalOpen, setAddFloorModalOpen] = useState(false);
+  const [isAddRoomModalOpen, setAddRoomModalOpen] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [units, rentalRequests] = await Promise.all([
+        getAllUnits(),
+        getAllRentalRequests()
+      ]);
+
+      const groupedUnits = units.reduce((acc, unit) => {
+        const { floor } = unit;
+        if (!acc[floor]) {
+          acc[floor] = [];
+        }
+        acc[floor].push(unit);
+        return acc;
+      }, {});
+      setUnitsByFloor(groupedUnits);
+      setRentalRequestsCount(rentalRequests.length);
+    } catch (error) {
+      console.error("Failed to fetch data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [units, rentalRequests] = await Promise.all([
-          getAllUnits(),
-          getAllRentalRequests()
-        ]);
-
-        const groupedUnits = units.reduce((acc, unit) => {
-          const { floor } = unit;
-          if (!acc[floor]) {
-            acc[floor] = [];
-          }
-          acc[floor].push(unit);
-          return acc;
-        }, {});
-        setUnitsByFloor(groupedUnits);
-        setRentalRequestsCount(rentalRequests.length);
-      } catch (error) {
-        console.error("Failed to fetch data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchData();
   }, []);
+
+  const handleFloorAdded = () => {
+    fetchData();
+  };
+
+  const handleRoomAdded = () => {
+    fetchData();
+  };
 
   if (loading) {
     return <AdminDashboardSkeleton />;
@@ -87,15 +100,28 @@ function AdminDashboard() {
         </div>
 
         <div className='flex gap-4'>
-          <button className='bg-white rounded-lg px-6 py-2 shadow-md hover:bg-gray-50 hover:translate-y-[-1px] hover:shadow-lg transition dulation-300'>
+          <button onClick={() => setAddFloorModalOpen(true)} className='bg-white rounded-lg px-6 py-2 shadow-md hover:bg-gray-50 hover:translate-y-[-1px] hover:shadow-lg transition dulation-300'>
             Add Floor
           </button>
-          <button className='bg-white rounded-lg px-6 py-2 shadow-md hover:bg-gray-50 hover:translate-y-[-1px] hover:shadow-lg transition dulation-300'>
+          <button onClick={() => setAddRoomModalOpen(true)} className='bg-white rounded-lg px-6 py-2 shadow-md hover:bg-gray-50 hover:translate-y-[-1px] hover:shadow-lg transition dulation-300'>
             Add Room
           </button>
         </div>
       </div>
 
+      <AddFloorModal
+        isOpen={isAddFloorModalOpen}
+        onClose={() => setAddFloorModalOpen(false)}
+        onFloorAdded={handleFloorAdded}
+        floors={Object.keys(unitsByFloor)}
+      />
+
+      <AddRoomModal
+        isOpen={isAddRoomModalOpen}
+        onClose={() => setAddRoomModalOpen(false)}
+        onRoomAdded={handleRoomAdded}
+        floors={Object.keys(unitsByFloor)}
+      />
 
       {/* Floor Section */}
       {Object.entries(unitsByFloor).map(([floor, units]) => {
@@ -104,7 +130,7 @@ function AdminDashboard() {
 
         return (
           <div key={floor} className='bg-white rounded-lg p-8 shadow-md mb-6 lg:mb-8'>
-            <div className="lg:text-xl text-lg font-medium mb-2">{floor}{floor == 1 ? 'st' : 'nd'} Floor</div>
+            <div className="lg:text-xl text-lg font-medium mb-2">{floor}{floor == 1 ? 'st' : floor == 2 ? 'nd' : floor == 3 ? 'rd' : 'th'} Floor</div>
 
             {/* Status */}
             <div className='text-sm mb-4'>
