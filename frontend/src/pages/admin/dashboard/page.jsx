@@ -3,6 +3,7 @@ import StatCard from '../../../components/card/stat_card';
 import { MdPendingActions } from "react-icons/md";
 import { PiHammer } from "react-icons/pi";
 import { GrDocumentText } from "react-icons/gr";
+import { HiOutlineBuildingOffice2 } from "react-icons/hi2";
 import { Link } from 'react-router-dom';
 import UnitCard from '../../../components/card/unit_card';
 import { getAllUnits } from '../../../api/services/units.service';
@@ -60,7 +61,7 @@ function AdminDashboard() {
       {/* Unit Section */}
         
       {/* Stat Card */}
-      <div className='grid gap-6 grid-cols-1 lg:grid-cols-3 justify-center items-center mb-12'>
+      <div className='grid gap-6 grid-cols-1 lg:grid-cols-3 justify-center items-center mb-8'>
         {/* Rental Requests */}
         <Link to="/admin/rental-requests" className='hover:translate-y-[-1px] hover:shadow-lg'>
           <StatCard icon={<MdPendingActions />} title={"Rental Requests"} value={`${rentalRequestsCount} Requests`} color={"green"} />
@@ -76,7 +77,27 @@ function AdminDashboard() {
           <StatCard icon={<GrDocumentText />} title={"Lease Renewals"} value={`3 Upcoming`} color={"red"} />
         </Link>
       </div>
+      
+      <div className="border-b border-gray-400 mb-6"></div>
+      
+      <div className='flex justify-between mb-6'>
+        <div className='text-xl font-medium flex gap-2 items-center'>
+          <HiOutlineBuildingOffice2 />
+          Unit Section
+        </div>
 
+        <div className='flex gap-4'>
+          <button className='bg-white rounded-lg px-6 py-2 shadow-md hover:bg-gray-50 hover:translate-y-[-1px] hover:shadow-lg transition dulation-300'>
+            Add Floor
+          </button>
+          <button className='bg-white rounded-lg px-6 py-2 shadow-md hover:bg-gray-50 hover:translate-y-[-1px] hover:shadow-lg transition dulation-300'>
+            Add Room
+          </button>
+        </div>
+      </div>
+
+
+      {/* Floor Section */}
       {Object.entries(unitsByFloor).map(([floor, units]) => {
         const vacantCount = units.filter(unit => unit.status === 'AVAILABLE').length;
         const occupiedCount = units.length - vacantCount;
