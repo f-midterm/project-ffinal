@@ -277,46 +277,48 @@ function PaymentPage() {
               })}
             </div>
 
-        <div className='mt-6 pt-4 border-t-2 border-gray-300'>
-          {daysLate > 0 && (
-            <div className='mb-4'>
-              <div className='bg-red-50 border border-red-200 rounded-lg p-4 mb-3'>
-                <div className='flex items-center gap-2 text-red-700 mb-2'>
-                  <FaExclamationCircle />
-                  <span className='font-medium'>Late Payment Fee</span>
+            <div className='mt-6 pt-4 border-t-2 border-gray-300'>
+              {daysLate > 0 && (
+                <div className='mb-4'>
+                  <div className='bg-red-50 border border-red-200 rounded-lg p-4 mb-3'>
+                    <div className='flex items-center gap-2 text-red-700 mb-2'>
+                      <FaExclamationCircle />
+                      <span className='font-medium'>Late Payment Fee</span>
+                    </div>
+                    <p className='text-sm text-red-600 mb-2'>
+                      This invoice is <strong>{daysLate} day{daysLate > 1 ? 's' : ''}</strong> overdue. Late fee: 300 ฿/day
+                    </p>
+                    <div className='flex justify-between items-center text-red-700 font-medium'>
+                      <span>Late Fee ({daysLate} days × 300 ฿):</span>
+                      <span>+฿{formatCurrency(lateFee)}</span>
+                    </div>
+                  </div>
                 </div>
-                <p className='text-sm text-red-600 mb-2'>
-                  This invoice is <strong>{daysLate} day{daysLate > 1 ? 's' : ''}</strong> overdue. Late fee: 300 ฿/day
-                </p>
-                <div className='flex justify-between items-center text-red-700 font-medium'>
-                  <span>Late Fee ({daysLate} days × 300 ฿):</span>
-                  <span>+฿{formatCurrency(lateFee)}</span>
+              )}
+              
+              <div className='flex justify-between items-center mb-2'>
+                <span className='text-lg font-medium text-gray-700'>Subtotal</span>
+                <span className='text-lg font-medium text-gray-800'>฿{formatCurrency(invoice.totalAmount)}</span>
+              </div>
+              
+              {daysLate > 0 && (
+                <div className='flex justify-between items-center mb-2'>
+                  <span className='text-lg font-medium text-red-600'>Late Fee</span>
+                  <span className='text-lg font-medium text-red-600'>+฿{formatCurrency(lateFee)}</span>
                 </div>
+              )}
+              
+              <div className='flex justify-between items-center pt-3 border-t border-gray-200'>
+                <span className='text-xl font-bold text-gray-800'>Total Amount</span>
+                <span className={`text-2xl font-bold ${daysLate > 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                  ฿{formatCurrency(totalWithLateFee)}
+                </span>
               </div>
             </div>
-          )}
-          
-          <div className='flex justify-between items-center mb-2'>
-            <span className='text-lg font-medium text-gray-700'>Subtotal</span>
-            <span className='text-lg font-medium text-gray-800'>฿{formatCurrency(invoice.totalAmount)}</span>
-          </div>
-          
-          {daysLate > 0 && (
-            <div className='flex justify-between items-center mb-2'>
-              <span className='text-lg font-medium text-red-600'>Late Fee</span>
-              <span className='text-lg font-medium text-red-600'>+฿{formatCurrency(lateFee)}</span>
-            </div>
-          )}
-          
-          <div className='flex justify-between items-center pt-3 border-t border-gray-200'>
-            <span className='text-xl font-bold text-gray-800'>Total Amount</span>
-            <span className={`text-2xl font-bold ${daysLate > 0 ? 'text-red-600' : 'text-blue-600'}`}>
-              ฿{formatCurrency(totalWithLateFee)}
-            </span>
           </div>
 
-          {/* Unit Information */}
-          <div className='bg-white rounded-xl shadow-md p-6 mb-6'>
+        {/* Unit Information */}
+        <div className='bg-white rounded-xl shadow-md p-6 mb-6'>
             <h2 className='text-xl font-bold text-gray-800 mb-4'>Property Information</h2>
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               <div>
