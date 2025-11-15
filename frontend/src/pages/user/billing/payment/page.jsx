@@ -193,11 +193,11 @@ function PaymentPage() {
   }
 
   return (
-    <div className='max-w-4xl mx-auto p-6'>
+    <div className='mx-auto p-6'>
       {/* Back Button */}
       <button
         onClick={() => navigate(`/user/${id}/billing`)}
-        className='flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-6'
+        className='flex items-center gap-2 text-gray-600 hover:text-blue-600 mb-6'
       >
         <FaArrowLeft /> Back to Billing
       </button>
@@ -232,60 +232,62 @@ function PaymentPage() {
         </div>
       </div>
 
-      {/* Payment Breakdown */}
-      <div className='bg-white rounded-xl shadow-md p-6 mb-6'>
-        <h2 className='text-xl font-bold text-gray-800 mb-4'>Payment Breakdown</h2>
-        <div className='space-y-3'>
-          {invoice.payments && invoice.payments.map((payment, index) => {
-            const config = PAYMENT_TYPE_CONFIG[payment.paymentType] || PAYMENT_TYPE_CONFIG.OTHER;
-            return (
-              <div key={index} className='flex justify-between items-center py-3 border-b last:border-b-0'>
-                <div className='flex items-center gap-3'>
-                  <span className={`text-xl ${config.color}`}>{config.icon}</span>
-                  <div>
-                    <p className='font-medium text-gray-800'>{config.label}</p>
-                    {payment.notes && <p className='text-sm text-gray-500'>{payment.notes}</p>}
+      <div className='grid lg:grid-cols-2 gap-6'>
+        {/* Payment Breakdown */}
+          <div className='bg-white rounded-xl shadow-md p-6 mb-6'>
+            <h2 className='text-xl font-bold text-gray-800 mb-4'>Payment Breakdown</h2>
+            <div className='space-y-3'>
+              {invoice.payments && invoice.payments.map((payment, index) => {
+                const config = PAYMENT_TYPE_CONFIG[payment.paymentType] || PAYMENT_TYPE_CONFIG.OTHER;
+                return (
+                  <div key={index} className='flex justify-between items-center py-3 border-b last:border-b-0'>
+                    <div className='flex items-center gap-3'>
+                      <span className={`text-xl ${config.color}`}>{config.icon}</span>
+                      <div>
+                        <p className='font-medium text-gray-800'>{config.label}</p>
+                        {payment.notes && <p className='text-sm text-gray-500'>{payment.notes}</p>}
+                      </div>
+                    </div>
+                    <div className='text-gray-800 font-medium'>฿{formatCurrency(payment.amount)}</div>
                   </div>
-                </div>
-                <div className='text-gray-800 font-medium'>฿{formatCurrency(payment.amount)}</div>
+                );
+              })}
+            </div>
+
+            <div className='mt-6 pt-4 border-t-2 border-gray-300'>
+              <div className='flex justify-between items-center'>
+                <span className='text-xl font-bold text-gray-800'>Total Amount</span>
+                <span className='text-2xl font-bold text-blue-600'>฿{formatCurrency(invoice.totalAmount)}</span>
               </div>
-            );
-          })}
-        </div>
-
-        <div className='mt-6 pt-4 border-t-2 border-gray-300'>
-          <div className='flex justify-between items-center'>
-            <span className='text-xl font-bold text-gray-800'>Total Amount</span>
-            <span className='text-2xl font-bold text-blue-600'>฿{formatCurrency(invoice.totalAmount)}</span>
+            </div>
           </div>
-        </div>
+
+          {/* Unit Information */}
+          <div className='bg-white rounded-xl shadow-md p-6 mb-6'>
+            <h2 className='text-xl font-bold text-gray-800 mb-4'>Property Information</h2>
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              <div>
+                <p className='text-sm text-gray-500'>Unit Number</p>
+                <p className='text-gray-800 font-medium'>{invoice.lease?.unit?.roomNumber || 'N/A'}</p>
+              </div>
+              <div>
+                <p className='text-sm text-gray-500'>Unit Type</p>
+                <p className='text-gray-800 font-medium'>{invoice.lease?.unit?.unitType || 'N/A'}</p>
+              </div>
+              <div>
+                <p className='text-sm text-gray-500'>Tenant Name</p>
+                <p className='text-gray-800 font-medium'>
+                  {invoice.lease?.tenant ? `${invoice.lease.tenant.firstName} ${invoice.lease.tenant.lastName}` : 'N/A'}
+                </p>
+              </div>
+              <div>
+                <p className='text-sm text-gray-500'>Contact</p>
+                <p className='text-gray-800 font-medium'>{invoice.lease?.tenant?.phone || 'N/A'}</p>
+              </div>
+            </div>
+          </div>
       </div>
-
-      {/* Unit Information */}
-      <div className='bg-white rounded-xl shadow-md p-6 mb-6'>
-        <h2 className='text-xl font-bold text-gray-800 mb-4'>Property Information</h2>
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-          <div>
-            <p className='text-sm text-gray-500'>Unit Number</p>
-            <p className='text-gray-800 font-medium'>{invoice.lease?.unit?.roomNumber || 'N/A'}</p>
-          </div>
-          <div>
-            <p className='text-sm text-gray-500'>Unit Type</p>
-            <p className='text-gray-800 font-medium'>{invoice.lease?.unit?.unitType || 'N/A'}</p>
-          </div>
-          <div>
-            <p className='text-sm text-gray-500'>Tenant Name</p>
-            <p className='text-gray-800 font-medium'>
-              {invoice.lease?.tenant ? `${invoice.lease.tenant.firstName} ${invoice.lease.tenant.lastName}` : 'N/A'}
-            </p>
-          </div>
-          <div>
-            <p className='text-sm text-gray-500'>Contact</p>
-            <p className='text-gray-800 font-medium'>{invoice.lease?.tenant?.phone || 'N/A'}</p>
-          </div>
-        </div>
-      </div>
-
+      
       {/* QR Code Payment Section */}
       {(invoice.status === 'PENDING' || invoice.status === 'REJECTED') && (
         <div id="qr-code-section" className='bg-white rounded-xl shadow-md p-6 mb-6'>
@@ -307,61 +309,62 @@ function PaymentPage() {
           </div>
 
           {/* Upload Slip Section */}
-          <div className='mt-8 pt-6 border-t'>
+          <div className='mt-8 pt-6 border-t flex flex-col items-center gap-4'>
             <h3 className='text-lg font-semibold text-gray-800 mb-4'>Upload Payment Slip</h3>
-            
-            {slipPreview ? (
-              <div className='space-y-4'>
-                <div className='flex justify-center'>
-                  <img 
-                    src={slipPreview} 
-                    alt="Payment Slip Preview" 
-                    className='max-w-xs rounded-lg shadow-md'
-                  />
+            <div className='border p-4 lg:min-h-[400px] lg:min-w-[800px] rounded-xl border-gray-300 flex flex-col items-center justify-center'>
+              {slipPreview ? (
+                <div className='space-y-4'>
+                  <div className='flex justify-center'>
+                    <img 
+                      src={slipPreview} 
+                      alt="Payment Slip Preview" 
+                      className='max-w-xs rounded-lg shadow-md'
+                    />
+                  </div>
+                  <div className='flex gap-3 justify-center'>
+                    <button
+                      onClick={() => {
+                        setSlipFile(null);
+                        setSlipPreview(null);
+                        if (fileInputRef.current) {
+                          fileInputRef.current.value = '';
+                        }
+                      }}
+                      className='px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300'
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleUploadSlip}
+                      disabled={uploading}
+                      className='px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 flex items-center gap-2'
+                    >
+                      <FaUpload />
+                      {uploading ? 'Uploading...' : 'Submit Payment'}
+                    </button>
+                  </div>
                 </div>
-                <div className='flex gap-3 justify-center'>
-                  <button
-                    onClick={() => {
-                      setSlipFile(null);
-                      setSlipPreview(null);
-                      if (fileInputRef.current) {
-                        fileInputRef.current.value = '';
-                      }
-                    }}
-                    className='px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300'
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleUploadSlip}
-                    disabled={uploading}
-                    className='px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 flex items-center gap-2'
+              ) : (
+                <div className='flex flex-col items-center gap-4'>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                    className='hidden'
+                    id="slip-upload"
+                  />
+                  <label
+                    htmlFor="slip-upload"
+                    className='px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 cursor-pointer flex items-center gap-2 transition-colors'
                   >
                     <FaUpload />
-                    {uploading ? 'Uploading...' : 'Submit Payment Slip'}
-                  </button>
+                    Choose Payment Slip Image
+                  </label>
+                  <p className='text-sm text-gray-500'>Maximum file size: 5MB</p>
                 </div>
-              </div>
-            ) : (
-              <div className='flex flex-col items-center gap-4'>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileSelect}
-                  className='hidden'
-                  id="slip-upload"
-                />
-                <label
-                  htmlFor="slip-upload"
-                  className='px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 cursor-pointer flex items-center gap-2 transition-colors'
-                >
-                  <FaUpload />
-                  Choose Payment Slip Image
-                </label>
-                <p className='text-sm text-gray-500'>Maximum file size: 5MB</p>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -419,14 +422,6 @@ function PaymentPage() {
 
       {/* Action Buttons */}
       <div className='flex gap-4 justify-center flex-wrap'>
-        {(invoice.status === 'PENDING' || invoice.status === 'REJECTED') && (
-          <button
-            onClick={handlePayNow}
-            className='px-8 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg'
-          >
-            Proceed to Payment
-          </button>
-        )}
         <button
           onClick={handleDownloadPdf}
           disabled={downloading}

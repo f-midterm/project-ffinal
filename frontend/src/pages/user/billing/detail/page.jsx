@@ -112,11 +112,11 @@ function InvoiceDetailPage() {
   }
 
   return (
-    <div className='max-w-4xl mx-auto p-6'>
+    <div className='mx-auto p-6'>
       {/* Back Button */}
       <button
         onClick={() => navigate(`/user/${id}/billing`)}
-        className='flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-6 print:hidden'
+        className='flex items-center gap-2 text-gray-600 hover:text-blue-600 mb-6 print:hidden'
       >
         <FaArrowLeft /> Back to Billing
       </button>
@@ -163,72 +163,74 @@ function InvoiceDetailPage() {
       </div>
 
       {/* Payment Details */}
-      <div className='bg-white rounded-xl shadow-md p-6 mb-6'>
-        <h2 className='text-xl font-bold text-gray-800 mb-4'>Payment Details</h2>
-        <div className='space-y-3'>
-          {invoice.payments && invoice.payments.map((payment, index) => {
-            const config = PAYMENT_TYPE_CONFIG[payment.paymentType] || PAYMENT_TYPE_CONFIG.OTHER;
-            return (
-              <div key={index} className='flex justify-between items-center py-3 border-b last:border-b-0'>
-                <div className='flex items-center gap-3'>
-                  <span className={`text-xl ${config.color}`}>{config.icon}</span>
-                  <div>
-                    <p className='font-medium text-gray-800'>{config.label}</p>
-                    {payment.notes && <p className='text-sm text-gray-500'>{payment.notes}</p>}
+      <div className='grid lg:grid-cols-2 gap-6'>
+        <div className='bg-white rounded-xl shadow-md p-6 mb-6'>
+          <h2 className='text-xl font-bold text-gray-800 mb-4'>Payment Details</h2>
+          <div className='space-y-3'>
+            {invoice.payments && invoice.payments.map((payment, index) => {
+              const config = PAYMENT_TYPE_CONFIG[payment.paymentType] || PAYMENT_TYPE_CONFIG.OTHER;
+              return (
+                <div key={index} className='flex justify-between items-center py-3 border-b last:border-b-0'>
+                  <div className='flex items-center gap-3'>
+                    <span className={`text-xl ${config.color}`}>{config.icon}</span>
+                    <div>
+                      <p className='font-medium text-gray-800'>{config.label}</p>
+                      {payment.notes && <p className='text-sm text-gray-500'>{payment.notes}</p>}
+                    </div>
+                  </div>
+                  <div className='flex items-center gap-3'>
+                    <div className='text-gray-800 font-medium'>฿{formatCurrency(payment.amount)}</div>
+                    <span className='text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full'>PAID</span>
                   </div>
                 </div>
-                <div className='flex items-center gap-3'>
-                  <div className='text-gray-800 font-medium'>฿{formatCurrency(payment.amount)}</div>
-                  <span className='text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full'>PAID</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className='mt-6 pt-4 border-t-2 border-gray-300'>
-          <div className='flex justify-between items-center mb-4'>
-            <span className='text-xl font-bold text-gray-800'>Total Paid</span>
-            <span className='text-2xl font-bold text-green-600'>฿{formatCurrency(invoice.totalAmount)}</span>
+              );
+            })}
           </div>
-          
-          {paymentMethod && (
-            <div className='flex justify-between items-center text-gray-600'>
-              <span>Payment Method:</span>
-              <span className='font-medium'>{PAYMENT_METHOD_LABELS[paymentMethod] || paymentMethod}</span>
+
+          <div className='mt-6 pt-4 border-t-2 border-gray-300'>
+            <div className='flex justify-between items-center mb-4'>
+              <span className='text-xl font-bold text-gray-800'>Total Paid</span>
+              <span className='text-2xl font-bold text-green-600'>฿{formatCurrency(invoice.totalAmount)}</span>
             </div>
-          )}
-        </div>
-      </div>
-
-      {/* Property Information */}
-      <div className='bg-white rounded-xl shadow-md p-6 mb-6'>
-        <h2 className='text-xl font-bold text-gray-800 mb-4'>Property Information</h2>
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-          <div>
-            <p className='text-sm text-gray-500'>Unit Number</p>
-            <p className='text-gray-800 font-medium'>{invoice.lease?.unit?.roomNumber || 'N/A'}</p>
-          </div>
-          <div>
-            <p className='text-sm text-gray-500'>Unit Type</p>
-            <p className='text-gray-800 font-medium'>{invoice.lease?.unit?.unitType || 'N/A'}</p>
-          </div>
-          <div>
-            <p className='text-sm text-gray-500'>Tenant Name</p>
-            <p className='text-gray-800 font-medium'>
-              {invoice.lease?.tenant ? `${invoice.lease.tenant.firstName} ${invoice.lease.tenant.lastName}` : 'N/A'}
-            </p>
-          </div>
-          <div>
-            <p className='text-sm text-gray-500'>Contact</p>
-            <p className='text-gray-800 font-medium'>{invoice.lease?.tenant?.phone || 'N/A'}</p>
+            
+            {paymentMethod && (
+              <div className='flex justify-between items-center text-gray-600'>
+                <span>Payment Method:</span>
+                <span className='font-medium'>{PAYMENT_METHOD_LABELS[paymentMethod] || paymentMethod}</span>
+              </div>
+            )}
           </div>
         </div>
-      </div>
 
+        {/* Property Information */}
+        <div className='bg-white rounded-xl shadow-md p-6 mb-6'>
+          <h2 className='text-xl font-bold text-gray-800 mb-4'>Property Information</h2>
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+            <div>
+              <p className='text-sm text-gray-500'>Unit Number</p>
+              <p className='text-gray-800 font-medium'>{invoice.lease?.unit?.roomNumber || 'N/A'}</p>
+            </div>
+            <div>
+              <p className='text-sm text-gray-500'>Unit Type</p>
+              <p className='text-gray-800 font-medium'>{invoice.lease?.unit?.unitType || 'N/A'}</p>
+            </div>
+            <div>
+              <p className='text-sm text-gray-500'>Tenant Name</p>
+              <p className='text-gray-800 font-medium'>
+                {invoice.lease?.tenant ? `${invoice.lease.tenant.firstName} ${invoice.lease.tenant.lastName}` : 'N/A'}
+              </p>
+            </div>
+            <div>
+              <p className='text-sm text-gray-500'>Contact</p>
+              <p className='text-gray-800 font-medium'>{invoice.lease?.tenant?.phone || 'N/A'}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+        
       {/* Notes */}
       {invoice.notes && (
-        <div className='bg-gray-50 rounded-xl p-6 mb-6'>
+        <div className='border bg-blue-50 border-blue-500 rounded-xl p-6 mb-6'>
           <h3 className='text-lg font-semibold text-gray-800 mb-2'>Notes</h3>
           <p className='text-gray-700'>{invoice.notes}</p>
         </div>
