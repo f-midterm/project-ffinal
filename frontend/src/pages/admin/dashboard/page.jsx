@@ -61,7 +61,7 @@ function AdminDashboard() {
       {/* Unit Section */}
         
       {/* Stat Card */}
-      <div className='grid gap-6 grid-cols-1 lg:grid-cols-3 justify-center items-center mb-8'>
+      <div className='grid gap-6 grid-cols-1 lg:grid-cols-4 justify-center items-center mb-8'>
         {/* Rental Requests */}
         <Link to="/admin/rental-requests" className='hover:translate-y-[-1px] hover:shadow-lg'>
           <StatCard icon={<MdPendingActions />} title={"Rental Requests"} value={`${rentalRequestsCount} Requests`} color={"green"} />

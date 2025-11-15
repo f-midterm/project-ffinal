@@ -282,7 +282,7 @@ function InvoiceDetailPage() {
         
       {/* Notes */}
       {invoice.notes && (
-        <div className='border bg-blue-50 border-blue-500 rounded-xl p-6 mb-6'>
+        <div className='border-l-4 bg-blue-50 border-blue-500 p-6 mb-6'>
           <h3 className='text-lg font-semibold text-gray-800 mb-2'>Notes</h3>
           <p className='text-gray-700'>{invoice.notes}</p>
         </div>
