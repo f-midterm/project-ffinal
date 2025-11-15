@@ -37,14 +37,6 @@ function ReportPage() {
             <UserBookingBarChart />
           </div>
         </div>
-
-        <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-          {/* Recent Payments */}
-          <div></div>
-
-          {/* New Tenants */}
-          <div></div>         
-        </div>
     </div>
   )
 }

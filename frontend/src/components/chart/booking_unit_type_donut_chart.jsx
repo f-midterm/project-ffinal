@@ -2,16 +2,16 @@ import React from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 const data = [
-  { name: 'Standard', value: 400 },
-  { name: 'Deluxe', value: 300 },
-  { name: 'Premium', value: 300 },
+  { name: 'Standard', value: 8 },
+  { name: 'Deluxe', value: 3 },
+  { name: 'Premium', value: 2 },
 ];
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28'];
 
 const BookingUnitTypeDonutChart = () => {
   return (
-    <div className="bg-white p-6 rounded-xl shadow-md">
+    <div className="bg-white p-8 rounded-xl shadow-md">
       <h2 className="text-xl font-semibold text-gray-800 mb-4">Booking Unit Types</h2>
       <ResponsiveContainer width="100%" height={300}>
         <PieChart>
