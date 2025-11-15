@@ -1,6 +1,7 @@
 package apartment.example.backend.controller;
 
 import apartment.example.backend.entity.Invoice;
+import apartment.example.backend.entity.enums.InvoiceType;
 import apartment.example.backend.entity.enums.PaymentType;
 import apartment.example.backend.service.InvoiceService;
 import apartment.example.backend.service.PdfService;
@@ -55,30 +56,73 @@ public class InvoiceController {
     @PostMapping("/create")
     public ResponseEntity<Invoice> createInvoice(@RequestBody CreateInvoiceRequest request) {
         try {
-            // Build payment items list
+            // Default to MONTHLY_RENT if not specified
+            String invoiceTypeStr = request.getInvoiceType() != null ? request.getInvoiceType() : "MONTHLY_RENT";
+            InvoiceType invoiceType = InvoiceType.valueOf(invoiceTypeStr);
+
+            // Build payment items list based on invoice type
             List<InvoiceService.PaymentItem> paymentItems = new ArrayList<>();
 
-            if (request.getRentAmount() != null && request.getRentAmount().compareTo(BigDecimal.ZERO) > 0) {
-                paymentItems.add(new InvoiceService.PaymentItem(
-                    PaymentType.RENT,
-                    request.getRentAmount(),
-                    "ค่าเช่า"
-                ));
-            }
+            if (invoiceType == InvoiceType.MONTHLY_RENT) {
+                // Monthly rent + utilities
+                if (request.getRentAmount() != null && request.getRentAmount().compareTo(BigDecimal.ZERO) > 0) {
+                    paymentItems.add(new InvoiceService.PaymentItem(
+                        PaymentType.RENT,
+                        request.getRentAmount(),
+                        "ค่าเช่า"
+                    ));
+                }
 
-            if (request.getElectricityAmount() != null && request.getElectricityAmount().compareTo(BigDecimal.ZERO) > 0) {
-                paymentItems.add(new InvoiceService.PaymentItem(
-                    PaymentType.ELECTRICITY,
-                    request.getElectricityAmount(),
-                    "ค่าไฟฟ้า"
-                ));
-            }
+                if (request.getElectricityAmount() != null && request.getElectricityAmount().compareTo(BigDecimal.ZERO) > 0) {
+                    paymentItems.add(new InvoiceService.PaymentItem(
+                        PaymentType.ELECTRICITY,
+                        request.getElectricityAmount(),
+                        "ค่าไฟฟ้า"
+                    ));
+                }
 
-            if (request.getWaterAmount() != null && request.getWaterAmount().compareTo(BigDecimal.ZERO) > 0) {
+                if (request.getWaterAmount() != null && request.getWaterAmount().compareTo(BigDecimal.ZERO) > 0) {
+                    paymentItems.add(new InvoiceService.PaymentItem(
+                        PaymentType.WATER,
+                        request.getWaterAmount(),
+                        "ค่าน้ำ"
+                    ));
+                }
+            } else {
+                // Other invoice types use custom amount
+                if (request.getAmount() == null || request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+                    return ResponseEntity.badRequest().build();
+                }
+
+                PaymentType paymentType;
+                String description;
+                
+                switch (invoiceType) {
+                    case SECURITY_DEPOSIT:
+                        paymentType = PaymentType.SECURITY_DEPOSIT;
+                        description = "ค่าประกันห้อง";
+                        break;
+                    case CLEANING_FEE:
+                        paymentType = PaymentType.OTHER;
+                        description = "ค่าทำความสะอาด";
+                        break;
+                    case MAINTENANCE_FEE:
+                        paymentType = PaymentType.MAINTENANCE;
+                        description = "ค่าซ่อมบำรุง";
+                        break;
+                    case CUSTOM:
+                        paymentType = PaymentType.OTHER;
+                        description = request.getNotes() != null ? request.getNotes() : "ค่าใช้จ่ายอื่นๆ";
+                        break;
+                    default:
+                        paymentType = PaymentType.OTHER;
+                        description = "ค่าใช้จ่าย";
+                }
+
                 paymentItems.add(new InvoiceService.PaymentItem(
-                    PaymentType.WATER,
-                    request.getWaterAmount(),
-                    "ค่าน้ำ"
+                    paymentType,
+                    request.getAmount(),
+                    description
                 ));
             }
 
@@ -92,10 +136,14 @@ public class InvoiceController {
                 request.getInvoiceDate(),
                 request.getDueDate(),
                 paymentItems,
-                request.getNotes()
+                request.getNotes(),
+                invoiceType
             );
 
             return ResponseEntity.ok(invoice);
+        } catch (IllegalArgumentException e) {
+            // Invalid invoice type
+            return ResponseEntity.badRequest().body(null);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(null);
         }
@@ -189,6 +237,8 @@ public class InvoiceController {
         private BigDecimal rentAmount;
         private BigDecimal electricityAmount;
         private BigDecimal waterAmount;
+        private BigDecimal amount; // For non-MONTHLY_RENT types
+        private String invoiceType; // MONTHLY_RENT, SECURITY_DEPOSIT, etc.
         private String notes;
 
         // Getters and Setters
@@ -238,6 +288,22 @@ public class InvoiceController {
 
         public void setWaterAmount(BigDecimal waterAmount) {
             this.waterAmount = waterAmount;
+        }
+
+        public BigDecimal getAmount() {
+            return amount;
+        }
+
+        public void setAmount(BigDecimal amount) {
+            this.amount = amount;
+        }
+
+        public String getInvoiceType() {
+            return invoiceType;
+        }
+
+        public void setInvoiceType(String invoiceType) {
+            this.invoiceType = invoiceType;
         }
 
         public String getNotes() {

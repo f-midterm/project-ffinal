@@ -72,12 +72,17 @@ function AdminDashboard() {
           <StatCard icon={<PiHammer />} title={"Maintenane Requests"} value={`2 Requests`} color={"yellow"} />
         </Link>
           
-        {/* Lease Renewals */}
-        <Link to="payment-requests" className='hover:translate-y-[-1px] hover:shadow-lg'>
+        {/*  */}
+        <Link to="/admin/payment-requests" className='hover:translate-y-[-1px] hover:shadow-lg'>
           <StatCard icon={<GrDocumentText />} title={"Payment Requests"} value={`3 Upcoming`} color={"red"} />
         </Link>
-      </div>
-      
+
+        <Link to="/admin/billing/bulk-import" className='hover:translate-y-[-1px] hover:shadow-lg'>
+          <StatCard icon={<GrDocumentText />} title={"Quick Import from CSV"} value={`25 - 30 Every month`} color={"blue"} />
+        </Link>
+       </div>
+
+
       <div className="border-b border-gray-400 mb-6"></div>
       
       <div className='flex justify-between mb-6'>

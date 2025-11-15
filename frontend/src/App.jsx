@@ -34,6 +34,7 @@ import UserMaintenancePage from "./pages/user/maintenance/page";
 import MaintenanceRequestsPage from "./pages/admin/maintenance-requests/page";  
 import MaintenanceRequestsDetailPage from "./pages/admin/maintenance-requests/[id]/page";
 import PaymentsRequestsPage from "./pages/admin/payment-requests/page";
+import BulkImportPage from "./pages/admin/billing/bulk_import/page";
 
 
 function App() {
@@ -65,6 +66,7 @@ function App() {
             <Route path="unit/:id/send-invoice" element={<SendInvoicePage />} />
             <Route path="unit/:id/contact-tenant" element={<ContactTenantPage />} />
             <Route path="unit/:id/payments-history" element={<PaymentsHistoryPage />} />
+            <Route path="billing/bulk-import" element={<BulkImportPage />} />
             <Route path="notifications" element={<AdminNotificationsPage />} />
             <Route path="notifications/:id" element={<NotificationDetail />} />
           </Route>

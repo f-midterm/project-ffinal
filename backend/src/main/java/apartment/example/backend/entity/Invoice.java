@@ -1,5 +1,6 @@
 package apartment.example.backend.entity;
 
+import apartment.example.backend.entity.enums.InvoiceType;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -53,6 +54,10 @@ public class Invoice {
 
     @Column(name = "total_amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal totalAmount;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "invoice_type", nullable = false)
+    private InvoiceType invoiceType = InvoiceType.MONTHLY_RENT;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
