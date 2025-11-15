@@ -384,6 +384,28 @@ public class InvoiceController {
         return ResponseEntity.ok(invoices);
     }
     
+    /**
+     * Get all paid invoices (Admin only)
+     * 
+     * GET /invoices/paid
+     */
+    @GetMapping("/paid")
+    public ResponseEntity<List<Invoice>> getPaidInvoices() {
+        List<Invoice> invoices = invoiceService.getPaidInvoices();
+        return ResponseEntity.ok(invoices);
+    }
+    
+    /**
+     * Delete an invoice (Admin only)
+     * 
+     * DELETE /invoices/{id}
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteInvoice(@PathVariable Long id) {
+        invoiceService.deleteInvoice(id);
+        return ResponseEntity.ok().build();
+    }
+    
     // Request DTO for payment verification
     static class VerifyPaymentRequest {
         private boolean approved;

@@ -65,6 +65,7 @@ function PaymentPage() {
   const [uploading, setUploading] = useState(false);
   const [slipFile, setSlipFile] = useState(null);
   const [slipPreview, setSlipPreview] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
 
   // Calculate late fee
@@ -126,6 +127,54 @@ function PaymentPage() {
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
+      processFile(file);
+    }
+  };
+
+  const processFile = (file) => {
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      alert('File size should not exceed 5MB');
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file');
+      return;
+    }
+    setSlipFile(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSlipPreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      processFile(files[0]);
       if (file.size > 5 * 1024 * 1024) {
         // 5MB limit
         alert("File size should not exceed 5MB");
@@ -390,60 +439,69 @@ function PaymentPage() {
               })}
           </div>
 
-          <div>
-            {daysLate > 0 && (
-              <div className="mb-4">
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-3">
-                  <div className="flex items-center gap-2 text-red-700 mb-2">
-                    <FaExclamationCircle />
-                    <span className="font-medium">Late Payment Fee</span>
-                  </div>
-                  <p className="text-sm text-red-600 mb-2">
-                    This invoice is{" "}
-                    <strong>
-                      {daysLate} day{daysLate > 1 ? "s" : ""}
-                    </strong>{" "}
-                    overdue. Late fee: 300 ฿/day
-                  </p>
-                  <div className="flex justify-between items-center text-red-700 font-medium">
-                    <span>Late Fee ({daysLate} days × 300 ฿):</span>
-                    <span>+฿{formatCurrency(lateFee)}</span>
+            <div className='mt-6 pt-4 border-t-2 border-gray-300'>
+              {daysLate > 0 && (
+                <div className='mb-4'>
+                  <div className='bg-red-50 border border-red-200 rounded-lg p-4 mb-3'>
+                    <div className='flex items-center gap-2 text-red-700 mb-2'>
+                      <FaExclamationCircle />
+                      <span className='font-medium'>Late Payment Fee</span>
+                    </div>
+                    <p className='text-sm text-red-600 mb-2'>
+                      This invoice is <strong>{daysLate} day{daysLate > 1 ? 's' : ''}</strong> overdue. Late fee: 300 ฿/day
+                    </p>
+                    <div className='flex justify-between items-center text-red-700 font-medium'>
+                      <span>Late Fee ({daysLate} days × 300 ฿):</span>
+                      <span>+฿{formatCurrency(lateFee)}</span>
+                    </div>
                   </div>
                 </div>
+              )}
+              
+              <div className='flex justify-between items-center mb-2'>
+                <span className='text-lg font-medium text-gray-700'>Subtotal</span>
+                <span className='text-lg font-medium text-gray-800'>฿{formatCurrency(invoice.totalAmount)}</span>
               </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl p-6 shadow-md mb-6">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-lg font-medium text-gray-700">Subtotal</span>
-            <span className="text-lg font-medium text-gray-800">
-              ฿{formatCurrency(invoice.totalAmount)}
-            </span>
-          </div>
-
-          {daysLate > 0 && (
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-lg font-medium text-red-600">Late Fee</span>
-              <span className="text-lg font-medium text-red-600">
-                +฿{formatCurrency(lateFee)}
-              </span>
+              
+              {daysLate > 0 && (
+                <div className='flex justify-between items-center mb-2'>
+                  <span className='text-lg font-medium text-red-600'>Late Fee</span>
+                  <span className='text-lg font-medium text-red-600'>+฿{formatCurrency(lateFee)}</span>
+                </div>
+              )}
+              
+              <div className='flex justify-between items-center pt-3 border-t border-gray-200'>
+                <span className='text-xl font-bold text-gray-800'>Total Amount</span>
+                <span className={`text-2xl font-bold ${daysLate > 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                  ฿{formatCurrency(totalWithLateFee)}
+                </span>
+              </div>
             </div>
-          )}
+          </div>
 
-          <div className="flex justify-between items-center pt-3 border-t border-gray-200">
-            <span className="text-xl font-bold text-gray-800">
-              Total Amount
-            </span>
-            <span
-              className={`text-2xl font-bold ${
-                daysLate > 0 ? "text-red-600" : "text-blue-600"
-              }`}
-            >
-              ฿{formatCurrency(totalWithLateFee)}
-            </span>
+        {/* Unit Information */}
+        <div className='bg-white rounded-xl shadow-md p-6 mb-6'>
+            <h2 className='text-xl font-bold text-gray-800 mb-4'>Property Information</h2>
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              <div>
+                <p className='text-sm text-gray-500'>Unit Number</p>
+                <p className='text-gray-800 font-medium'>{invoice.lease?.unit?.roomNumber || 'N/A'}</p>
+              </div>
+              <div>
+                <p className='text-sm text-gray-500'>Unit Type</p>
+                <p className='text-gray-800 font-medium'>{invoice.lease?.unit?.unitType || 'N/A'}</p>
+              </div>
+              <div>
+                <p className='text-sm text-gray-500'>Tenant Name</p>
+                <p className='text-gray-800 font-medium'>
+                  {invoice.lease?.tenant ? `${invoice.lease.tenant.firstName} ${invoice.lease.tenant.lastName}` : 'N/A'}
+                </p>
+              </div>
+              <div>
+                <p className='text-sm text-gray-500'>Contact</p>
+                <p className='text-gray-800 font-medium'>{invoice.lease?.tenant?.phone || 'N/A'}</p>
+              </div>
+            </div>
           </div>
       </div>
 
@@ -503,11 +561,19 @@ function PaymentPage() {
           </div>
 
           {/* Upload Slip Section */}
-          <div className="mt-8 pt-6 border-t flex flex-col items-center gap-4">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              Upload Payment Slip
-            </h3>
-            <div className="border p-4 lg:min-h-[400px] lg:min-w-[800px] rounded-xl border-gray-300 flex flex-col items-center justify-center">
+          <div className='mt-8 pt-6 border-t flex flex-col items-center gap-4'>
+            <h3 className='text-lg font-semibold text-gray-800 mb-4'>Upload Payment Slip</h3>
+            <div 
+              className={`border-2 border-dashed p-8 lg:min-h-[400px] lg:min-w-[800px] rounded-xl flex flex-col items-center justify-center transition-all ${
+                isDragging 
+                  ? 'border-blue-500 bg-blue-50' 
+                  : 'border-gray-300 bg-white hover:border-gray-400'
+              }`}
+              onDragEnter={handleDragEnter}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
               {slipPreview ? (
                 <div className="space-y-4">
                   <div className="flex justify-center">
@@ -526,14 +592,14 @@ function PaymentPage() {
                           fileInputRef.current.value = "";
                         }
                       }}
-                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                      className='px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors'
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleUploadSlip}
                       disabled={uploading}
-                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 flex items-center gap-2"
+                      className='px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 flex items-center gap-2 transition-colors'
                     >
                       <FaUpload />
                       {uploading ? "Uploading..." : "Submit Payment"}
@@ -541,7 +607,18 @@ function PaymentPage() {
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col items-center gap-4">
+                <div className='flex flex-col items-center gap-4 text-center'>
+                  <FaUpload className={`text-5xl transition-colors ${
+                    isDragging ? 'text-blue-500' : 'text-gray-400'
+                  }`} />
+                  <div>
+                    <p className={`text-lg font-medium mb-2 transition-colors ${
+                      isDragging ? 'text-blue-600' : 'text-gray-700'
+                    }`}>
+                      {isDragging ? 'Drop your file here' : 'Drag & drop your payment slip'}
+                    </p>
+                    <p className='text-sm text-gray-500 mb-4'>or</p>
+                  </div>
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -552,14 +629,12 @@ function PaymentPage() {
                   />
                   <label
                     htmlFor="slip-upload"
-                    className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 cursor-pointer flex items-center gap-2 transition-colors"
+                    className='px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 cursor-pointer flex items-center gap-2 transition-colors shadow-md hover:shadow-lg'
                   >
                     <FaUpload />
                     Choose Payment Slip Image
                   </label>
-                  <p className="text-sm text-gray-500">
-                    Maximum file size: 5MB
-                  </p>
+                  <p className='text-sm text-gray-500'>Maximum file size: 5MB (JPG, PNG, GIF)</p>
                 </div>
               )}
             </div>

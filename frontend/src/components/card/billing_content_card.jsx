@@ -124,8 +124,15 @@ function BillingContentCard({ invoice, onClick }) {
             {/* Amount */}
             <div className='flex flex-col min-w-[120px]'>
                 <div className='text-xs text-gray-400 mb-1'>Amount</div>
-                <div className='text-lg font-semibold text-blue-600'>
-                  ฿{formatCurrency(invoice.totalAmount)}
+                <div>
+                  <div className={`text-lg font-semibold ${invoice.wasPaidLate ? 'text-orange-600' : 'text-blue-600'}`}>
+                    ฿{formatCurrency(invoice.totalWithLateFee || invoice.totalAmount)}
+                  </div>
+                  {invoice.wasPaidLate && invoice.lateFee > 0 && (
+                    <div className='text-xs text-orange-600 mt-1'>
+                      +฿{formatCurrency(invoice.lateFee)} late fee
+                    </div>
+                  )}
                 </div>
             </div>
 
