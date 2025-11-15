@@ -28,6 +28,9 @@ function InvoiceDetailPage() {
   const [error, setError] = useState(null);
   const [invoice, setInvoice] = useState(null);
   const [downloading, setDownloading] = useState(false);
+  const [daysLate, setDaysLate] = useState(0);
+  const [lateFee, setLateFee] = useState(0);
+  const [totalWithLateFee, setTotalWithLateFee] = useState(0);
 
   useEffect(() => {
     fetchInvoice();
@@ -43,6 +46,24 @@ function InvoiceDetailPage() {
       if (invoiceData.status !== 'PAID') {
         navigate(`/user/${id}/billing/payment/${invoiceId}`);
         return;
+      }
+      
+      // Calculate late fee if paid after due date
+      const dueDate = new Date(invoiceData.dueDate);
+      const paidDate = new Date(invoiceData.paidDate || invoiceData.updatedAt);
+      dueDate.setHours(0, 0, 0, 0);
+      paidDate.setHours(0, 0, 0, 0);
+      
+      if (paidDate > dueDate) {
+        const days = Math.floor((paidDate - dueDate) / (1000 * 60 * 60 * 24));
+        const fee = days * 300;
+        setDaysLate(days);
+        setLateFee(fee);
+        setTotalWithLateFee(invoiceData.totalAmount + fee);
+      } else {
+        setDaysLate(0);
+        setLateFee(0);
+        setTotalWithLateFee(invoiceData.totalAmount);
       }
       
       setInvoice(invoiceData);
@@ -115,7 +136,7 @@ function InvoiceDetailPage() {
     <div className='mx-auto p-6'>
       {/* Back Button */}
       <button
-        onClick={() => navigate(`/user/${id}/billing`)}
+        onClick={() => navigate(`/admin/payments`)}
         className='flex items-center gap-2 text-gray-600 hover:text-blue-600 mb-6 print:hidden'
       >
         <FaArrowLeft /> Back to Billing
@@ -188,9 +209,40 @@ function InvoiceDetailPage() {
           </div>
 
           <div className='mt-6 pt-4 border-t-2 border-gray-300'>
-            <div className='flex justify-between items-center mb-4'>
+            {daysLate > 0 && (
+              <div className='mb-4'>
+                <div className='bg-orange-50 border border-orange-200 rounded-lg p-4 mb-3'>
+                  <div className='flex items-center gap-2 text-orange-700 mb-2'>
+                    <span className='font-medium'>Late Payment Fee</span>
+                  </div>
+                  <p className='text-sm text-orange-600 mb-2'>
+                    This invoice was paid <strong>{daysLate} day{daysLate > 1 ? 's' : ''}</strong> after the due date.
+                  </p>
+                  <div className='flex justify-between items-center text-orange-700 font-medium'>
+                    <span>Late Fee ({daysLate} days × 300 ฿):</span>
+                    <span>+฿{formatCurrency(lateFee)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div className='flex justify-between items-center mb-2'>
+              <span className='text-lg font-medium text-gray-700'>Subtotal</span>
+              <span className='text-lg font-medium text-gray-800'>฿{formatCurrency(invoice.totalAmount)}</span>
+            </div>
+            
+            {daysLate > 0 && (
+              <div className='flex justify-between items-center mb-2'>
+                <span className='text-lg font-medium text-orange-600'>Late Fee</span>
+                <span className='text-lg font-medium text-orange-600'>+฿{formatCurrency(lateFee)}</span>
+              </div>
+            )}
+            
+            <div className='flex justify-between items-center mb-4 pt-3 border-t border-gray-200'>
               <span className='text-xl font-bold text-gray-800'>Total Paid</span>
-              <span className='text-2xl font-bold text-green-600'>฿{formatCurrency(invoice.totalAmount)}</span>
+              <span className={`text-2xl font-bold ${daysLate > 0 ? 'text-orange-600' : 'text-green-600'}`}>
+                ฿{formatCurrency(totalWithLateFee)}
+              </span>
             </div>
             
             {paymentMethod && (

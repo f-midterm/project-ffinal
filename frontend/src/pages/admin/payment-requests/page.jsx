@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom'
 import PaymentsPageSkeleton from '../../../components/skeleton/payments_page_skeleton';
 import { getWaitingVerificationInvoices, verifyPayment } from '../../../api/services/invoices.service';
 import { getBackendResourceUrl } from '../../../api/client/apiClient';
-import { FaCheck, FaTimes, FaEye, FaFileInvoice } from 'react-icons/fa';
+import { FaCheck, FaTimes, FaEye, FaFileInvoice, FaExclamationTriangle } from 'react-icons/fa';
 
 function PaymentRequestsPage() {
   const [loading, setLoading] = useState(true);
@@ -24,7 +24,35 @@ function PaymentRequestsPage() {
     try {
       setLoading(true);
       const data = await getWaitingVerificationInvoices();
-      setInvoices(data);
+      
+      // Calculate late fees for overdue invoices
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const invoicesWithLateFees = data.map(invoice => {
+        const dueDate = new Date(invoice.dueDate);
+        dueDate.setHours(0, 0, 0, 0);
+        
+        if (dueDate < today) {
+          const daysLate = Math.floor((today - dueDate) / (1000 * 60 * 60 * 24));
+          const lateFee = daysLate * 300;
+          return {
+            ...invoice,
+            daysLate,
+            lateFee,
+            totalWithLateFee: invoice.totalAmount + lateFee
+          };
+        }
+        
+        return {
+          ...invoice,
+          daysLate: 0,
+          lateFee: 0,
+          totalWithLateFee: invoice.totalAmount
+        };
+      });
+      
+      setInvoices(invoicesWithLateFees);
     } catch (error) {
       console.error('Failed to fetch pending invoices:', error);
       alert('Failed to load pending payments');
@@ -79,6 +107,8 @@ function PaymentRequestsPage() {
     return <PaymentsPageSkeleton />;
   }
 
+  const overdueCount = invoices.filter(inv => inv.daysLate > 0).length;
+
   return (
     <div className='flex flex-col'>
         {/* Header */}
@@ -92,8 +122,25 @@ function PaymentRequestsPage() {
         {/* Stats */}
         <div className='grid lg:grid-cols-2 grid-cols-1 lg:mb-6 mb-4 gap-4'>
             <StatCard icon={<MdOutlinePending />} title={"Waiting Verification"} value={invoices.length} color={"yellow"} />
-            <StatCard icon={<IoBanOutline />} title={"Overdue"} value={`-`} color={"red"} />
+            <StatCard icon={<IoBanOutline />} title={"Overdue"} value={overdueCount} color={"red"} />
         </div>
+
+        {/* Overdue Warning */}
+        {/* {overdueCount > 0 && (
+          <div className='bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-lg'>
+            <div className='flex items-center gap-3'>
+              <FaExclamationTriangle className='text-red-600 text-xl' />
+              <div>
+                <p className='font-semibold text-red-800'>
+                  {overdueCount} payment{overdueCount > 1 ? 's' : ''} waiting for verification with late fees
+                </p>
+                <p className='text-sm text-red-700'>
+                  These invoices are overdue and include additional late fees (300 ฿/day)
+                </p>
+              </div>
+            </div>
+          </div>
+        )} */}
 
         {/* Invoices Table */}
         <div className='bg-white rounded-lg shadow overflow-hidden'>
@@ -127,9 +174,14 @@ function PaymentRequestsPage() {
                 </thead>
                 <tbody className='bg-white divide-y divide-gray-200'>
                   {invoices.map((invoice) => (
-                    <tr key={invoice.id} className='hover:bg-gray-50'>
-                      <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                        {invoice.invoiceNumber}
+                    <tr key={invoice.id} className={`hover:bg-gray-50 ${invoice.daysLate > 0 ? 'bg-red-50' : ''}`}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className='flex items-center gap-2'>
+                          {invoice.daysLate > 0 && (
+                            <FaExclamationTriangle className='text-red-500' />
+                          )}
+                          <span className='font-medium text-gray-900'>{invoice.invoiceNumber}</span>
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {invoice.lease?.unit?.roomNumber || 'N/A'}
@@ -138,8 +190,17 @@ function PaymentRequestsPage() {
                         {invoice.lease?.tenant ? 
                           `${invoice.lease.tenant.firstName} ${invoice.lease.tenant.lastName}` : 'N/A'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap font-semibold text-blue-600">
-                        ฿{formatCurrency(invoice.totalAmount)}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <p className={`font-semibold ${invoice.daysLate > 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                            ฿{formatCurrency(invoice.totalWithLateFee)}
+                          </p>
+                          {invoice.daysLate > 0 && (
+                            <p className='text-xs text-red-600 mt-1'>
+                              +฿{formatCurrency(invoice.lateFee)} late fee ({invoice.daysLate} day{invoice.daysLate > 1 ? 's' : ''})
+                            </p>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {formatDate(invoice.slipUploadedAt)}
@@ -195,7 +256,20 @@ function PaymentRequestsPage() {
                   </div>
                   <div>
                     <p className='text-sm text-gray-600'>Amount</p>
-                    <p className='font-semibold text-blue-600 text-lg'>฿{formatCurrency(selectedInvoice.totalAmount)}</p>
+                    <p className='font-semibold text-blue-600'>Base: ฿{formatCurrency(selectedInvoice.totalAmount)}</p>
+                    {selectedInvoice.daysLate > 0 && (
+                      <div className='mt-2 text-sm'>
+                        <p className='text-red-600 font-medium'>
+                          Late Fee: +฿{formatCurrency(selectedInvoice.lateFee)}
+                        </p>
+                        <p className='text-xs text-gray-500'>
+                          ({selectedInvoice.daysLate} day{selectedInvoice.daysLate > 1 ? 's' : ''} × 300 ฿/day)
+                        </p>
+                        <p className='text-lg font-bold text-red-600 mt-1'>
+                          Total: ฿{formatCurrency(selectedInvoice.totalWithLateFee)}
+                        </p>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <p className='text-sm text-gray-600'>Uploaded At</p>

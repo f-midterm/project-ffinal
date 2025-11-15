@@ -25,6 +25,7 @@ function PaymentPage() {
   const [uploading, setUploading] = useState(false);
   const [slipFile, setSlipFile] = useState(null);
   const [slipPreview, setSlipPreview] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
   
   // Calculate late fee
@@ -86,22 +87,54 @@ function PaymentPage() {
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        alert('File size should not exceed 5MB');
-        return;
-      }
-      if (!file.type.startsWith('image/')) {
-        alert('Please upload an image file');
-        return;
-      }
-      setSlipFile(file);
-      
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setSlipPreview(reader.result);
-      };
-      reader.readAsDataURL(file);
+      processFile(file);
+    }
+  };
+
+  const processFile = (file) => {
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      alert('File size should not exceed 5MB');
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file');
+      return;
+    }
+    setSlipFile(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSlipPreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      processFile(files[0]);
     }
   };
 
@@ -373,7 +406,17 @@ function PaymentPage() {
           {/* Upload Slip Section */}
           <div className='mt-8 pt-6 border-t flex flex-col items-center gap-4'>
             <h3 className='text-lg font-semibold text-gray-800 mb-4'>Upload Payment Slip</h3>
-            <div className='border p-4 lg:min-h-[400px] lg:min-w-[800px] rounded-xl border-gray-300 flex flex-col items-center justify-center'>
+            <div 
+              className={`border-2 border-dashed p-8 lg:min-h-[400px] lg:min-w-[800px] rounded-xl flex flex-col items-center justify-center transition-all ${
+                isDragging 
+                  ? 'border-blue-500 bg-blue-50' 
+                  : 'border-gray-300 bg-white hover:border-gray-400'
+              }`}
+              onDragEnter={handleDragEnter}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
               {slipPreview ? (
                 <div className='space-y-4'>
                   <div className='flex justify-center'>
@@ -392,14 +435,14 @@ function PaymentPage() {
                           fileInputRef.current.value = '';
                         }
                       }}
-                      className='px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300'
+                      className='px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors'
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleUploadSlip}
                       disabled={uploading}
-                      className='px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 flex items-center gap-2'
+                      className='px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 flex items-center gap-2 transition-colors'
                     >
                       <FaUpload />
                       {uploading ? 'Uploading...' : 'Submit Payment'}
@@ -407,7 +450,18 @@ function PaymentPage() {
                   </div>
                 </div>
               ) : (
-                <div className='flex flex-col items-center gap-4'>
+                <div className='flex flex-col items-center gap-4 text-center'>
+                  <FaUpload className={`text-5xl transition-colors ${
+                    isDragging ? 'text-blue-500' : 'text-gray-400'
+                  }`} />
+                  <div>
+                    <p className={`text-lg font-medium mb-2 transition-colors ${
+                      isDragging ? 'text-blue-600' : 'text-gray-700'
+                    }`}>
+                      {isDragging ? 'Drop your file here' : 'Drag & drop your payment slip'}
+                    </p>
+                    <p className='text-sm text-gray-500 mb-4'>or</p>
+                  </div>
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -418,12 +472,12 @@ function PaymentPage() {
                   />
                   <label
                     htmlFor="slip-upload"
-                    className='px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 cursor-pointer flex items-center gap-2 transition-colors'
+                    className='px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 cursor-pointer flex items-center gap-2 transition-colors shadow-md hover:shadow-lg'
                   >
                     <FaUpload />
                     Choose Payment Slip Image
                   </label>
-                  <p className='text-sm text-gray-500'>Maximum file size: 5MB</p>
+                  <p className='text-sm text-gray-500'>Maximum file size: 5MB (JPG, PNG, GIF)</p>
                 </div>
               )}
             </div>

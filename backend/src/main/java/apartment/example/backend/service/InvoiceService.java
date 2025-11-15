@@ -270,6 +270,20 @@ public class InvoiceService {
     public List<Invoice> getInvoicesWaitingVerification() {
         return invoiceRepository.findByStatus(Invoice.InvoiceStatus.WAITING_VERIFICATION);
     }
+    
+    /**
+     * Get all paid invoices
+     */
+    public List<Invoice> getPaidInvoices() {
+        return invoiceRepository.findByStatus(Invoice.InvoiceStatus.PAID);
+    }
+    
+    /**
+     * Delete an invoice
+     */
+    public void deleteInvoice(Long invoiceId) {
+        invoiceRepository.deleteById(invoiceId);
+    }
 
     /**
      * Payment Item DTO

@@ -254,3 +254,34 @@ export const verifyPayment = async (invoiceId, approved, notes = '') => {
     notes
   });
 };
+
+/**
+ * Get all paid invoices (Admin only)
+ * 
+ * @async
+ * @function getPaidInvoices
+ * @returns {Promise<Array<{id: number, invoiceNumber: string, lease: object, totalAmount: number, paidDate: string}>>} List of paid invoices
+ * @throws {Error} When request fails
+ * 
+ * @example
+ * const paidInvoices = await getPaidInvoices();
+ */
+export const getPaidInvoices = async () => {
+  return await apiClient.get('/invoices/paid');
+};
+
+/**
+ * Delete an invoice (Admin only)
+ * 
+ * @async
+ * @function deleteInvoice
+ * @param {number} invoiceId - Invoice ID to delete
+ * @returns {Promise<void>}
+ * @throws {Error} When deletion fails
+ * 
+ * @example
+ * await deleteInvoice(123);
+ */
+export const deleteInvoice = async (invoiceId) => {
+  return await apiClient.delete(`/invoices/${invoiceId}`);
+};

@@ -60,13 +60,33 @@ function BillingPage() {
 
             // Calculate late fees for overdue invoices
             const invoicesWithLateFees = visibleInvoices.map(inv => {
-                if (inv.status === 'OVERDUE' || (inv.status === 'PENDING' && new Date(inv.dueDate) < today)) {
-                    const dueDate = new Date(inv.dueDate);
-                    dueDate.setHours(0, 0, 0, 0);
+                const dueDate = new Date(inv.dueDate);
+                dueDate.setHours(0, 0, 0, 0);
+                
+                // For paid invoices, check if they were paid late
+                if (inv.status === 'PAID') {
+                    const paidDate = new Date(inv.paidDate || inv.updatedAt);
+                    paidDate.setHours(0, 0, 0, 0);
+                    
+                    if (paidDate > dueDate) {
+                        const daysLate = Math.floor((paidDate - dueDate) / (1000 * 60 * 60 * 24));
+                        const lateFee = daysLate * 300;
+                        return {
+                            ...inv,
+                            daysLate,
+                            lateFee,
+                            totalWithLateFee: inv.totalAmount + lateFee,
+                            wasPaidLate: true
+                        };
+                    }
+                }
+                
+                // For pending/overdue invoices
+                if (inv.status === 'OVERDUE' || (inv.status === 'PENDING' && dueDate < today)) {
                     const daysLate = Math.floor((today - dueDate) / (1000 * 60 * 60 * 24));
                     
                     if (daysLate > 0) {
-                        const lateFee = daysLate * 300; // 300 baht per day
+                        const lateFee = daysLate * 300;
                         return {
                             ...inv,
                             daysLate,
