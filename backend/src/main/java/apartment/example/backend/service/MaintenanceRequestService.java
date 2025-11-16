@@ -4,6 +4,7 @@ import apartment.example.backend.entity.MaintenanceRequest;
 import apartment.example.backend.entity.MaintenanceRequest.Priority;
 import apartment.example.backend.entity.MaintenanceRequest.Category;
 import apartment.example.backend.entity.MaintenanceRequest.RequestStatus;
+import apartment.example.backend.entity.MaintenanceLog;
 import apartment.example.backend.repository.MaintenanceRequestRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,6 +25,12 @@ public class MaintenanceRequestService {
 
     @Autowired
     private MaintenanceRequestRepository maintenanceRequestRepository;
+
+    @Autowired
+    private MaintenanceLogService logService;
+
+    @Autowired
+    private MaintenanceNotificationService notificationService;
 
     @Value("${file.maintenance-upload-dir:uploads/maintenance-attachments}")
     private String uploadDir;
@@ -108,6 +115,9 @@ public MaintenanceRequest updateMaintenanceRequest(Long id, MaintenanceRequest r
     MaintenanceRequest existingRequest = maintenanceRequestRepository.findById(id)
         .orElseThrow(() -> new RuntimeException("Request not found with id: " + id));
 
+    // เก็บ status เดิมเพื่อตรวจสอบการเปลี่ยนแปลง
+    RequestStatus oldStatus = existingRequest.getStatus();
+    
     // 2. อัปเดตเฉพาะ field ที่ได้รับมาจากฟอร์มเท่านั้น
     // ใช้ if ตรวจสอบเพื่อป้องกันการเขียนทับ field สำคัญด้วยค่า null
     if (requestDetailsFromFrontend.getTitle() != null) {
@@ -124,6 +134,11 @@ public MaintenanceRequest updateMaintenanceRequest(Long id, MaintenanceRequest r
     }
     if (requestDetailsFromFrontend.getStatus() != null) {
         existingRequest.setStatus(requestDetailsFromFrontend.getStatus());
+        
+        // ถ้า status เปลี่ยนเป็น COMPLETED ให้บันทึกวันที่เสร็จสิ้น
+        if (requestDetailsFromFrontend.getStatus() == RequestStatus.COMPLETED && oldStatus != RequestStatus.COMPLETED) {
+            existingRequest.setCompletedDate(LocalDateTime.now());
+        }
     }
     if (requestDetailsFromFrontend.getPreferredTime() != null) {
         existingRequest.setPreferredTime(requestDetailsFromFrontend.getPreferredTime());
@@ -131,7 +146,38 @@ public MaintenanceRequest updateMaintenanceRequest(Long id, MaintenanceRequest r
     // เพิ่ม field อื่นๆ ที่คุณอนุญาตให้แก้ไขได้จากฟอร์ม...
 
     // 3. บันทึกอ็อบเจกต์ที่อัปเดตแล้วกลับลง Database
-    return maintenanceRequestRepository.save(existingRequest);
+    MaintenanceRequest saved = maintenanceRequestRepository.save(existingRequest);
+    
+    // 4. ถ้ามีการเปลี่ยน status ให้ส่ง notification และบันทึก log
+    if (requestDetailsFromFrontend.getStatus() != null && oldStatus != requestDetailsFromFrontend.getStatus()) {
+        RequestStatus newStatus = requestDetailsFromFrontend.getStatus();
+        
+        // Log status change
+        try {
+            logService.logRequestStatusChanged(saved, oldStatus.toString(), newStatus.toString(), null);
+        } catch (Exception e) {
+            System.err.println("Failed to log status change: " + e.getMessage());
+        }
+        
+        // Send notification to user
+        try {
+            Long userId = saved.getCreatedByUserId();
+            
+            if (userId != null) {
+                if (newStatus == RequestStatus.COMPLETED) {
+                    notificationService.notifyMaintenanceCompleted(saved, userId);
+                } else if (newStatus == RequestStatus.APPROVED || newStatus == RequestStatus.IN_PROGRESS) {
+                    notificationService.notifyStatusChanged(saved, userId, newStatus.toString());
+                } else if (newStatus == RequestStatus.CANCELLED) {
+                    notificationService.notifyStatusChanged(saved, userId, "CANCELLED");
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to send status change notification: " + e.getMessage());
+        }
+    }
+    
+    return saved;
 }
 
     // Assign maintenance request to a user
@@ -149,6 +195,7 @@ public MaintenanceRequest updateMaintenanceRequest(Long id, MaintenanceRequest r
     public MaintenanceRequest updateRequestStatus(Long id, RequestStatus status, String notes) {
         return maintenanceRequestRepository.findById(id)
                 .map(request -> {
+                    RequestStatus oldStatus = request.getStatus();
                     request.setStatus(status);
                     if (notes != null && !notes.trim().isEmpty()) {
                         request.setCompletionNotes(notes);
@@ -156,7 +203,35 @@ public MaintenanceRequest updateMaintenanceRequest(Long id, MaintenanceRequest r
                     if (status == RequestStatus.COMPLETED) {
                         request.setCompletedDate(LocalDateTime.now());
                     }
-                    return maintenanceRequestRepository.save(request);
+                    MaintenanceRequest saved = maintenanceRequestRepository.save(request);
+                    
+                    // Log status change (pass null for user since we don't have security context here)
+                    try {
+                        logService.logRequestStatusChanged(saved, oldStatus.toString(), status.toString(), null);
+                    } catch (Exception e) {
+                        // Log error but don't fail the operation
+                        System.err.println("Failed to log status change: " + e.getMessage());
+                    }
+                    
+                    // Send notification to user on status change
+                    try {
+                        Long userId = saved.getCreatedByUserId();
+                        
+                        if (userId != null) {
+                            // Send different notification based on status
+                            if (status == RequestStatus.COMPLETED) {
+                                notificationService.notifyMaintenanceCompleted(saved, userId);
+                            } else if (status == RequestStatus.APPROVED || status == RequestStatus.IN_PROGRESS) {
+                                notificationService.notifyStatusChanged(saved, userId, status.toString());
+                            } else if (status == RequestStatus.CANCELLED) {
+                                notificationService.notifyStatusChanged(saved, userId, "CANCELLED");
+                            }
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Failed to send status change notification: " + e.getMessage());
+                    }
+                    
+                    return saved;
                 })
                 .orElseThrow(() -> new RuntimeException("Maintenance request not found"));
     }
@@ -175,10 +250,32 @@ public MaintenanceRequest updateMaintenanceRequest(Long id, MaintenanceRequest r
     public MaintenanceRequest completeMaintenanceRequest(Long id, String completionNotes) {
         return maintenanceRequestRepository.findById(id)
                 .map(request -> {
+                    RequestStatus oldStatus = request.getStatus();
                     request.setStatus(RequestStatus.COMPLETED);
                     request.setCompletedDate(LocalDateTime.now());
                     request.setCompletionNotes(completionNotes);
-                    return maintenanceRequestRepository.save(request);
+                    MaintenanceRequest saved = maintenanceRequestRepository.save(request);
+                    
+                    // Log completion (pass null for user since we don't have security context here)
+                    try {
+                        logService.logRequestStatusChanged(saved, oldStatus.toString(), "COMPLETED", null);
+                    } catch (Exception e) {
+                        // Log error but don't fail the operation
+                        System.err.println("Failed to log completion: " + e.getMessage());
+                    }
+                    
+                    // Send notification to user (creator)
+                    try {
+                        Long userId = saved.getCreatedByUserId();
+                        
+                        if (userId != null) {
+                            notificationService.notifyMaintenanceCompleted(saved, userId);
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Failed to send completion notification: " + e.getMessage());
+                    }
+                    
+                    return saved;
                 })
                 .orElseThrow(() -> new RuntimeException("Maintenance request not found"));
     }

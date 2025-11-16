@@ -17,8 +17,11 @@
 USE apartment_db;
 
 -- Drop tables in reverse dependency order to avoid foreign key constraints
+DROP TABLE IF EXISTS maintenance_notifications;
+DROP TABLE IF EXISTS maintenance_logs;
 DROP TABLE IF EXISTS maintenance_request_items;
 DROP TABLE IF EXISTS maintenance_stocks;
+DROP TABLE IF EXISTS maintenance_schedules;
 DROP TABLE IF EXISTS rental_requests;
 DROP TABLE IF EXISTS maintenance_requests;
 DROP TABLE IF EXISTS payments;
@@ -276,6 +279,8 @@ CREATE TABLE maintenance_requests (
     deleted_at DATETIME NULL,  -- Soft delete support
     created_by_user_id BIGINT,  -- Audit trail
     updated_by_user_id BIGINT,  -- Audit trail
+    schedule_id BIGINT,  -- Reference to maintenance_schedules if created from schedule
+    is_from_schedule BOOLEAN DEFAULT FALSE,  -- Flag to indicate if created from schedule
     FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE SET NULL,
     FOREIGN KEY (unit_id) REFERENCES units(id) ON DELETE SET NULL,  -- Changed to SET NULL since unit_id is now nullable
     FOREIGN KEY (assigned_to_user_id) REFERENCES users(id) ON DELETE SET NULL,
@@ -287,6 +292,7 @@ CREATE TABLE maintenance_requests (
     INDEX idx_priority (priority),
     INDEX idx_category (category),
     INDEX idx_active_maintenance (status, priority),  -- Composite index
+    INDEX idx_schedule (schedule_id),  -- Index for schedule lookups
     CONSTRAINT chk_estimated_cost CHECK (estimated_cost IS NULL OR estimated_cost >= 0),
     CONSTRAINT chk_actual_cost CHECK (actual_cost IS NULL OR actual_cost >= 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -326,6 +332,123 @@ CREATE TABLE maintenance_request_items (
     INDEX idx_maintenance_request (maintenance_request_id),
     INDEX idx_stock (stock_id),
     CONSTRAINT chk_quantity_used CHECK (quantity_used > 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
+-- MAINTENANCE SCHEDULES TABLE (For recurring maintenance)
+-- ============================================
+CREATE TABLE maintenance_schedules (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    
+    -- Schedule Info
+    title VARCHAR(200) NOT NULL,
+    description TEXT,
+    category ENUM('PLUMBING', 'ELECTRICAL', 'HVAC', 'APPLIANCE', 'STRUCTURAL', 'CLEANING', 'OTHER') NOT NULL DEFAULT 'OTHER',
+    
+    -- Recurrence Settings
+    recurrence_type ENUM('ONE_TIME', 'DAILY', 'WEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY') NOT NULL DEFAULT 'ONE_TIME',
+    recurrence_interval INT DEFAULT 1,  -- Every X days/weeks/months
+    recurrence_day_of_week INT,  -- 0-6 for WEEKLY (0=Sunday)
+    recurrence_day_of_month INT,  -- 1-31 for MONTHLY
+    
+    -- Target Settings
+    target_type ENUM('ALL_UNITS', 'SPECIFIC_UNITS', 'FLOOR', 'UNIT_TYPE') NOT NULL DEFAULT 'ALL_UNITS',
+    target_units JSON,  -- Store unit IDs, floor number, or unit type
+    
+    -- Timing
+    start_date DATE NOT NULL,
+    end_date DATE,  -- NULL = no end date
+    next_trigger_date DATE NOT NULL,  -- Next date to create maintenance_request
+    last_triggered_date DATE,  -- Last date request was created
+    
+    -- Notification Settings
+    notify_days_before INT DEFAULT 3,  -- Notify N days before
+    notify_users JSON,  -- Array of user IDs to notify
+    
+    -- Template Settings
+    estimated_cost DECIMAL(10,2),
+    assigned_to_user_id BIGINT,
+    priority ENUM('LOW', 'MEDIUM', 'HIGH', 'URGENT') NOT NULL DEFAULT 'MEDIUM',
+    
+    -- Status
+    is_active BOOLEAN DEFAULT TRUE,
+    is_paused BOOLEAN DEFAULT FALSE,
+    
+    -- Metadata
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by_user_id BIGINT,
+    
+    FOREIGN KEY (assigned_to_user_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_next_trigger (next_trigger_date, is_active),
+    INDEX idx_category (category),
+    INDEX idx_active (is_active),
+    CONSTRAINT chk_schedule_estimated_cost CHECK (estimated_cost IS NULL OR estimated_cost >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
+-- MAINTENANCE LOGS TABLE (Audit trail for maintenance actions)
+-- ============================================
+CREATE TABLE maintenance_logs (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    
+    -- References
+    schedule_id BIGINT,  -- NULL if not from schedule
+    request_id BIGINT,  -- Reference to maintenance_requests
+    
+    -- Log Info
+    action_type ENUM('SCHEDULE_CREATED', 'SCHEDULE_UPDATED', 'SCHEDULE_DELETED', 'SCHEDULE_ACTIVATED', 'SCHEDULE_DEACTIVATED', 'SCHEDULE_PAUSED', 'SCHEDULE_RESUMED', 'SCHEDULE_TRIGGERED', 'REQUEST_CREATED_FROM_SCHEDULE', 'REQUEST_UPDATED', 'REQUEST_STATUS_CHANGED', 'REQUEST_ASSIGNED', 'REQUEST_COMPLETED', 'NOTIFICATION_SENT') NOT NULL,
+    action_description TEXT,
+    
+    -- Change Tracking
+    field_name VARCHAR(100),
+    previous_value JSON,
+    new_value JSON,
+    
+    -- Metadata
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_by_user_id BIGINT,
+    ip_address VARCHAR(45),
+    
+    FOREIGN KEY (schedule_id) REFERENCES maintenance_schedules(id) ON DELETE SET NULL,
+    FOREIGN KEY (request_id) REFERENCES maintenance_requests(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_request (request_id),
+    INDEX idx_schedule (schedule_id),
+    INDEX idx_created (created_at),
+    INDEX idx_action_type (action_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
+-- MAINTENANCE NOTIFICATIONS TABLE (User notifications)
+-- ============================================
+CREATE TABLE maintenance_notifications (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    
+    -- References
+    user_id BIGINT NOT NULL,
+    schedule_id BIGINT,
+    request_id BIGINT,
+    
+    -- Notification Info
+    notification_type ENUM('UPCOMING_MAINTENANCE', 'OVERDUE', 'STATUS_CHANGE', 'COMPLETED', 'SCHEDULE_REMINDER', 'ASSIGNED', 'GENERAL') NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    message TEXT,
+    
+    -- Status
+    is_read BOOLEAN DEFAULT FALSE,
+    read_at DATETIME,
+    
+    -- Metadata
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (schedule_id) REFERENCES maintenance_schedules(id) ON DELETE CASCADE,
+    FOREIGN KEY (request_id) REFERENCES maintenance_requests(id) ON DELETE CASCADE,
+    INDEX idx_user_unread (user_id, is_read),
+    INDEX idx_created (created_at),
+    INDEX idx_notification_type (notification_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================

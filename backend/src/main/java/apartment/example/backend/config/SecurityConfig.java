@@ -95,13 +95,19 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/maintenance-requests/*/upload-attachments").hasAnyRole("VILLAGER", "ADMIN")  // Upload files
                         .requestMatchers(HttpMethod.GET, "/maintenance-requests/my-requests").authenticated()  // View own requests (any authenticated user)
                         .requestMatchers(HttpMethod.GET, "/maintenance-requests/tenant/*").hasAnyRole("VILLAGER", "ADMIN")  // View by tenant ID
-                        .requestMatchers(HttpMethod.GET, "/maintenance-requests").hasAnyRole("ADMIN")  // Admin views all
+                        .requestMatchers(HttpMethod.GET, "/maintenance-requests").authenticated()  // All authenticated users can view (for checking time slots)
                         .requestMatchers(HttpMethod.GET, "/maintenance-requests/*").hasAnyRole("ADMIN")  // Admin views specific
                         .requestMatchers(HttpMethod.PUT, "/maintenance-requests/**").hasAnyRole("ADMIN")  // Admin updates
                         .requestMatchers(HttpMethod.DELETE, "/maintenance-requests/**").hasAnyRole("ADMIN")  // Admin deletes
                         
                         // Maintenance Stocks - Admin only
                         .requestMatchers("/maintenance/stocks/**", "/maintenance-requests/*/items/**").hasAnyRole("ADMIN")  // Stock and items management
+                        
+                        // Maintenance Schedules - Admin only
+                        .requestMatchers("/maintenance/schedules/**").hasAnyRole("ADMIN", "OWNER")  // Schedule management
+                        
+                        // Maintenance Notifications - Authenticated users can view their own
+                        .requestMatchers("/maintenance/notifications/**").authenticated()  // Notification access
                         
                         // Admin-only endpoints
                         .requestMatchers("/admin/**", "/leases/**", 

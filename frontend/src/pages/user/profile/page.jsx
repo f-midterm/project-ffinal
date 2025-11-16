@@ -4,7 +4,6 @@ import { useAuth } from '../../../hooks/useAuth';
 import { useBookingStatus } from '../../../hooks/useBookingStatus';
 import { PiBuilding } from "react-icons/pi";
 import SelectedUnitDetail from '../../../components/form/selected_unit_detail';
-import { FcSupport } from "react-icons/fc";
 
 import ProfilePageSkeleton from '../../../components/skeleton/profile_page_skeleton';
 
@@ -99,25 +98,6 @@ function ProfilePage() {
         {/* Lease Detail */}
         <div className='lg:flex-1 flex justify-center items-center'>
           {renderLeaseDetail()}
-        </div>
-      </div>
-
-      {/* Maintenance */}
-      <div className='bg-white p-8 shadow-md rounded-lg'>
-        <div className='text-xl font-medium mb-4'>Maintenance Requests</div>
-        <div className="border-b border-gray-300 mb-6"></div>
-        
-        {/* Maintenance Request List */}
-        <div className='flex flex-col justify-center items-center min-h-[300px]'>
-            <div className="p-12 bg-gray-200 rounded-full flex items-center justify-center mb-6">
-              <FcSupport className="h-16 w-16" />
-            </div>          
-            <h3 className="text-xl font-medium text-gray-900 mb-2 ">
-              No maintenance requests yet
-            </h3>
-            <p className="text-gray-500">
-              Your submitted requests will appear here
-            </p>
         </div>
       </div>
         

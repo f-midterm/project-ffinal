@@ -35,6 +35,7 @@ public class MaintenanceRequestDTO {
     private String roomNumber;
     private String tenantName;
     private String unitType;
+    private Boolean isFromSchedule;
     
     public static MaintenanceRequestDTO fromEntity(MaintenanceRequest request, String roomNumber, String tenantName, String unitType) {
         MaintenanceRequestDTO dto = new MaintenanceRequestDTO();
@@ -58,6 +59,7 @@ public class MaintenanceRequestDTO {
         dto.setRoomNumber(roomNumber);
         dto.setTenantName(tenantName);
         dto.setUnitType(unitType);
+        dto.setIsFromSchedule(request.getIsFromSchedule());
         return dto;
     }
 }

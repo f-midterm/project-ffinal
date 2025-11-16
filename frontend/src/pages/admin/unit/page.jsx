@@ -112,7 +112,7 @@ function UnitPage() {
           </div>
 
           {/* Maintenance Log Table */}
-          <MaintenanceLogTable />
+          <MaintenanceLogTable unitId={unit.id} />
         </div>
 
         {/* Right Column */}

@@ -78,6 +78,12 @@ public class MaintenanceRequest {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt = LocalDateTime.now();
 
+    @Column(name = "schedule_id")
+    private Long scheduleId;
+
+    @Column(name = "is_from_schedule")
+    private Boolean isFromSchedule = false;
+
     public enum Priority {
         LOW, MEDIUM, HIGH, URGENT
     }
@@ -171,4 +177,10 @@ public class MaintenanceRequest {
 
     public String getAttachmentUrls() { return attachmentUrls; }
     public void setAttachmentUrls(String attachmentUrls) { this.attachmentUrls = attachmentUrls; }
+
+    public Long getScheduleId() { return scheduleId; }
+    public void setScheduleId(Long scheduleId) { this.scheduleId = scheduleId; }
+
+    public Boolean getIsFromSchedule() { return isFromSchedule; }
+    public void setIsFromSchedule(Boolean isFromSchedule) { this.isFromSchedule = isFromSchedule; }
 }

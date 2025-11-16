@@ -9,12 +9,30 @@ import {
   FiHome,
 } from "react-icons/fi";
 import { useAuth } from "../../hooks/useAuth";
+import { getUnreadCount } from "../../api/services/maintenanceNotification.service";
 
 function UserNavbar({ toggleSidebar }) {
   const navigate = useNavigate();
   const { user, logout, isAdmin } = useAuth();
   const [isDropdownOpen, setDropdownOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    fetchUnreadCount();
+    // Poll every 30 seconds for new notifications
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const count = await getUnreadCount();
+      setUnreadCount(count);
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -54,10 +72,18 @@ function UserNavbar({ toggleSidebar }) {
           {/* Right Side */}
           <div className="flex lg:gap-12 gap-6 items-center">
             <div
-              onClick={() => navigate(`/user/${user?.id}/notifications`)}
-              className="btn rounded-full p-3 hover:text-[#0076D4] cursor-pointer"
+              onClick={() => {
+                navigate(`/user/${user?.id}/notifications`);
+                fetchUnreadCount(); // Refresh count when opening notifications
+              }}
+              className="btn rounded-full p-3 hover:text-[#0076D4] cursor-pointer relative"
             >
               <FiBell size={24} />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-semibold">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
             </div>
             <div className="relative" ref={dropdownRef}>
               <button

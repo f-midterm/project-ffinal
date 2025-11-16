@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FiUpload, FiX, FiCheckCircle, FiClock, FiTool, FiFile, FiImage, FiSearch, FiFilter } from "react-icons/fi";
 import { SiFormspree } from "react-icons/si";
 import UserMaintenanceSkelleton from '../../../components/skeleton/user_maintenance_skelleton';
-import { createMaintenanceRequest, getMyMaintenanceRequests } from '../../../api/services/maintenance.service';
+import { createMaintenanceRequest, getMyMaintenanceRequests, getAllMaintenanceRequests } from '../../../api/services/maintenance.service';
 import { useAuth } from '../../../hooks/useAuth';
 import apiClient from '../../../api/client/apiClient';
 import { FcSupport } from "react-icons/fc";
@@ -13,6 +13,8 @@ function UserMaintenancePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [myRequests, setMyRequests] = useState([]);
   const [filteredRequests, setFilteredRequests] = useState([]);
+  const [allRequests, setAllRequests] = useState([]);
+  const [bookedTimeSlots, setBookedTimeSlots] = useState({});
   const fileInputRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   
@@ -40,11 +42,19 @@ function UserMaintenancePage() {
 
   useEffect(() => {
     fetchMyRequests();
+    fetchAllRequests();
   }, []);
 
   useEffect(() => {
     filterRequests();
   }, [myRequests, searchTerm, statusFilter, categoryFilter]);
+
+  useEffect(() => {
+    // Update booked time slots when date changes
+    if (formData.preferredDate) {
+      updateBookedTimeSlots(formData.preferredDate);
+    }
+  }, [formData.preferredDate, allRequests]);
 
   const fetchMyRequests = async () => {
     try {
@@ -57,6 +67,57 @@ function UserMaintenancePage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const fetchAllRequests = async () => {
+    try {
+      const requests = await getAllMaintenanceRequests();
+      // Filter only non-cancelled and non-completed requests
+      const activeRequests = requests.filter(req => 
+        req.status !== 'CANCELLED' && 
+        req.status !== 'COMPLETED' &&
+        req.preferredTime
+      );
+      setAllRequests(activeRequests);
+    } catch (error) {
+      console.error('Error fetching all requests:', error);
+    }
+  };
+
+  const updateBookedTimeSlots = (selectedDate) => {
+    const booked = {};
+    
+    allRequests.forEach(req => {
+      if (!req.preferredTime) return;
+      
+      // Extract date and time from preferredTime
+      const dateMatch = req.preferredTime.match(/(\d{4}-\d{2}-\d{2})/);
+      const timeMatch = req.preferredTime.match(/(\d{2}:\d{2})/);
+      
+      if (dateMatch && timeMatch) {
+        const reqDate = dateMatch[1];
+        const reqTime = timeMatch[1];
+        
+        if (reqDate === selectedDate) {
+          // Map time to time slot
+          const hour = parseInt(reqTime.split(':')[0]);
+          let slot = '';
+          
+          if (hour >= 8 && hour < 10) slot = '08:00-10:00';
+          else if (hour >= 10 && hour < 13) slot = '10:00-12:00';
+          else if (hour >= 13 && hour < 15) slot = '13:00-15:00';
+          else if (hour >= 15 && hour < 17) slot = '15:00-17:00';
+          else if (hour >= 17 && hour < 19) slot = '17:00-19:00';
+          
+          if (slot) {
+            if (!booked[slot]) booked[slot] = 0;
+            booked[slot]++;
+          }
+        }
+      }
+    });
+    
+    setBookedTimeSlots(booked);
   };
 
   const filterRequests = () => {
@@ -590,18 +651,38 @@ function UserMaintenancePage() {
                       name="preferredTimeSlot"
                       value={formData.preferredTimeSlot || ''}
                       onChange={handleInputChange}
-                      className='border border-gray-400 rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500'
+                      disabled={!formData.preferredDate}
+                      className='border border-gray-400 rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed'
                     >
                       <option value="">Select time</option>
-                      <option value="08:00-10:00">08:00 - 10:00 AM</option>
-                      <option value="10:00-12:00">10:00 - 12:00 PM</option>
-                      <option value="13:00-15:00">01:00 - 03:00 PM</option>
-                      <option value="15:00-17:00">03:00 - 05:00 PM</option>
-                      <option value="17:00-19:00">05:00 - 07:00 PM</option>
+                      {[
+                        { value: '08:00-10:00', label: '08:00 - 10:00 AM' },
+                        { value: '10:00-12:00', label: '10:00 - 12:00 PM' },
+                        { value: '13:00-15:00', label: '01:00 - 03:00 PM' },
+                        { value: '15:00-17:00', label: '03:00 - 05:00 PM' },
+                        { value: '17:00-19:00', label: '05:00 - 07:00 PM' }
+                      ].map(slot => {
+                        const bookedCount = bookedTimeSlots[slot.value] || 0;
+                        const isFullyBooked = bookedCount >= 1; // Lock after 1 booking
+                        
+                        return (
+                          <option 
+                            key={slot.value} 
+                            value={slot.value}
+                            disabled={isFullyBooked}
+                          >
+                            {slot.label} {bookedCount > 0 ? '(Booked - Unavailable)' : '(Available)'}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
                 </div>
-                <p className='text-xs text-gray-500 mt-2'>Select your preferred date and time slot for the repair</p>
+                <p className='text-xs text-gray-500 mt-2'>
+                  {!formData.preferredDate 
+                    ? 'Select a date first to see available time slots'
+                    : '⚠️ Each time slot allows only 1 booking - select an available slot'}
+                </p>
               </div>
 
               <div>

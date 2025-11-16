@@ -123,7 +123,22 @@ public class MaintenanceRequestController {
                     }
                 }
                 
-                if (request.getTenantId() != null) {
+                // Use createdByUserId to get tenant name (for both user-created and schedule-created requests)
+                if (request.getCreatedByUserId() != null) {
+                    Optional<User> user = userRepository.findById(request.getCreatedByUserId());
+                    if (user.isPresent()) {
+                        // User has username, need to get Tenant info via email
+                        String userEmail = user.get().getEmail();
+                        Optional<Tenant> tenant = tenantRepository.findByEmail(userEmail);
+                        if (tenant.isPresent()) {
+                            tenantName = tenant.get().getFirstName() + " " + tenant.get().getLastName();
+                        } else {
+                            tenantName = user.get().getUsername();
+                        }
+                    }
+                }
+                // Fallback to tenantId for older requests
+                else if (request.getTenantId() != null) {
                     Optional<Tenant> tenant = tenantRepository.findById(request.getTenantId());
                     if (tenant.isPresent()) {
                         tenantName = tenant.get().getFirstName() + " " + tenant.get().getLastName();

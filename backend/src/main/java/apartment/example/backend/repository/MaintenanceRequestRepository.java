@@ -49,4 +49,7 @@ public interface MaintenanceRequestRepository extends JpaRepository<MaintenanceR
     
     // Count by category
     long countByCategory(Category category);
+    
+    // Find by unit and preferred time containing date
+    List<MaintenanceRequest> findByUnitIdAndPreferredTimeContaining(Long unitId, String date);
 }

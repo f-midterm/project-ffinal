@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { HiOutlineInbox } from 'react-icons/hi2';
-import { FiSearch, FiFilter, FiCheckCircle, FiClock, FiTool, FiX, FiEdit, FiUser, FiTrash2, FiEye, FiFile } from 'react-icons/fi';
+import { FiSearch, FiFilter, FiCheckCircle, FiClock, FiTool, FiX, FiEdit, FiUser, FiTrash2, FiEye, FiFile, FiCalendar } from 'react-icons/fi';
 import StatCard from '../../../components/card/stat_card';
+import MaintenanceCalendar from '../../../components/calendar/maintenance_calendar';
 import { getAllMaintenanceRequests, updateRequestStatus, updateRequestPriority, deleteMaintenanceRequest, updateMaintenanceRequest, getRequestItems, getAllStocks, addSingleItemToRequest, removeItem, calculateItemsCost } from '../../../api/services/maintenance.service';
 import { getBackendResourceUrl } from '../../../api/client/apiClient';
 
@@ -18,6 +19,7 @@ function MaintenanceRequestsPage() {
   const [showSendReportModal, setShowSendReportModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [editFormData, setEditFormData] = useState({
     title: '',
@@ -345,7 +347,21 @@ function MaintenanceRequestsPage() {
           <h1 className='title'>Maintenance Requests Management</h1>
           <p className='text-gray-600 mt-1'>Manage and track all maintenance requests</p>
         </div>
+        <button
+          onClick={() => setShowCalendar(!showCalendar)}
+          className='flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition'
+        >
+          <FiCalendar />
+          {showCalendar ? 'Hide Calendar' : 'Show Calendar'}
+        </button>
       </div>
+
+      {/* Calendar View */}
+      {showCalendar && (
+        <div className='mb-6'>
+          <MaintenanceCalendar />
+        </div>
+      )}
 
       {/* Stats */}
       <div className='grid lg:grid-cols-4 grid-cols-2 lg:mb-6 mb-4 gap-4'>
@@ -562,6 +578,12 @@ function MaintenanceRequestsPage() {
                     <p className='text-sm text-gray-600 mb-1'>Submitted Date</p>
                     <p className='font-semibold text-gray-900'>{formatDate(selectedRequest.submittedDate)}</p>
                   </div>
+                  {selectedRequest.preferredTime && (
+                    <div className='col-span-2'>
+                      <p className='text-sm text-gray-600 mb-1'>Preferred Date & Time</p>
+                      <p className='font-semibold text-blue-600'>{selectedRequest.preferredTime}</p>
+                    </div>
+                  )}
                   {selectedRequest.completedDate && (
                     <div className='col-span-2'>
                       <p className='text-sm text-gray-600 mb-1'>Completed Date</p>
@@ -684,6 +706,29 @@ function MaintenanceRequestsPage() {
             </div>
 
             <div className='p-6 space-y-6'>
+              {/* Request Info Display */}
+              {selectedRequest && (
+                <div className='bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4'>
+                  <h4 className='font-semibold text-blue-900 mb-2'>Request Information</h4>
+                  <div className='grid grid-cols-2 gap-3 text-sm'>
+                    <div>
+                      <span className='text-blue-700'>Room:</span> 
+                      <span className='font-medium ml-2'>{selectedRequest.roomNumber}</span>
+                    </div>
+                    <div>
+                      <span className='text-blue-700'>Tenant:</span> 
+                      <span className='font-medium ml-2'>{selectedRequest.tenantName}</span>
+                    </div>
+                    {selectedRequest.preferredTime && (
+                      <div className='col-span-2'>
+                        <span className='text-blue-700'>Preferred Date & Time:</span> 
+                        <span className='font-semibold ml-2 text-blue-600'>{selectedRequest.preferredTime}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Basic Info */}
               <div className='grid grid-cols-2 gap-4'>
                 <div>

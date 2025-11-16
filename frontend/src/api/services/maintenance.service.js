@@ -475,3 +475,20 @@ export const removeItem = async (itemId) => {
 export const calculateItemsCost = async (requestId) => {
   return await apiClient.get(`/maintenance-requests/${requestId}/items/cost`);
 };
+
+/**
+ * Get all completed and cancelled maintenance requests (for logs)
+ */
+export const getCompletedMaintenanceRequests = async () => {
+  const allRequests = await apiClient.get('/maintenance-requests');
+  return allRequests.filter(req => 
+    req.status === 'COMPLETED' || req.status === 'CANCELLED'
+  );
+};
+
+/**
+ * Get maintenance requests by unit ID (for unit-specific logs)
+ */
+export const getMaintenanceRequestsByUnitId = async (unitId) => {
+  return await apiClient.get(`/maintenance-requests/unit/${unitId}`);
+};
