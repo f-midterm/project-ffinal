@@ -4,6 +4,7 @@ import { useAuth } from '../../../hooks/useAuth';
 import { useBookingStatus } from '../../../hooks/useBookingStatus';
 import { PiBuilding } from "react-icons/pi";
 import SelectedUnitDetail from '../../../components/form/selected_unit_detail';
+import { FcSupport } from "react-icons/fc";
 
 import ProfilePageSkeleton from '../../../components/skeleton/profile_page_skeleton';
 
@@ -69,36 +70,57 @@ function ProfilePage() {
   };
 
   return (
-    <div className='flex flex-col lg:flex-row gap-8'>
-      
-      {/* Profile */}
-      <div className='lg:w-1/3 w-full mb-8'>
-        {/* Profile Picture */}
-        <div className="w-80 h-80 bg-gray-200 rounded-xl mx-auto mb-4"></div>
+    <div className='flex flex-col space-y-8'>
+      <div className='flex flex-col lg:flex-row lg:gap-20'>
+        {/* Profile */}
+        <div className='lg:w-1/3 w-full bg-white p-6 shadow-md rounded-3xl'>
+          {/* Profile Picture */}
+          <div className="w-80 h-80 bg-gray-200 rounded-3xl mx-auto mb-4"></div>
 
-        {/* Profile Detail */}
-        <div className='lg:mb-12 mb-6'>
-          <span className='text-md text-gray-400'>Profile</span><div className="border-t border-gray-300 pt-4"></div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">{user?.username}</h2>
-          <div className="space-y-2">
-            <ProfileDetail label="Fullname" value={user?.firstName + " " + user?.lastName || 'N/A'} />
-            <ProfileDetail label="Email" value={user?.email || 'N/A'} isEmail={true} />
-            <ProfileDetail label="Phone" value={user?.phone || 'N/A'} />
-            <ProfileDetail label="Emergency Contact" value={user?.emergencyContact || 'N/A'} />
-            <ProfileDetail label="Emergency Phone" value={user?.emergencyPhone || 'N/A'} />
+          {/* Profile Detail */}
+          <div className='lg:mb-12 mb-6'>
+            <span className='text-md text-gray-400'>Profile</span><div className="border-t border-gray-300 pt-4"></div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">{user?.username}</h2>
+            <div className="space-y-2">
+              <ProfileDetail label="Fullname" value={user?.firstName + " " + user?.lastName || 'N/A'} />
+              <ProfileDetail label="Email" value={user?.email || 'N/A'} isEmail={true} />
+              <ProfileDetail label="Phone" value={user?.phone || 'N/A'} />
+              <ProfileDetail label="Emergency Contact" value={user?.emergencyContact || 'N/A'} />
+              <ProfileDetail label="Emergency Phone" value={user?.emergencyPhone || 'N/A'} />
+            </div>
           </div>
+
+          <button className='w-full bg-gray-800 text-white py-4 rounded-xl shadow-md hover:translate-y-[-1px] hover:shadow-lg hover:bg-gray-700'>
+            Edit Profile
+          </button>
+          
         </div>
 
-        <button className='w-full bg-gray-800 text-white py-4 rounded-xl shadow-md hover:translate-y-[-1px] hover:shadow-lg hover:bg-gray-700'>
-          Edit Profile
-        </button>
-        
+        {/* Lease Detail */}
+        <div className='lg:flex-1 flex justify-center items-center'>
+          {renderLeaseDetail()}
+        </div>
       </div>
 
-      {/* Lease Detail */}
-      <div className='lg:flex-1 flex justify-center items-center'>
-        {renderLeaseDetail()}
+      {/* Maintenance */}
+      <div className='bg-white p-8 shadow-md rounded-lg'>
+        <div className='text-xl font-medium mb-4'>Maintenance Requests</div>
+        <div className="border-b border-gray-300 mb-6"></div>
+        
+        {/* Maintenance Request List */}
+        <div className='flex flex-col justify-center items-center min-h-[300px]'>
+            <div className="p-12 bg-gray-200 rounded-full flex items-center justify-center mb-6">
+              <FcSupport className="h-16 w-16" />
+            </div>          
+            <h3 className="text-xl font-medium text-gray-900 mb-2 ">
+              No maintenance requests yet
+            </h3>
+            <p className="text-gray-500">
+              Your submitted requests will appear here
+            </p>
+        </div>
       </div>
+        
     </div>
   )
 }

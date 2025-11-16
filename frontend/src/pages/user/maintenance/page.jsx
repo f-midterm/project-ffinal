@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FiUpload, FiX, FiCheckCircle, FiClock, FiTool, FiFile, FiImage } from "react-icons/fi";
 import { SiFormspree } from "react-icons/si";
-import { HiOutlineInbox } from 'react-icons/hi2';
 import UserMaintenanceSkelleton from '../../../components/skeleton/user_maintenance_skelleton';
 import { createMaintenanceRequest, getRequestsByTenantId } from '../../../api/services/maintenance.service';
 import { useAuth } from '../../../hooks/useAuth';
 import apiClient from '../../../api/client/apiClient';
+import { FcSupport } from "react-icons/fc";
 
 function UserMaintenancePage() {
   const { user } = useAuth();
@@ -617,14 +617,14 @@ function UserMaintenancePage() {
 
       {/* My Maintenance Requests History */}
       <div className='bg-white p-6 shadow-md rounded-lg mt-6'>
-        <h2 className='text-2xl font-bold mb-6'>My Maintenance Requests</h2>
+        <h2 className='text-2xl font-medium mb-6'>My Maintenance Requests</h2>
         
         {myRequests.length === 0 ? (
           <div className="flex flex-col justify-center items-center min-h-[300px]">
             <div className="p-12 bg-gray-200 rounded-full flex items-center justify-center mb-6">
-              <HiOutlineInbox className="h-16 w-16 text-gray-600" />
+              <FcSupport className="h-16 w-16" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            <h3 className="text-xl font-medium text-gray-900 mb-2">
               No maintenance requests yet
             </h3>
             <p className="text-gray-500">
