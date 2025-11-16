@@ -16,6 +16,9 @@ public interface MaintenanceRequestRepository extends JpaRepository<MaintenanceR
     // Find by tenant ID
     List<MaintenanceRequest> findByTenantId(Long tenantId);
     
+    // Find by created user ID
+    List<MaintenanceRequest> findByCreatedByUserId(Long userId);
+    
     // Find by unit ID
     List<MaintenanceRequest> findByUnitId(Long unitId);
     

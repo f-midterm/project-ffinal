@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FiUpload, FiX, FiCheckCircle, FiClock, FiTool, FiFile, FiImage } from "react-icons/fi";
+import { FiUpload, FiX, FiCheckCircle, FiClock, FiTool, FiFile, FiImage, FiSearch, FiFilter } from "react-icons/fi";
 import { SiFormspree } from "react-icons/si";
 import UserMaintenanceSkelleton from '../../../components/skeleton/user_maintenance_skelleton';
-import { createMaintenanceRequest, getRequestsByTenantId } from '../../../api/services/maintenance.service';
+import { createMaintenanceRequest, getMyMaintenanceRequests } from '../../../api/services/maintenance.service';
 import { useAuth } from '../../../hooks/useAuth';
 import apiClient from '../../../api/client/apiClient';
 import { FcSupport } from "react-icons/fc";
@@ -12,8 +12,14 @@ function UserMaintenancePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [myRequests, setMyRequests] = useState([]);
+  const [filteredRequests, setFilteredRequests] = useState([]);
   const fileInputRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
+  
+  // Filter and search state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [categoryFilter, setCategoryFilter] = useState('ALL');
   
   // Form state
   const [formData, setFormData] = useState({
@@ -36,18 +42,48 @@ function UserMaintenancePage() {
     fetchMyRequests();
   }, []);
 
+  useEffect(() => {
+    filterRequests();
+  }, [myRequests, searchTerm, statusFilter, categoryFilter]);
+
   const fetchMyRequests = async () => {
     try {
       setIsLoading(true);
-      if (user?.tenantId) {
-        const requests = await getRequestsByTenantId(user.tenantId);
-        setMyRequests(requests);
-      }
+      const requests = await getMyMaintenanceRequests();
+      setMyRequests(requests);
+      setFilteredRequests(requests);
     } catch (error) {
       console.error('Error fetching maintenance requests:', error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const filterRequests = () => {
+    let filtered = [...myRequests];
+
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(request => 
+        request.title?.toLowerCase().includes(term) ||
+        request.description?.toLowerCase().includes(term) ||
+        request.roomNumber?.toLowerCase().includes(term) ||
+        request.category?.toLowerCase().includes(term)
+      );
+    }
+
+    // Apply status filter
+    if (statusFilter !== 'ALL') {
+      filtered = filtered.filter(request => request.status === statusFilter);
+    }
+
+    // Apply category filter
+    if (categoryFilter !== 'ALL') {
+      filtered = filtered.filter(request => request.category === categoryFilter);
+    }
+
+    setFilteredRequests(filtered);
   };
 
   const handleInputChange = (e) => {
@@ -525,10 +561,10 @@ function UserMaintenancePage() {
                   onChange={handleInputChange}
                   className='border border-gray-400 rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500'
                 >
-                  <option value="LOW">🟢 Low - Can wait, not urgent</option>
-                  <option value="MEDIUM">🟡 Medium - Should be fixed soon</option>
-                  <option value="HIGH">🟠 High - Important, needs attention</option>
-                  <option value="URGENT">🔴 Urgent - Critical, fix immediately</option>
+                  <option value="LOW">Low - Can wait, not urgent</option>
+                  <option value="MEDIUM">Medium - Should be fixed soon</option>
+                  <option value="HIGH">High - Important, needs attention</option>
+                  <option value="URGENT">Urgent - Critical, fix immediately</option>
                 </select>
               </div>
 
@@ -619,6 +655,68 @@ function UserMaintenancePage() {
       <div className='bg-white p-6 shadow-md rounded-lg mt-6'>
         <h2 className='text-2xl font-medium mb-6'>My Maintenance Requests</h2>
         
+        {/* Search and Filter Controls */}
+        {myRequests.length > 0 && (
+          <div className='mb-6 grid grid-cols-1 md:grid-cols-3 gap-4'>
+            {/* Search Box */}
+            <div className='md:col-span-1'>
+              <div className='relative'>
+                <FiSearch className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400' size={18} />
+                <input
+                  type="text"
+                  placeholder="Search requests..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
+                />
+              </div>
+            </div>
+
+            {/* Status Filter */}
+            <div className='md:col-span-1'>
+              <div className='relative'>
+                <FiFilter className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400' size={18} />
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white'
+                >
+                  <option value="ALL">All Status</option>
+                  <option value="SUBMITTED">Submitted</option>
+                  <option value="IN_PROGRESS">In Progress</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="CANCELLED">Cancelled</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Category Filter */}
+            <div className='md:col-span-1'>
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white'
+              >
+                <option value="ALL">All Categories</option>
+                <option value="PLUMBING">Plumbing</option>
+                <option value="ELECTRICAL">Electrical</option>
+                <option value="HVAC">HVAC</option>
+                <option value="APPLIANCE">Appliance</option>
+                <option value="STRUCTURAL">Structural</option>
+                <option value="CLEANING">Cleaning</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+          </div>
+        )}
+
+        {/* Results Summary */}
+        {myRequests.length > 0 && (
+          <div className='mb-4 text-sm text-gray-600'>
+            Showing {filteredRequests.length} of {myRequests.length} request{myRequests.length !== 1 ? 's' : ''}
+          </div>
+        )}
+        
         {myRequests.length === 0 ? (
           <div className="flex flex-col justify-center items-center min-h-[300px]">
             <div className="p-12 bg-gray-200 rounded-full flex items-center justify-center mb-6">
@@ -631,9 +729,21 @@ function UserMaintenancePage() {
               Your submitted requests will appear here
             </p>
           </div>
+        ) : filteredRequests.length === 0 ? (
+          <div className="flex flex-col justify-center items-center min-h-[300px]">
+            <div className="p-12 bg-gray-200 rounded-full flex items-center justify-center mb-6">
+              <FiSearch className="h-16 w-16 text-gray-400" />
+            </div>
+            <h3 className="text-xl font-medium text-gray-900 mb-2">
+              No matching requests found
+            </h3>
+            <p className="text-gray-500">
+              Try adjusting your search or filters
+            </p>
+          </div>
         ) : (
           <div className='space-y-4'>
-            {myRequests.map((request) => (
+            {filteredRequests.map((request) => (
               <div 
                 key={request.id}
                 className='border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow'

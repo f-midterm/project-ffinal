@@ -93,11 +93,15 @@ public class SecurityConfig {
                         // Maintenance Requests - ORDER MATTERS! Specific rules first, then generic
                         .requestMatchers(HttpMethod.POST, "/maintenance-requests").hasAnyRole("VILLAGER", "ADMIN")  // Create request
                         .requestMatchers(HttpMethod.POST, "/maintenance-requests/*/upload-attachments").hasAnyRole("VILLAGER", "ADMIN")  // Upload files
-                        .requestMatchers(HttpMethod.GET, "/maintenance-requests/tenant/*").hasAnyRole("VILLAGER", "ADMIN")  // View own requests
+                        .requestMatchers(HttpMethod.GET, "/maintenance-requests/my-requests").authenticated()  // View own requests (any authenticated user)
+                        .requestMatchers(HttpMethod.GET, "/maintenance-requests/tenant/*").hasAnyRole("VILLAGER", "ADMIN")  // View by tenant ID
                         .requestMatchers(HttpMethod.GET, "/maintenance-requests").hasAnyRole("ADMIN")  // Admin views all
                         .requestMatchers(HttpMethod.GET, "/maintenance-requests/*").hasAnyRole("ADMIN")  // Admin views specific
                         .requestMatchers(HttpMethod.PUT, "/maintenance-requests/**").hasAnyRole("ADMIN")  // Admin updates
                         .requestMatchers(HttpMethod.DELETE, "/maintenance-requests/**").hasAnyRole("ADMIN")  // Admin deletes
+                        
+                        // Maintenance Stocks - Admin only
+                        .requestMatchers("/maintenance/stocks/**", "/maintenance-requests/*/items/**").hasAnyRole("ADMIN")  // Stock and items management
                         
                         // Admin-only endpoints
                         .requestMatchers("/admin/**", "/leases/**", 

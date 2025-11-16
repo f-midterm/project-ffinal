@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { HiOutlineInbox } from 'react-icons/hi2';
-import { FiSearch, FiFilter, FiCheckCircle, FiClock, FiTool, FiX, FiEdit, FiUser, FiTrash2, FiEye } from 'react-icons/fi';
+import { FiSearch, FiFilter, FiCheckCircle, FiClock, FiTool, FiX, FiEdit, FiUser, FiTrash2, FiEye, FiFile } from 'react-icons/fi';
 import StatCard from '../../../components/card/stat_card';
-import { getAllMaintenanceRequests, updateRequestStatus, assignMaintenanceRequest, updateRequestPriority, deleteMaintenanceRequest, updateMaintenanceRequest } from '../../../api/services/maintenance.service';
+import { getAllMaintenanceRequests, updateRequestStatus, updateRequestPriority, deleteMaintenanceRequest, updateMaintenanceRequest, getRequestItems, getAllStocks, addSingleItemToRequest, removeItem, calculateItemsCost } from '../../../api/services/maintenance.service';
 import { getBackendResourceUrl } from '../../../api/client/apiClient';
 
 function MaintenanceRequestsPage() {
@@ -15,18 +15,31 @@ function MaintenanceRequestsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [showActionModal, setShowActionModal] = useState(false);
+  const [showSendReportModal, setShowSendReportModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [actionType, setActionType] = useState(''); // 'status', 'priority', 'assign'
-  const [actionValue, setActionValue] = useState('');
-  const [actionNotes, setActionNotes] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [editFormData, setEditFormData] = useState({
     title: '',
     description: '',
     category: '',
-    priority: ''
+    priority: '',
+    status: ''
+  });
+  const [requestItems, setRequestItems] = useState([]);
+  const [availableStocks, setAvailableStocks] = useState([]);
+  const [selectedStock, setSelectedStock] = useState('');
+  const [itemQuantity, setItemQuantity] = useState(1);
+  const [itemNotes, setItemNotes] = useState('');
+  
+  // Send Report Form states
+  const [reportForm, setReportForm] = useState({
+    topic: '',
+    completionDate: '',
+    completionTime: '',
+    status: 'COMPLETED',
+    notes: '',
+    items: [] // [{stockId, quantity, notes}]
   });
 
   useEffect(() => {
@@ -88,46 +101,117 @@ function MaintenanceRequestsPage() {
     setFilteredRequests(filtered);
   };
 
-  const handleAction = (request, type) => {
+  // Open Send Report Modal
+  const handleOpenSendReport = async (request) => {
     setSelectedRequest(request);
-    setActionType(type);
-    setShowActionModal(true);
-    
-    if (type === 'status') {
-      setActionValue(request.status);
-    } else if (type === 'priority') {
-      setActionValue(request.priority);
-    } else if (type === 'assign') {
-      setActionValue(request.assignedToUserId || '');
+    try {
+      const [items, stocks] = await Promise.all([
+        getRequestItems(request.id),
+        getAllStocks()
+      ]);
+      setRequestItems(items);
+      setAvailableStocks(stocks);
+      
+      const today = new Date();
+      setReportForm({
+        topic: request.title || '',
+        completionDate: today.toISOString().split('T')[0],
+        completionTime: today.toTimeString().slice(0, 5),
+        status: 'COMPLETED',
+        notes: '',
+        items: items.map(item => ({
+          stockId: item.stockId,
+          itemName: item.itemName,
+          quantity: item.quantityUsed,
+          unit: item.unit,
+          notes: item.notes || ''
+        }))
+      });
+      
+      setShowSendReportModal(true);
+    } catch (error) {
+      console.error('Error loading report data:', error);
+      alert('Failed to load report data');
     }
-    setActionNotes('');
   };
 
-  const handleSubmitAction = async () => {
+  const handleAddItemToReport = () => {
+    if (!selectedStock || itemQuantity <= 0) {
+      alert('Please select a stock item and enter valid quantity');
+      return;
+    }
+    
+    const stock = availableStocks.find(s => s.id === parseInt(selectedStock));
+    if (!stock) return;
+    
+    const existingIndex = reportForm.items.findIndex(item => item.stockId === stock.id);
+    if (existingIndex >= 0) {
+      const updatedItems = [...reportForm.items];
+      updatedItems[existingIndex].quantity += itemQuantity;
+      setReportForm({ ...reportForm, items: updatedItems });
+    } else {
+      setReportForm({
+        ...reportForm,
+        items: [...reportForm.items, {
+          stockId: stock.id,
+          itemName: stock.itemName,
+          quantity: itemQuantity,
+          unit: stock.unit,
+          notes: itemNotes
+        }]
+      });
+    }
+    
+    setSelectedStock('');
+    setItemQuantity(1);
+    setItemNotes('');
+  };
+
+  const handleRemoveItemFromReport = (index) => {
+    const updatedItems = reportForm.items.filter((_, i) => i !== index);
+    setReportForm({ ...reportForm, items: updatedItems });
+  };
+
+  const handleSubmitSendReport = async () => {
     if (!selectedRequest) return;
+    
+    if (!reportForm.topic.trim()) {
+      alert('Please enter a topic');
+      return;
+    }
+    
+    if (!reportForm.completionDate || !reportForm.completionTime) {
+      alert('Please enter completion date and time');
+      return;
+    }
 
     try {
       setIsProcessing(true);
-
-      if (actionType === 'status') {
-        await updateRequestStatus(selectedRequest.id, { 
-          status: actionValue, 
-          notes: actionNotes 
-        });
-      } else if (actionType === 'priority') {
-        await updateRequestPriority(selectedRequest.id, { priority: actionValue });
-      } else if (actionType === 'assign') {
-        await assignMaintenanceRequest(selectedRequest.id, { 
-          assignedToUserId: parseInt(actionValue) 
-        });
+      
+      await updateRequestStatus(selectedRequest.id, { 
+        status: reportForm.status,
+        notes: `${reportForm.topic}\nCompleted: ${reportForm.completionDate} ${reportForm.completionTime}\n${reportForm.notes}`
+      });
+      
+      const existingItemStockIds = requestItems.map(item => item.stockId);
+      const newItems = reportForm.items.filter(item => !existingItemStockIds.includes(item.stockId));
+      
+      for (const item of newItems) {
+        await addSingleItemToRequest(
+          selectedRequest.id,
+          item.stockId,
+          item.quantity,
+          item.notes
+        );
       }
-
+      
       await fetchRequests();
-      setShowActionModal(false);
+      setShowSendReportModal(false);
       setSelectedRequest(null);
+      alert('Report sent successfully!');
     } catch (error) {
-      console.error('Error performing action:', error);
-      alert('Failed to perform action. Please try again.');
+      console.error('Error submitting report:', error);
+      alert('Failed to submit report. Please try again.');
     } finally {
       setIsProcessing(false);
     }
@@ -139,7 +223,8 @@ function MaintenanceRequestsPage() {
       title: request.title,
       description: request.description,
       category: request.category,
-      priority: request.priority
+      priority: request.priority,
+      status: request.status
     });
     setShowEditModal(true);
   };
@@ -384,12 +469,36 @@ function MaintenanceRequestsPage() {
                       {formatDate(request.submittedDate)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <button
-                        onClick={() => handleViewDetails(request)}
-                        className='flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium'
-                      >
-                        <FiEye /> View
-                      </button>
+                      <div className='flex items-center gap-2'>
+                        <button
+                          onClick={() => handleViewDetails(request)}
+                          className='p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors'
+                          title='View Details'
+                        >
+                          <FiEye size={18} />
+                        </button>
+                        <button
+                          onClick={() => handleEdit(request)}
+                          className='p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors'
+                          title='Edit'
+                        >
+                          <FiEdit size={18} />
+                        </button>
+                        <button
+                          onClick={() => handleOpenSendReport(request)}
+                          className='p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors'
+                          title='Send Report'
+                        >
+                          <FiCheckCircle size={18} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(request)}
+                          className='p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors'
+                          title='Delete'
+                        >
+                          <FiTrash2 size={18} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -399,15 +508,15 @@ function MaintenanceRequestsPage() {
         )}
       </div>
 
-      {/* Detail/Action Modal */}
+      {/* View Details Modal */}
       {showDetailModal && selectedRequest && (
         <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
-          <div className='bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto'>
+          <div className='bg-white rounded-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto'>
             {/* Modal Header */}
-            <div className='sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center'>
+            <div className='sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center z-10'>
               <div>
-                <h3 className='text-xl font-bold text-gray-800'>Request Details</h3>
-                <p className='text-sm text-gray-600'>#{selectedRequest.id}</p>
+                <h3 className='text-xl font-bold text-gray-800'>View Request Details</h3>
+                <p className='text-sm text-gray-600'>Request #{selectedRequest.id}</p>
               </div>
               <button
                 onClick={() => setShowDetailModal(false)}
@@ -419,106 +528,140 @@ function MaintenanceRequestsPage() {
 
             {/* Modal Body */}
             <div className='p-6'>
-              {/* Request Details */}
-              <div className='grid grid-cols-2 gap-4 mb-6 bg-gray-50 p-4 rounded-lg'>
-                <div>
-                  <p className='text-sm text-gray-600'>Title</p>
-                  <p className='font-semibold'>{selectedRequest.title}</p>
-                </div>
-                <div>
-                  <p className='text-sm text-gray-600'>Status</p>
-                  <div className='mt-1'>{getStatusBadge(selectedRequest.status)}</div>
-                </div>
-                <div>
-                  <p className='text-sm text-gray-600'>Room</p>
-                  <p className='font-semibold'>{selectedRequest.roomNumber || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className='text-sm text-gray-600'>Tenant</p>
-                  <p className='font-semibold'>{selectedRequest.tenantName || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className='text-sm text-gray-600'>Category</p>
-                  <p className='font-semibold'>{selectedRequest.category}</p>
-                </div>
-                <div>
-                  <p className='text-sm text-gray-600'>Priority</p>
-                  <div className='mt-1'>{getPriorityBadge(selectedRequest.priority)}</div>
-                </div>
-                <div className='col-span-2'>
-                  <p className='text-sm text-gray-600 mb-2'>Description</p>
-                  <p className='text-gray-700 bg-white p-3 rounded'>{selectedRequest.description}</p>
-                </div>
-                <div>
-                  <p className='text-sm text-gray-600'>Submitted Date</p>
-                  <p className='font-semibold'>{formatDate(selectedRequest.submittedDate)}</p>
+              {/* Basic Information */}
+              <div className='mb-6'>
+                <h4 className='text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2'>
+                  <FiTool className='text-blue-600' /> Basic Information
+                </h4>
+                <div className='grid grid-cols-2 gap-6 bg-gray-50 p-6 rounded-lg'>
+                  <div>
+                    <p className='text-sm text-gray-600 mb-1'>Title</p>
+                    <p className='font-semibold text-gray-900'>{selectedRequest.title}</p>
+                  </div>
+                  <div>
+                    <p className='text-sm text-gray-600 mb-1'>Status</p>
+                    <div className='mt-1'>{getStatusBadge(selectedRequest.status)}</div>
+                  </div>
+                  <div>
+                    <p className='text-sm text-gray-600 mb-1'>Room Number</p>
+                    <p className='font-semibold text-gray-900'>{selectedRequest.roomNumber || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className='text-sm text-gray-600 mb-1'>Tenant Name</p>
+                    <p className='font-semibold text-gray-900'>{selectedRequest.tenantName || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className='text-sm text-gray-600 mb-1'>Category</p>
+                    <p className='font-semibold text-gray-900'>{selectedRequest.category}</p>
+                  </div>
+                  <div>
+                    <p className='text-sm text-gray-600 mb-1'>Priority</p>
+                    <div className='mt-1'>{getPriorityBadge(selectedRequest.priority)}</div>
+                  </div>
+                  <div className='col-span-2'>
+                    <p className='text-sm text-gray-600 mb-1'>Submitted Date</p>
+                    <p className='font-semibold text-gray-900'>{formatDate(selectedRequest.submittedDate)}</p>
+                  </div>
+                  {selectedRequest.completedDate && (
+                    <div className='col-span-2'>
+                      <p className='text-sm text-gray-600 mb-1'>Completed Date</p>
+                      <p className='font-semibold text-gray-900'>{formatDate(selectedRequest.completedDate)}</p>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Attachments */}
-              {selectedRequest.attachmentUrls && selectedRequest.attachmentUrls.length > 0 && (
+              {/* Description */}
+              <div className='mb-6'>
+                <h4 className='text-lg font-semibold text-gray-800 mb-3'>Description</h4>
+                <div className='bg-gray-50 p-4 rounded-lg'>
+                  <p className='text-gray-700 whitespace-pre-wrap'>{selectedRequest.description}</p>
+                </div>
+              </div>
+
+              {/* Attachments/Images */}
+              <div className='mb-6'>
+                <h4 className='text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2'>
+                  <FiEye className='text-purple-600' /> Attachments
+                </h4>
+                {selectedRequest.attachmentUrls ? (
+                  <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4'>
+                    {(() => {
+                      // Handle both string (comma-separated) and array formats
+                      const urls = typeof selectedRequest.attachmentUrls === 'string' 
+                        ? selectedRequest.attachmentUrls.split(',').map(url => url.trim()).filter(url => url)
+                        : selectedRequest.attachmentUrls;
+                      
+                      if (!urls || urls.length === 0) {
+                        return (
+                          <div className='col-span-4 text-center py-8 text-gray-500'>
+                            No attachments available
+                          </div>
+                        );
+                      }
+                      
+                      return urls.map((url, index) => {
+                        const isPdf = url.toLowerCase().includes('.pdf');
+                        return (
+                          <div key={index} className='group relative border-2 border-gray-200 rounded-lg overflow-hidden hover:border-blue-400 transition-all'>
+                            {isPdf ? (
+                              <div 
+                                className='w-full h-48 bg-red-50 flex flex-col items-center justify-center cursor-pointer hover:bg-red-100 transition-colors'
+                                onClick={() => window.open(getBackendResourceUrl(url), '_blank')}
+                              >
+                                <FiFile size={48} className='text-red-600 mb-2' />
+                                <span className='text-sm text-gray-700'>PDF Document</span>
+                              </div>
+                            ) : (
+                              <img 
+                                src={getBackendResourceUrl(url)}
+                                alt={`Attachment ${index + 1}`}
+                                className='w-full h-48 object-cover bg-gray-100 cursor-pointer hover:scale-105 transition-transform'
+                                onClick={() => window.open(getBackendResourceUrl(url), '_blank')}
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EImage%3C/text%3E%3C/svg%3E';
+                                }}
+                              />
+                            )}
+                            <div className='absolute top-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded pointer-events-none'>
+                              {index + 1}/{urls.length}
+                            </div>
+                            <div className='absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center pointer-events-none'>
+                              <FiEye className='text-white opacity-0 group-hover:opacity-100 transition-opacity' size={24} />
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                ) : (
+                  <div className='text-center py-8 bg-gray-50 rounded-lg'>
+                    <p className='text-gray-500'>No attachments uploaded</p>
+                  </div>
+                )}
+                {selectedRequest.attachmentUrls && (
+                  <p className='text-sm text-gray-500 mt-2'>Click on image to view in full size</p>
+                )}
+              </div>
+
+              {/* Completion Notes (if completed) */}
+              {selectedRequest.completionNotes && (
                 <div className='mb-6'>
-                  <h4 className='font-semibold text-gray-800 mb-3'>Attachments:</h4>
-                  <div className='grid grid-cols-2 gap-4'>
-                    {selectedRequest.attachmentUrls.map((url, index) => (
-                      <div key={index} className='border rounded-lg overflow-hidden'>
-                        <img 
-                          src={getBackendResourceUrl(url)}
-                          alt={`Attachment ${index + 1}`}
-                          className='w-full h-48 object-cover bg-gray-50'
-                        />
-                      </div>
-                    ))}
+                  <h4 className='text-lg font-semibold text-gray-800 mb-3'>Completion Notes</h4>
+                  <div className='bg-green-50 border border-green-200 p-4 rounded-lg'>
+                    <p className='text-gray-700'>{selectedRequest.completionNotes}</p>
                   </div>
                 </div>
               )}
 
-              {/* Action Buttons */}
-              <div className='flex gap-3 flex-wrap justify-end border-t pt-4'>
+              {/* Close Button */}
+              <div className='flex justify-end border-t pt-4'>
                 <button
-                  onClick={() => {
-                    setShowDetailModal(false);
-                    handleEdit(selectedRequest);
-                  }}
-                  className='flex items-center gap-2 px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg'
+                  onClick={() => setShowDetailModal(false)}
+                  className='px-6 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium transition-colors'
                 >
-                  <FiEdit /> Edit
-                </button>
-                <button
-                  onClick={() => {
-                    setShowDetailModal(false);
-                    handleAction(selectedRequest, 'priority');
-                  }}
-                  className='flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg'
-                >
-                  <FiEdit /> Change Priority
-                </button>
-                <button
-                  onClick={() => {
-                    setShowDetailModal(false);
-                    handleAction(selectedRequest, 'assign');
-                  }}
-                  className='flex items-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg'
-                >
-                  <FiUser /> Assign Tech
-                </button>
-                <button
-                  onClick={() => {
-                    setShowDetailModal(false);
-                    handleAction(selectedRequest, 'status');
-                  }}
-                  className='flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg'
-                >
-                  <FiCheckCircle /> Update Status
-                </button>
-                <button
-                  onClick={() => {
-                    setShowDetailModal(false);
-                    handleDelete(selectedRequest);
-                  }}
-                  className='flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg'
-                >
-                  <FiTrash2 /> Delete
+                  Close
                 </button>
               </div>
             </div>
@@ -526,100 +669,197 @@ function MaintenanceRequestsPage() {
         </div>
       )}
 
-      {/* Action Modal */}
-      {showActionModal && selectedRequest && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
-          <div className='bg-white rounded-lg p-6 w-full max-w-md'>
-            <h3 className='text-xl font-bold mb-4'>
-              {actionType === 'status' && 'Update Status'}
-              {actionType === 'priority' && 'Change Priority'}
-              {actionType === 'assign' && 'Assign Technician'}
-            </h3>
-            
-            <div className='mb-4'>
-              <p className='text-sm text-gray-600 mb-2'>Request: <span className='font-medium'>{selectedRequest.title}</span></p>
-              <p className='text-sm text-gray-600'>Room: <span className='font-medium'>{selectedRequest.roomNumber}</span></p>
+      {/* Send Report Modal */}
+      {showSendReportModal && selectedRequest && (
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
+          <div className='bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto'>
+            <div className='sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center'>
+              <h3 className='text-xl font-bold text-gray-800'>Send Maintenance Report</h3>
+              <button
+                onClick={() => setShowSendReportModal(false)}
+                className='text-gray-400 hover:text-gray-600 text-2xl font-bold'
+              >
+                ×
+              </button>
             </div>
 
-            {actionType === 'status' && (
-              <div className='mb-4'>
-                <label className='block text-sm font-medium mb-2'>New Status</label>
-                <select
-                  value={actionValue}
-                  onChange={(e) => setActionValue(e.target.value)}
-                  className='w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
-                >
-                  <option value="SUBMITTED">Submitted</option>
-                  <option value="WAITING_FOR_REPAIR">Waiting for Repair</option>
-                  <option value="APPROVED">Approved</option>
-                  <option value="IN_PROGRESS">In Progress</option>
-                  <option value="COMPLETED">Completed</option>
-                  <option value="CANCELLED">Cancelled</option>
-                </select>
-                <label className='block text-sm font-medium mb-2 mt-4'>Notes (Optional)</label>
+            <div className='p-6 space-y-6'>
+              {/* Basic Info */}
+              <div className='grid grid-cols-2 gap-4'>
+                <div>
+                  <label className='block text-sm font-medium mb-2'>Topic / Summary *</label>
+                  <input
+                    type='text'
+                    value={reportForm.topic}
+                    onChange={(e) => setReportForm({...reportForm, topic: e.target.value})}
+                    className='w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                    placeholder='e.g., Fixed electrical issue in room 101'
+                  />
+                </div>
+                <div>
+                  <label className='block text-sm font-medium mb-2'>Status *</label>
+                  <select
+                    value={reportForm.status}
+                    onChange={(e) => setReportForm({...reportForm, status: e.target.value})}
+                    className='w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                  >
+                    <option value="APPROVED">Approved</option>
+                    <option value="WAITING_FOR_REPAIR">Waiting for Repair</option>
+                    <option value="IN_PROGRESS">In Progress</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="CANCELLED">Cancelled</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Date & Time */}
+              <div className='grid grid-cols-2 gap-4'>
+                <div>
+                  <label className='block text-sm font-medium mb-2'>Completion Date *</label>
+                  <input
+                    type='date'
+                    value={reportForm.completionDate}
+                    onChange={(e) => setReportForm({...reportForm, completionDate: e.target.value})}
+                    className='w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                  />
+                </div>
+                <div>
+                  <label className='block text-sm font-medium mb-2'>Completion Time *</label>
+                  <input
+                    type='time'
+                    value={reportForm.completionTime}
+                    onChange={(e) => setReportForm({...reportForm, completionTime: e.target.value})}
+                    className='w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                  />
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className='block text-sm font-medium mb-2'>Additional Notes</label>
                 <textarea
-                  value={actionNotes}
-                  onChange={(e) => setActionNotes(e.target.value)}
-                  placeholder='Add notes about this status change...'
+                  value={reportForm.notes}
+                  onChange={(e) => setReportForm({...reportForm, notes: e.target.value})}
+                  placeholder='Any additional information about the maintenance work...'
                   className='w-full border border-gray-300 rounded-lg px-4 py-2 min-h-[100px] focus:outline-none focus:ring-2 focus:ring-blue-500'
                 />
               </div>
-            )}
 
-            {actionType === 'priority' && (
-              <div className='mb-4'>
-                <label className='block text-sm font-medium mb-2'>New Priority</label>
-                <select
-                  value={actionValue}
-                  onChange={(e) => setActionValue(e.target.value)}
-                  className='w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
-                >
-                  <option value="LOW">Low</option>
-                  <option value="MEDIUM">Medium</option>
-                  <option value="HIGH">High</option>
-                  <option value="URGENT">Urgent</option>
-                </select>
-              </div>
-            )}
+              {/* Add Items Section */}
+              <div className='border-t pt-6'>
+                <h4 className='font-semibold mb-4'>Materials/Items Used</h4>
+                <div className='grid grid-cols-12 gap-3 mb-4 items-end'>
+                  <div className='col-span-5'>
+                    <label className='block text-sm font-medium mb-1'>Select Item</label>
+                    <select
+                      value={selectedStock}
+                      onChange={(e) => setSelectedStock(e.target.value)}
+                      className='w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                    >
+                      <option value=''>Choose an item...</option>
+                      {availableStocks.map(stock => (
+                        <option key={stock.id} value={stock.id}>
+                          {stock.itemName} ({stock.quantity} {stock.unit} available)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className='col-span-2'>
+                    <label className='block text-sm font-medium mb-1'>Quantity</label>
+                    <input
+                      type='number'
+                      min='1'
+                      value={itemQuantity}
+                      onChange={(e) => setItemQuantity(parseInt(e.target.value) || 1)}
+                      className='w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                    />
+                  </div>
+                  <div className='col-span-3'>
+                    <label className='block text-sm font-medium mb-1'>Notes</label>
+                    <input
+                      type='text'
+                      value={itemNotes}
+                      onChange={(e) => setItemNotes(e.target.value)}
+                      placeholder='Optional'
+                      className='w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                    />
+                  </div>
+                  <div className='col-span-2'>
+                    <button
+                      onClick={handleAddItemToReport}
+                      disabled={!selectedStock}
+                      className='w-full px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium disabled:opacity-50'
+                    >
+                      + Add
+                    </button>
+                  </div>
+                </div>
 
-            {actionType === 'assign' && (
-              <div className='mb-4'>
-                <label className='block text-sm font-medium mb-2'>Technician ID</label>
-                <input
-                  type="number"
-                  value={actionValue}
-                  onChange={(e) => setActionValue(e.target.value)}
-                  placeholder='Enter technician user ID'
-                  className='w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
-                />
-              </div>
-            )}
-
-            <div className='flex gap-3 justify-end'>
-              <button
-                onClick={() => {
-                  setShowActionModal(false);
-                  setSelectedRequest(null);
-                }}
-                disabled={isProcessing}
-                className='px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium transition-colors disabled:opacity-50'
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmitAction}
-                disabled={isProcessing}
-                className='px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center gap-2'
-              >
-                {isProcessing ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Processing...
-                  </>
+                {/* Items List */}
+                {reportForm.items.length > 0 ? (
+                  <div className='border rounded-lg overflow-hidden'>
+                    <table className='min-w-full'>
+                      <thead className='bg-gray-50'>
+                        <tr>
+                          <th className='px-4 py-2 text-left text-sm font-medium text-gray-600'>Item Name</th>
+                          <th className='px-4 py-2 text-left text-sm font-medium text-gray-600'>Quantity</th>
+                          <th className='px-4 py-2 text-left text-sm font-medium text-gray-600'>Unit</th>
+                          <th className='px-4 py-2 text-left text-sm font-medium text-gray-600'>Notes</th>
+                          <th className='px-4 py-2 text-left text-sm font-medium text-gray-600'>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className='divide-y'>
+                        {reportForm.items.map((item, index) => (
+                          <tr key={index} className='hover:bg-gray-50'>
+                            <td className='px-4 py-2'>{item.itemName}</td>
+                            <td className='px-4 py-2'>{item.quantity}</td>
+                            <td className='px-4 py-2'>{item.unit}</td>
+                            <td className='px-4 py-2 text-sm text-gray-600'>{item.notes || '-'}</td>
+                            <td className='px-4 py-2'>
+                              <button
+                                onClick={() => handleRemoveItemFromReport(index)}
+                                className='text-red-600 hover:text-red-800'
+                              >
+                                <FiTrash2 />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 ) : (
-                  'Confirm'
+                  <p className='text-gray-500 text-center py-6 border rounded-lg'>No items added yet</p>
                 )}
-              </button>
+              </div>
+
+              {/* Actions */}
+              <div className='flex gap-3 justify-end border-t pt-4'>
+                <button
+                  onClick={() => setShowSendReportModal(false)}
+                  disabled={isProcessing}
+                  className='px-6 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium disabled:opacity-50'
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmitSendReport}
+                  disabled={isProcessing}
+                  className='px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium disabled:opacity-50 flex items-center gap-2'
+                >
+                  {isProcessing ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <FiCheckCircle />
+                      Send Report
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -680,12 +920,28 @@ function MaintenanceRequestsPage() {
                   onChange={(e) => setEditFormData({...editFormData, priority: e.target.value})}
                   className='w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
                 >
-                  <option value='LOW'>🟢 Low - Can wait</option>
-                  <option value='MEDIUM'>🟡 Medium - Should be fixed soon</option>
-                  <option value='HIGH'>🟠 High - Needs attention</option>
-                  <option value='URGENT'>🔴 Urgent - Fix immediately</option>
+                  <option value='LOW'>Low - Can wait</option>
+                  <option value='MEDIUM'>Medium - Should be fixed soon</option>
+                  <option value='HIGH'>High - Needs attention</option>
+                  <option value='URGENT'>Urgent - Fix immediately</option>
                 </select>
               </div>
+            </div>
+
+            <div className='mb-4'>
+              <label className='block text-sm font-medium mb-2'>Status *</label>
+              <select
+                value={editFormData.status}
+                onChange={(e) => setEditFormData({...editFormData, status: e.target.value})}
+                className='w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
+              >
+                <option value='SUBMITTED'>Submitted</option>
+                <option value='WAITING_FOR_REPAIR'>Waiting for Repair</option>
+                <option value='APPROVED'>Approved</option>
+                <option value='IN_PROGRESS'>In Progress</option>
+                <option value='COMPLETED'>Completed</option>
+                <option value='CANCELLED'>Cancelled</option>
+              </select>
             </div>
 
             <div className='flex gap-3 justify-end'>

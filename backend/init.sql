@@ -17,6 +17,8 @@
 USE apartment_db;
 
 -- Drop tables in reverse dependency order to avoid foreign key constraints
+DROP TABLE IF EXISTS maintenance_request_items;
+DROP TABLE IF EXISTS maintenance_stocks;
 DROP TABLE IF EXISTS rental_requests;
 DROP TABLE IF EXISTS maintenance_requests;
 DROP TABLE IF EXISTS payments;
@@ -290,6 +292,43 @@ CREATE TABLE maintenance_requests (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
+-- MAINTENANCE STOCKS TABLE
+-- ============================================
+CREATE TABLE maintenance_stocks (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    item_name VARCHAR(200) NOT NULL,
+    category ENUM('PLUMBING', 'ELECTRICAL', 'HVAC', 'APPLIANCE', 'STRUCTURAL', 'CLEANING', 'OTHER') NOT NULL DEFAULT 'OTHER',
+    quantity INT NOT NULL DEFAULT 0,
+    unit VARCHAR(50) NOT NULL,  -- Unit of measurement: ชิ้น, กล่อง, ม้วน, ลิตร
+    unit_price DECIMAL(10,2),
+    description TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME NULL,
+    INDEX idx_category (category),
+    INDEX idx_item_name (item_name),
+    CONSTRAINT chk_quantity CHECK (quantity >= 0),
+    CONSTRAINT chk_unit_price CHECK (unit_price IS NULL OR unit_price >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
+-- MAINTENANCE REQUEST ITEMS TABLE (Junction table)
+-- ============================================
+CREATE TABLE maintenance_request_items (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    maintenance_request_id BIGINT NOT NULL,
+    stock_id BIGINT NOT NULL,
+    quantity_used INT NOT NULL,
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (maintenance_request_id) REFERENCES maintenance_requests(id) ON DELETE CASCADE,
+    FOREIGN KEY (stock_id) REFERENCES maintenance_stocks(id) ON DELETE RESTRICT,
+    INDEX idx_maintenance_request (maintenance_request_id),
+    INDEX idx_stock (stock_id),
+    CONSTRAINT chk_quantity_used CHECK (quantity_used > 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
 -- VIEWS FOR BACKWARDS COMPATIBILITY
 -- ============================================
 
@@ -462,6 +501,68 @@ INSERT INTO units (room_number, floor, type, rent_amount, size_sqm, description)
 ('211', 2, 'Premium', 12000.00, 35.0, 'Premium room with luxury amenities'),
 ('212', 2, 'Premium', 12000.00, 35.0, 'Premium room with luxury amenities');
 
+-- Insert initial stock items for maintenance
+INSERT INTO maintenance_stocks (item_name, category, quantity, unit, unit_price, description) VALUES
+-- PLUMBING items
+('Sink Faucet', 'PLUMBING', 10, 'piece', 350.00, 'Standard sink faucet'),
+('Kitchen Faucet', 'PLUMBING', 8, 'piece', 450.00, 'Faucet for kitchen sink'),
+('PVC Pipe 1/2 inch', 'PLUMBING', 50, 'meter', 25.00, 'PVC pipe 1/2 inch diameter'),
+('PVC Pipe 3/4 inch', 'PLUMBING', 40, 'meter', 35.00, 'PVC pipe 3/4 inch diameter'),
+('Pipe Connector', 'PLUMBING', 100, 'piece', 15.00, 'Various pipe connectors'),
+('Rubber Gasket', 'PLUMBING', 50, 'piece', 10.00, 'Rubber gasket for leak prevention'),
+('Toilet Bowl', 'PLUMBING', 3, 'piece', 2500.00, 'Budget toilet bowl'),
+('Shower Head', 'PLUMBING', 8, 'piece', 280.00, 'Standard shower head'),
+
+-- ELECTRICAL items
+('LED Bulb 9W', 'ELECTRICAL', 100, 'bulb', 45.00, 'Energy saving LED bulb 9W'),
+('LED Bulb 12W', 'ELECTRICAL', 80, 'bulb', 65.00, 'Energy saving LED bulb 12W'),
+('LED Bulb 18W', 'ELECTRICAL', 60, 'bulb', 95.00, 'Energy saving LED bulb 18W'),
+('Light Switch 1-way', 'ELECTRICAL', 50, 'piece', 35.00, '1-way light switch'),
+('Light Switch 2-way', 'ELECTRICAL', 30, 'piece', 45.00, '2-way light switch'),
+('3-pin Power Plug', 'ELECTRICAL', 40, 'piece', 25.00, '3-pin power plug'),
+('2-socket Outlet', 'ELECTRICAL', 45, 'piece', 55.00, '2-socket power outlet'),
+('THW Wire 2.5 sq.mm', 'ELECTRICAL', 200, 'meter', 12.00, 'THW wire 2.5 sq.mm'),
+('Circuit Breaker 15A', 'ELECTRICAL', 15, 'piece', 180.00, '15 Amp circuit breaker'),
+('Circuit Breaker 20A', 'ELECTRICAL', 12, 'piece', 210.00, '20 Amp circuit breaker'),
+
+-- HVAC items
+('Air Conditioner 12000 BTU', 'HVAC', 2, 'unit', 12500.00, 'Air conditioner 12000 BTU'),
+('R32 Refrigerant', 'HVAC', 20, 'can', 850.00, 'R32 refrigerant for refill'),
+('AC Filter', 'HVAC', 30, 'piece', 45.00, 'Air conditioner filter'),
+('Exhaust Fan 6 inch', 'HVAC', 15, 'unit', 350.00, '6 inch exhaust fan'),
+('Exhaust Fan 10 inch', 'HVAC', 10, 'unit', 550.00, '10 inch exhaust fan'),
+
+-- APPLIANCE items
+('Water Pump Motor 0.5 HP', 'APPLIANCE', 3, 'unit', 2800.00, '0.5 HP water pump motor'),
+('Water Heater 3500W', 'APPLIANCE', 4, 'unit', 1850.00, 'Electric water heater 3500W'),
+('Refrigerator 5 cu.ft', 'APPLIANCE', 1, 'unit', 5500.00, '5 cubic feet refrigerator'),
+('Electric Iron', 'APPLIANCE', 5, 'unit', 350.00, 'Standard electric iron'),
+
+-- STRUCTURAL items
+('Interior Wall Paint', 'STRUCTURAL', 30, 'gallon', 450.00, 'White interior wall paint'),
+('Cement', 'STRUCTURAL', 40, 'bag', 120.00, 'Cement for repair work'),
+('Floor Tile 30x30 cm', 'STRUCTURAL', 100, 'piece', 35.00, 'Floor tile 30x30 cm'),
+('Tile Grout', 'STRUCTURAL', 25, 'bag', 65.00, 'Grout for tile work'),
+('PVC Bathroom Door', 'STRUCTURAL', 2, 'piece', 2200.00, 'PVC bathroom door with hinges'),
+('Sliding Window', 'STRUCTURAL', 3, 'piece', 1800.00, 'Aluminum sliding window'),
+('Wire Mesh Screen', 'STRUCTURAL', 50, 'meter', 45.00, 'Mosquito wire mesh screen'),
+
+-- CLEANING items
+('Bathroom Cleaner', 'CLEANING', 40, 'liter', 65.00, 'Bathroom cleaning solution'),
+('Floor Cleaner', 'CLEANING', 50, 'liter', 55.00, 'Scented floor cleaner'),
+('Toilet Brush', 'CLEANING', 30, 'piece', 35.00, 'Bathroom scrub brush'),
+('Mop', 'CLEANING', 20, 'piece', 120.00, 'Mop with cloth'),
+('Trash Can', 'CLEANING', 15, 'piece', 85.00, 'Medium plastic trash can'),
+
+-- OTHER items
+('Room Key', 'OTHER', 30, 'piece', 45.00, 'Room key with duplicate'),
+('Door Handle', 'OTHER', 20, 'piece', 180.00, 'Standard door handle'),
+('Door Hinge', 'OTHER', 40, 'piece', 25.00, '3 inch door hinge'),
+('Nails', 'OTHER', 50, 'box', 35.00, 'Mixed size steel nails'),
+('Screws', 'OTHER', 60, 'box', 40.00, 'Mixed size screws'),
+('Pipe Tape', 'OTHER', 40, 'roll', 35.00, 'Leak prevention pipe tape'),
+('Silicone Sealant', 'OTHER', 30, 'tube', 55.00, 'Waterproof silicone sealant');
+
 
 -- ============================================
 -- VERIFICATION QUERIES
@@ -485,7 +586,11 @@ SELECT 'payments', COUNT(*) FROM payments
 UNION ALL
 SELECT 'rental_requests', COUNT(*) FROM rental_requests
 UNION ALL
-SELECT 'maintenance_requests', COUNT(*) FROM maintenance_requests;
+SELECT 'maintenance_requests', COUNT(*) FROM maintenance_requests
+UNION ALL
+SELECT 'maintenance_stocks', COUNT(*) FROM maintenance_stocks
+UNION ALL
+SELECT 'maintenance_request_items', COUNT(*) FROM maintenance_request_items;
 
 -- ============================================
 -- PRODUCTION READY FEATURES:

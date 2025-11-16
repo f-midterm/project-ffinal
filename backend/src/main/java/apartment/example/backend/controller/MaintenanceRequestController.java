@@ -5,15 +5,20 @@ import apartment.example.backend.entity.MaintenanceRequest;
 import apartment.example.backend.entity.MaintenanceRequest.Priority;
 import apartment.example.backend.entity.MaintenanceRequest.Category;
 import apartment.example.backend.entity.MaintenanceRequest.RequestStatus;
+import apartment.example.backend.entity.MaintenanceRequestItem;
 import apartment.example.backend.entity.Unit;
 import apartment.example.backend.entity.Tenant;
+import apartment.example.backend.entity.User;
 import apartment.example.backend.service.MaintenanceRequestService;
+import apartment.example.backend.service.MaintenanceRequestItemService;
 import apartment.example.backend.repository.UnitRepository;
 import apartment.example.backend.repository.TenantRepository;
+import apartment.example.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -30,8 +35,10 @@ import java.util.stream.Collectors;
 public class MaintenanceRequestController {
 
     private final MaintenanceRequestService maintenanceRequestService;
+    private final MaintenanceRequestItemService itemService;
     private final UnitRepository unitRepository;
     private final TenantRepository tenantRepository;
+    private final UserRepository userRepository;
 
     // Create a new maintenance request
     @PostMapping
@@ -129,6 +136,62 @@ public class MaintenanceRequestController {
             return ResponseEntity.ok(dtos);
         } catch (Exception e) {
             log.error("Error getting maintenance requests: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    // Get my maintenance requests (for logged-in user)
+    @GetMapping("/my-requests")
+    public ResponseEntity<List<MaintenanceRequestDTO>> getMyMaintenanceRequests(Authentication authentication) {
+        try {
+            if (authentication == null || authentication.getName() == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+
+            String username = authentication.getName();
+            log.info("Getting maintenance requests for user: {}", username);
+
+            // Get user by username
+            List<User> users = userRepository.findByUsername(username);
+            if (users.isEmpty()) {
+                log.warn("User not found: {}", username);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+
+            User user = users.get(0);
+            
+            // Get requests by createdByUserId
+            List<MaintenanceRequest> requests = maintenanceRequestService.getRequestsByCreatedByUserId(user.getId());
+
+            // Convert to DTO with room and tenant info
+            List<MaintenanceRequestDTO> dtos = requests.stream().map(request -> {
+                String roomNumber = "N/A";
+                String tenantName = "N/A";
+                String unitType = "";
+                
+                if (request.getUnitId() != null) {
+                    Optional<Unit> unit = unitRepository.findById(request.getUnitId());
+                    if (unit.isPresent()) {
+                        roomNumber = unit.get().getRoomNumber();
+                        unitType = unit.get().getUnitType();
+                    }
+                }
+                
+                if (request.getTenantId() != null) {
+                    Optional<Tenant> tenant = tenantRepository.findById(request.getTenantId());
+                    if (tenant.isPresent()) {
+                        tenantName = tenant.get().getFirstName() + " " + tenant.get().getLastName();
+                    }
+                }
+
+                return MaintenanceRequestDTO.fromEntity(request, roomNumber, tenantName, unitType);
+            }).collect(Collectors.toList());
+
+            log.info("Found {} maintenance requests for user {}", dtos.size(), username);
+            return ResponseEntity.ok(dtos);
+
+        } catch (Exception e) {
+            log.error("Error getting my maintenance requests", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -308,5 +371,114 @@ public class MaintenanceRequestController {
     public ResponseEntity<Map<String, Long>> getStatsByCategory() {
         Map<String, Long> stats = maintenanceRequestService.getStatsByCategory();
         return ResponseEntity.ok(stats);
+    }
+
+    // ============================================
+    // MAINTENANCE REQUEST ITEMS ENDPOINTS
+    // ============================================
+
+    /**
+     * Get all items (stock used) for a maintenance request
+     */
+    @GetMapping("/{requestId}/items")
+    public ResponseEntity<List<MaintenanceRequestItem>> getRequestItems(@PathVariable Long requestId) {
+        log.info("GET /maintenance-requests/{}/items - Get items for request", requestId);
+        List<MaintenanceRequestItem> items = itemService.getItemsByRequestId(requestId);
+        return ResponseEntity.ok(items);
+    }
+
+    /**
+     * Add items to a maintenance request
+     */
+    @PostMapping("/{requestId}/items")
+    public ResponseEntity<List<MaintenanceRequestItem>> addItemsToRequest(
+            @PathVariable Long requestId,
+            @RequestBody List<MaintenanceRequestItem> items) {
+        log.info("POST /maintenance-requests/{}/items - Adding {} items", requestId, items.size());
+        try {
+            List<MaintenanceRequestItem> addedItems = itemService.addItemsToRequest(requestId, items);
+            return ResponseEntity.status(HttpStatus.CREATED).body(addedItems);
+        } catch (IllegalArgumentException e) {
+            log.error("Error adding items: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    /**
+     * Add a single item to a maintenance request
+     */
+    @PostMapping("/{requestId}/items/single")
+    public ResponseEntity<MaintenanceRequestItem> addSingleItem(
+            @PathVariable Long requestId,
+            @RequestBody Map<String, Object> payload) {
+        log.info("POST /maintenance-requests/{}/items/single", requestId);
+        try {
+            Long stockId = Long.valueOf(payload.get("stockId").toString());
+            Integer quantity = Integer.valueOf(payload.get("quantity").toString());
+            String notes = payload.get("notes") != null ? payload.get("notes").toString() : null;
+
+            MaintenanceRequestItem item = itemService.addItemToRequest(requestId, stockId, quantity, notes);
+            return ResponseEntity.status(HttpStatus.CREATED).body(item);
+        } catch (IllegalArgumentException e) {
+            log.error("Error adding item: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    /**
+     * Update item quantity
+     */
+    @PatchMapping("/items/{itemId}/quantity")
+    public ResponseEntity<MaintenanceRequestItem> updateItemQuantity(
+            @PathVariable Long itemId,
+            @RequestBody Map<String, Integer> payload) {
+        log.info("PATCH /maintenance-requests/items/{}/quantity", itemId);
+        try {
+            Integer newQuantity = payload.get("quantity");
+            if (newQuantity == null || newQuantity <= 0) {
+                return ResponseEntity.badRequest().build();
+            }
+            
+            MaintenanceRequestItem updatedItem = itemService.updateItemQuantity(itemId, newQuantity);
+            return ResponseEntity.ok(updatedItem);
+        } catch (IllegalArgumentException e) {
+            log.error("Error updating item quantity: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    /**
+     * Remove an item from a request
+     */
+    @DeleteMapping("/items/{itemId}")
+    public ResponseEntity<Map<String, String>> removeItem(@PathVariable Long itemId) {
+        log.info("DELETE /maintenance-requests/items/{}", itemId);
+        try {
+            itemService.removeItem(itemId);
+            return ResponseEntity.ok(Map.of("message", "Item removed successfully"));
+        } catch (Exception e) {
+            log.error("Error removing item: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Calculate total cost for items in a request
+     */
+    @GetMapping("/{requestId}/items/cost")
+    public ResponseEntity<Map<String, Object>> calculateItemsCost(@PathVariable Long requestId) {
+        log.info("GET /maintenance-requests/{}/items/cost", requestId);
+        try {
+            java.math.BigDecimal totalCost = itemService.calculateTotalCost(requestId);
+            return ResponseEntity.ok(Map.of(
+                "requestId", requestId,
+                "totalCost", totalCost,
+                "currency", "THB"
+            ));
+        } catch (Exception e) {
+            log.error("Error calculating cost: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }

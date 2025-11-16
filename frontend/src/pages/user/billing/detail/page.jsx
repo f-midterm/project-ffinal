@@ -135,12 +135,12 @@ function InvoiceDetailPage() {
   return (
     <div className='mx-auto p-6'>
       {/* Back Button */}
-      <button
+      {/* <button
         onClick={() => navigate(`/admin/payments`)}
         className='flex items-center gap-2 text-gray-600 hover:text-blue-600 mb-6 print:hidden'
       >
         <FaArrowLeft /> Back to Billing
-      </button>
+      </button> */}
 
       {/* Success Badge */}
       <div className='flex justify-center mb-6'>

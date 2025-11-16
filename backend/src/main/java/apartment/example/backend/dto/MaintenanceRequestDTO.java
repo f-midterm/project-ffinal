@@ -27,6 +27,7 @@ public class MaintenanceRequestDTO {
     private BigDecimal estimatedCost;
     private BigDecimal actualCost;
     private String completionNotes;
+    private String attachmentUrls;  // Add attachment URLs
     private LocalDateTime submittedDate;
     private LocalDateTime completedDate;
     
@@ -51,6 +52,7 @@ public class MaintenanceRequestDTO {
     dto.setEstimatedCost(request.getEstimatedCost());
     dto.setActualCost(request.getActualCost());
         dto.setCompletionNotes(request.getCompletionNotes());
+        dto.setAttachmentUrls(request.getAttachmentUrls());  // Add attachment URLs
         dto.setSubmittedDate(request.getSubmittedDate());
         dto.setCompletedDate(request.getCompletedDate());
         dto.setRoomNumber(roomNumber);

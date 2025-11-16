@@ -50,6 +50,11 @@ public class MaintenanceRequestService {
         return maintenanceRequestRepository.findByTenantId(tenantId);
     }
 
+    // Get requests by created user ID
+    public List<MaintenanceRequest> getRequestsByCreatedByUserId(Long userId) {
+        return maintenanceRequestRepository.findByCreatedByUserId(userId);
+    }
+
     // Get requests by unit ID
     public List<MaintenanceRequest> getRequestsByUnitId(Long unitId) {
         return maintenanceRequestRepository.findByUnitId(unitId);

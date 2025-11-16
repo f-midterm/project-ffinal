@@ -9,7 +9,7 @@ import UnitCard from '../../../components/card/unit_card';
 import { getAllUnits } from '../../../api/services/units.service';
 import { getAllRentalRequests } from '../../../api/services/rentalRequests.service';
 import { getAllMaintenanceRequests } from '../../../api/services/maintenance.service';
-import { getAllPayments } from '../../../api/services/payments.service';
+import { getWaitingVerificationInvoices } from '../../../api/services/invoices.service';
 import AdminDashboardSkeleton from '../../../components/skeleton/admin_dashboard_skeleton';
 
 function AdminDashboard() {
@@ -22,11 +22,11 @@ function AdminDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [units, rentalRequests, maintenanceRequests, payments] = await Promise.all([
+        const [units, rentalRequests, maintenanceRequests, waitingVerificationInvoices] = await Promise.all([
           getAllUnits(),
           getAllRentalRequests(),
           getAllMaintenanceRequests(),
-          getAllPayments()
+          getWaitingVerificationInvoices()
         ]);
 
         const groupedUnits = units.reduce((acc, unit) => {
@@ -40,7 +40,7 @@ function AdminDashboard() {
         setUnitsByFloor(groupedUnits);
         setRentalRequestsCount(rentalRequests.length);
         setMaintenanceRequestsCount(maintenanceRequests.length);
-        setPaymentRequestsCount(payments.length);
+        setPaymentRequestsCount(waitingVerificationInvoices.length);
       } catch (error) {
         console.error("Failed to fetch data:", error);
       } finally {
@@ -82,7 +82,7 @@ function AdminDashboard() {
           
         {/*  */}
         <Link to="/admin/payment-requests" className='hover:translate-y-[-1px] hover:shadow-lg'>
-          <StatCard icon={<GrDocumentText />} title={"Payment Requests"} value={`${paymentRequestsCount} Upcoming`} color={"red"} />
+          <StatCard icon={<GrDocumentText />} title={"Payment Requests"} value={`${paymentRequestsCount} Waiting`} color={"red"} />
         </Link>
 
         <Link to="/admin/billing/bulk-import" className='hover:translate-y-[-1px] hover:shadow-lg'>

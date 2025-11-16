@@ -56,6 +56,18 @@ export const getRequestsByTenantId = async (tenantId) => {
 };
 
 /**
+ * Retrieves my maintenance requests (for logged-in user)
+ * 
+ * @async
+ * @function getMyMaintenanceRequests
+ * @returns {Promise<Array>} Array of maintenance requests for the logged-in user
+ * @throws {Error} When fetch fails
+ */
+export const getMyMaintenanceRequests = async () => {
+  return await apiClient.get('/maintenance-requests/my-requests');
+};
+
+/**
  * Retrieves maintenance requests by unit ID
  * 
  * @async
@@ -338,4 +350,128 @@ export const getPendingRequests = async () => {
   return requests.filter(request => 
     request.status === 'SUBMITTED' || request.status === 'WAITING_FOR_REPAIR'
   );
+};
+
+// ============================================
+// MAINTENANCE STOCK API CALLS
+// ============================================
+
+/**
+ * Get all maintenance stock items
+ */
+export const getAllStocks = async () => {
+  return await apiClient.get('/maintenance/stocks');
+};
+
+/**
+ * Get stock by ID
+ */
+export const getStockById = async (id) => {
+  return await apiClient.get(`/maintenance/stocks/${id}`);
+};
+
+/**
+ * Get stocks by category
+ */
+export const getStocksByCategory = async (category) => {
+  return await apiClient.get(`/maintenance/stocks/category/${category}`);
+};
+
+/**
+ * Search stocks by keyword
+ */
+export const searchStocks = async (keyword) => {
+  return await apiClient.get(`/maintenance/stocks/search`, { params: { keyword } });
+};
+
+/**
+ * Get low stock items
+ */
+export const getLowStockItems = async (threshold = 10) => {
+  return await apiClient.get(`/maintenance/stocks/low-stock`, { params: { threshold } });
+};
+
+/**
+ * Create new stock item
+ */
+export const createStock = async (stockData) => {
+  return await apiClient.post('/maintenance/stocks', stockData);
+};
+
+/**
+ * Update stock item
+ */
+export const updateStock = async (id, stockData) => {
+  return await apiClient.put(`/maintenance/stocks/${id}`, stockData);
+};
+
+/**
+ * Update stock quantity
+ */
+export const updateStockQuantity = async (id, quantityChange) => {
+  return await apiClient.patch(`/maintenance/stocks/${id}/quantity`, { quantityChange });
+};
+
+/**
+ * Add stock (restocking)
+ */
+export const addStockQuantity = async (id, quantity) => {
+  return await apiClient.post(`/maintenance/stocks/${id}/add`, { quantity });
+};
+
+/**
+ * Delete stock item
+ */
+export const deleteStock = async (id) => {
+  return await apiClient.delete(`/maintenance/stocks/${id}`);
+};
+
+// ============================================
+// MAINTENANCE REQUEST ITEMS API CALLS
+// ============================================
+
+/**
+ * Get all items for a maintenance request
+ */
+export const getRequestItems = async (requestId) => {
+  return await apiClient.get(`/maintenance-requests/${requestId}/items`);
+};
+
+/**
+ * Add items to a maintenance request
+ */
+export const addItemsToRequest = async (requestId, items) => {
+  return await apiClient.post(`/maintenance-requests/${requestId}/items`, items);
+};
+
+/**
+ * Add a single item to a maintenance request
+ */
+export const addSingleItemToRequest = async (requestId, stockId, quantity, notes = null) => {
+  return await apiClient.post(`/maintenance-requests/${requestId}/items/single`, {
+    stockId,
+    quantity,
+    notes
+  });
+};
+
+/**
+ * Update item quantity
+ */
+export const updateItemQuantity = async (itemId, quantity) => {
+  return await apiClient.patch(`/maintenance-requests/items/${itemId}/quantity`, { quantity });
+};
+
+/**
+ * Remove an item from a request
+ */
+export const removeItem = async (itemId) => {
+  return await apiClient.delete(`/maintenance-requests/items/${itemId}`);
+};
+
+/**
+ * Calculate total cost for items in a request
+ */
+export const calculateItemsCost = async (requestId) => {
+  return await apiClient.get(`/maintenance-requests/${requestId}/items/cost`);
 };
