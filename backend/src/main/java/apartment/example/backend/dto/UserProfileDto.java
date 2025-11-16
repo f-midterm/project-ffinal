@@ -16,6 +16,10 @@ public class UserProfileDto {
     private String email;
     private String role;
     
+    // Tenant/Lease linking
+    private Long tenantId;  // Links to tenants table
+    private Long unitId;    // Current unit from active lease
+    
     // Tenant profile fields (if available)
     private String firstName;
     private String lastName;

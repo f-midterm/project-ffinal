@@ -254,7 +254,7 @@ CREATE TABLE rental_requests (
 CREATE TABLE maintenance_requests (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     tenant_id BIGINT,
-    unit_id BIGINT NOT NULL,
+    unit_id BIGINT,
     title VARCHAR(200) NOT NULL,
     description TEXT NOT NULL,
     priority ENUM('LOW', 'MEDIUM', 'HIGH', 'URGENT') NOT NULL DEFAULT 'MEDIUM',
@@ -266,6 +266,7 @@ CREATE TABLE maintenance_requests (
     estimated_cost DECIMAL(10,2),
     actual_cost DECIMAL(10,2),
     completion_notes TEXT,
+    attachment_urls TEXT,
     submitted_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     completed_date DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -274,7 +275,7 @@ CREATE TABLE maintenance_requests (
     created_by_user_id BIGINT,  -- Audit trail
     updated_by_user_id BIGINT,  -- Audit trail
     FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE SET NULL,
-    FOREIGN KEY (unit_id) REFERENCES units(id) ON DELETE RESTRICT,  -- Changed from CASCADE
+    FOREIGN KEY (unit_id) REFERENCES units(id) ON DELETE SET NULL,  -- Changed to SET NULL since unit_id is now nullable
     FOREIGN KEY (assigned_to_user_id) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE SET NULL,

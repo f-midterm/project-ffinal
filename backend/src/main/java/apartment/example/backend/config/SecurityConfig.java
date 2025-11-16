@@ -90,9 +90,18 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/tenants/*").authenticated()  // User can view own tenant profile by ID
                         .requestMatchers("/tenants/**").hasAnyRole("ADMIN")  // Admin can manage all tenants
                         
+                        // Maintenance Requests - ORDER MATTERS! Specific rules first, then generic
+                        .requestMatchers(HttpMethod.POST, "/maintenance-requests").hasAnyRole("VILLAGER", "ADMIN")  // Create request
+                        .requestMatchers(HttpMethod.POST, "/maintenance-requests/*/upload-attachments").hasAnyRole("VILLAGER", "ADMIN")  // Upload files
+                        .requestMatchers(HttpMethod.GET, "/maintenance-requests/tenant/*").hasAnyRole("VILLAGER", "ADMIN")  // View own requests
+                        .requestMatchers(HttpMethod.GET, "/maintenance-requests").hasAnyRole("ADMIN")  // Admin views all
+                        .requestMatchers(HttpMethod.GET, "/maintenance-requests/*").hasAnyRole("ADMIN")  // Admin views specific
+                        .requestMatchers(HttpMethod.PUT, "/maintenance-requests/**").hasAnyRole("ADMIN")  // Admin updates
+                        .requestMatchers(HttpMethod.DELETE, "/maintenance-requests/**").hasAnyRole("ADMIN")  // Admin deletes
+                        
                         // Admin-only endpoints
                         .requestMatchers("/admin/**", "/leases/**", 
-                                       "/payments/**", "/maintenance-requests/**").hasAnyRole("ADMIN")
+                                       "/payments/**").hasAnyRole("ADMIN")
                         // Villager endpoints (villagers can access their own data)
                         .requestMatchers("/villager/**").hasAnyRole("VILLAGER", "ADMIN")
                         // All other requests must be authenticated
