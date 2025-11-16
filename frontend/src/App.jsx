@@ -35,6 +35,7 @@ import MaintenanceRequestsDetailPage from "./pages/admin/maintenance-requests/[i
 import PaymentsRequestsPage from "./pages/admin/payment-requests/page";
 import BulkImportPage from "./pages/admin/billing/bulk_import/page";
 import ReportPage from "./pages/admin/report/page";
+import HelpPage from "./pages/user/help/page";
 
 
 function App() {
@@ -109,6 +110,7 @@ function App() {
             <Route path="billing/payment/:invoiceId" element={<PaymentPage />} />
             <Route path="billing/detail/:invoiceId" element={<InvoiceDetailPage />} />
             <Route path="maintenance" element={<UserMaintenancePage />} />
+            <Route path="help" element={<HelpPage />} />
           </Route>
 
           {/* Public Routes */}
