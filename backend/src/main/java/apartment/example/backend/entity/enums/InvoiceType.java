@@ -27,6 +27,16 @@ public enum InvoiceType {
     MAINTENANCE_FEE,
     
     /**
+     * Installment payment (part of a larger invoice)
+     */
+    INSTALLMENT,
+    
+    /**
+     * Utilities only (electricity and water)
+     */
+    UTILITIES,
+    
+    /**
      * Custom/other charges
      */
     CUSTOM

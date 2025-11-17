@@ -23,6 +23,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     
     List<Payment> findByLeaseId(Long leaseId);
     
+    List<Payment> findByInvoiceId(Long invoiceId);
+    
     List<Payment> findByStatus(PaymentStatus status);
     
     List<Payment> findByPaymentType(PaymentType paymentType);

@@ -49,8 +49,16 @@ function BillingPage() {
             const today = new Date();
             today.setHours(0, 0, 0, 0); // Reset time to start of day
 
-            // Filter invoices that have reached their invoice date
+            // Filter invoices:
+            // - INSTALLMENT and UTILITIES: Show immediately (display in advance)
+            // - Other invoices: Show only if invoice date has arrived
             const visibleInvoices = invoicesData.filter(inv => {
+                // Always show installment and utilities invoices
+                if (inv.invoiceType === 'INSTALLMENT' || inv.invoiceType === 'UTILITIES') {
+                    return true;
+                }
+                
+                // For other invoices, check invoice date
                 const invoiceDate = new Date(inv.invoiceDate);
                 invoiceDate.setHours(0, 0, 0, 0);
                 return invoiceDate <= today; // Only show if invoice date has arrived

@@ -36,6 +36,7 @@ import PaymentsRequestsPage from "./pages/admin/payment-requests/page";
 import BulkImportPage from "./pages/admin/billing/bulk_import/page";
 import ReportPage from "./pages/admin/report/page";
 import HelpPage from "./pages/user/help/page";
+import StockManagementPage from "./pages/admin/stock/page";
 
 
 function App() {
@@ -71,6 +72,7 @@ function App() {
             <Route path="notifications" element={<AdminNotificationsPage />} />
             <Route path="notifications/:id" element={<NotificationDetail />} />
             <Route path="report" element={<ReportPage />} />
+            <Route path="stock" element={<StockManagementPage />} />
           </Route>
 
           {/* Protected Routes - Require Authentication */}

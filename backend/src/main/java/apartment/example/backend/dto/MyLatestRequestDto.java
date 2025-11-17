@@ -27,6 +27,11 @@ public class MyLatestRequestDto {
     private String rejectionReason;
     private LocalDateTime rejectionAcknowledgedAt;
     
+    // Lease information for active leases
+    private Long leaseId;
+    private String roomNumber;
+    private String leaseEndDate; // ISO format string for frontend
+    
     // Computed flags for frontend convenience
     private Boolean isPending;
     private Boolean isApproved;

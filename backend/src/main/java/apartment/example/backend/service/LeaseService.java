@@ -119,8 +119,8 @@ public class LeaseService {
 
         // Check for overlapping active leases
         if (hasOverlappingLease(lease.getUnit().getId(), 
-                               lease.getLeaseStartDate(), 
-                               lease.getLeaseEndDate())) {
+                               lease.getStartDate(), 
+                               lease.getEndDate())) {
             throw new IllegalArgumentException("Cannot activate lease due to overlapping active lease");
         }
 
@@ -147,6 +147,49 @@ public class LeaseService {
         
         // Perform immediate cleanup
         performLeaseCleanup(lease, "TERMINATED");
+        
+        return savedLease;
+    }
+
+    @Transactional
+    public Lease terminateLeaseWithCheckoutDate(Long leaseId, String checkoutDateStr) {
+        Lease lease = leaseRepository.findById(leaseId)
+            .orElseThrow(() -> new RuntimeException("Lease not found with id: " + leaseId));
+
+        // Parse checkout date
+        LocalDate checkoutDate;
+        try {
+            checkoutDate = LocalDate.parse(checkoutDateStr);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid date format. Use YYYY-MM-DD");
+        }
+
+        // Validate checkout date is not in the past
+        if (checkoutDate.isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException("Checkout date cannot be in the past");
+        }
+
+        // Validate checkout date is not after original lease end date
+        if (checkoutDate.isAfter(lease.getEndDate())) {
+            throw new IllegalArgumentException("Checkout date cannot be after original lease end date");
+        }
+
+        // Update lease end date to checkout date
+        lease.setEndDate(checkoutDate);
+        lease.setStatus(LeaseStatus.TERMINATED);
+        
+        Lease savedLease = leaseRepository.save(lease);
+        
+        log.info("Terminated lease #{} with early checkout date: {}", leaseId, checkoutDate);
+        
+        // Schedule cleanup for checkout date (will be handled by daily cron job)
+        // For immediate effect on checkout date, the unit will become available
+        // If checkout date is today, perform cleanup immediately
+        if (checkoutDate.equals(LocalDate.now()) || checkoutDate.isBefore(LocalDate.now())) {
+            performLeaseCleanup(lease, "EARLY_CHECKOUT");
+        } else {
+            log.info("Unit will become available on checkout date: {}", checkoutDate);
+        }
         
         return savedLease;
     }
@@ -221,6 +264,21 @@ public class LeaseService {
         }
         
         log.info("Lease expiration job completed, processed {} lease(s)", expiredLeases.size());
+        
+        // Also process TERMINATED leases whose checkout date has passed
+        List<Lease> terminatedLeases = leaseRepository.findByStatusAndEndDateBefore(
+            LeaseStatus.TERMINATED, LocalDate.now());
+        
+        log.info("Processing {} terminated lease(s) past checkout date", terminatedLeases.size());
+        
+        for (Lease lease : terminatedLeases) {
+            // Check if unit is still occupied (might have been cleaned up already)
+            if (lease.getUnit().getStatus() == UnitStatus.OCCUPIED) {
+                log.info("Processing terminated lease #{} past checkout date {}", 
+                    lease.getId(), lease.getEndDate());
+                performLeaseCleanup(lease, "CHECKOUT_DATE_PASSED");
+            }
+        }
     }
 
     public Lease updateLease(Long id, Lease leaseDetails) {
@@ -229,19 +287,19 @@ public class LeaseService {
 
         // Validate if dates are being changed for active lease
         if (lease.getStatus() == LeaseStatus.ACTIVE && 
-            (!lease.getLeaseStartDate().equals(leaseDetails.getLeaseStartDate()) ||
-             !lease.getLeaseEndDate().equals(leaseDetails.getLeaseEndDate()))) {
+            (!lease.getStartDate().equals(leaseDetails.getStartDate()) ||
+             !lease.getEndDate().equals(leaseDetails.getEndDate()))) {
             
             // Check for overlapping leases with new dates
             if (hasOverlappingLease(lease.getUnit().getId(), 
-                                   leaseDetails.getLeaseStartDate(), 
-                                   leaseDetails.getLeaseEndDate())) {
+                                   leaseDetails.getStartDate(), 
+                                   leaseDetails.getEndDate())) {
                 throw new IllegalArgumentException("Cannot update lease dates due to overlapping lease");
             }
         }
 
-        lease.setLeaseStartDate(leaseDetails.getLeaseStartDate());
-        lease.setLeaseEndDate(leaseDetails.getLeaseEndDate());
+        lease.setStartDate(leaseDetails.getStartDate());
+        lease.setEndDate(leaseDetails.getEndDate());
         lease.setRentAmount(leaseDetails.getRentAmount());
         lease.setSecurityDeposit(leaseDetails.getSecurityDeposit());
         // Removed billingCycle, contractFilePath, and notes as they don't exist in database

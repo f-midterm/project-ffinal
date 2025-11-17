@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getUnitDetails } from '../../../api/services/units.service';
+import { getUnitDetails, updateUnit, deleteUnit } from '../../../api/services/units.service';
 import TenantsUnitTable from '../../../components/table/tenants_unit_table';
 import ElectricBillChart from '../../../components/chart/electric_bill_chart';
 import WaterBillChart from '../../../components/chart/water_bill_chart';
@@ -38,6 +38,26 @@ function UnitPage() {
 
     fetchData();
   }, [id]);
+
+  const handleEdit = async () => {
+    // For now, you can redirect to an edit page or open a modal
+    // Example: navigate(`/admin/unit/${unit.id}/edit`);
+    alert('Edit unit functionality - You can implement an edit modal or redirect to edit page');
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm(`Are you sure you want to delete unit ${unit.roomNumber}?`)) {
+      return;
+    }
+
+    try {
+      await deleteUnit(unit.id);
+      alert('Unit deleted successfully');
+      navigate('/admin/dashboard');
+    } catch (err) {
+      alert(`Failed to delete unit: ${err.message}`);
+    }
+  };
 
   if (loading) {
     return <UnitPageSkeleton />;
@@ -93,8 +113,17 @@ function UnitPage() {
           >
             Send Invoice
           </button>
-          <button className="bg-blue-500 text-white font-medium py-2 px-6 rounded-lg shadow-md hover:translate-y-[-1px] hover:bg-blue-600">
+          <button 
+            onClick={handleEdit}
+            className="bg-blue-500 text-white font-medium py-2 px-6 rounded-lg shadow-md hover:translate-y-[-1px] hover:bg-blue-600"
+          >
             Edit Unit
+          </button>
+          <button 
+            onClick={handleDelete}
+            className="bg-red-500 text-white font-medium py-2 px-6 rounded-lg shadow-md hover:translate-y-[-1px] hover:bg-red-600"
+          >
+            Delete
           </button>
         </div>
       </div>
@@ -118,7 +147,7 @@ function UnitPage() {
         {/* Right Column */}
         <div className='lg:col-span-1 flex flex-col gap-6'>
           <QuickActionCard />
-          <UnitFilesCard />
+          {/* <UnitFilesCard /> */}
         </div>
       </div>
     </div>

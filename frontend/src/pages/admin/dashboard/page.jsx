@@ -99,7 +99,7 @@ function AdminDashboard() {
         await createUnit({
           roomNumber: room.roomNumber,
           floor: parseInt(newFloorData.floorNumber),
-          type: room.type,
+          unitType: room.type,  // Changed from 'type' to 'unitType'
           sizeSqm: parseFloat(room.size),
           rentAmount: parseFloat(room.rentAmount),
           status: 'AVAILABLE'
@@ -129,7 +129,7 @@ function AdminDashboard() {
       await createUnit({
         roomNumber: newRoomData.roomNumber,
         floor: parseInt(newRoomData.floor),
-        type: newRoomData.type,
+        unitType: newRoomData.type,  // Changed from 'type' to 'unitType'
         sizeSqm: parseFloat(newRoomData.size),
         rentAmount: parseFloat(newRoomData.rentAmount),
         status: 'AVAILABLE'

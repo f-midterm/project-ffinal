@@ -405,6 +405,67 @@ public class InvoiceController {
         invoiceService.deleteInvoice(id);
         return ResponseEntity.ok().build();
     }
+
+    /**
+     * Create installment plan for an invoice
+     * 
+     * POST /invoices/{id}/installment
+     * 
+     * Request Body:
+     * {
+     *   "installments": 4
+     * }
+     */
+    @PostMapping("/{id}/installment")
+    public ResponseEntity<?> createInstallmentPlan(
+            @PathVariable Long id,
+            @RequestBody InstallmentRequest request) {
+        try {
+            List<Invoice> installmentInvoices = invoiceService.createInstallmentPlan(id, request.getInstallments());
+            return ResponseEntity.ok(installmentInvoices);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Get installment invoices for a parent invoice
+     * 
+     * GET /invoices/{id}/installments
+     */
+    @GetMapping("/{id}/installments")
+    public ResponseEntity<List<Invoice>> getInstallmentInvoices(@PathVariable Long id) {
+        List<Invoice> installments = invoiceService.getInstallmentInvoices(id);
+        return ResponseEntity.ok(installments);
+    }
+    
+    /**
+     * Download Receipt PDF (for paid invoices)
+     * 
+     * GET /invoices/{id}/receipt
+     */
+    @GetMapping("/{id}/receipt")
+    public ResponseEntity<byte[]> downloadReceiptPdf(@PathVariable Long id) {
+        try {
+            Invoice invoice = invoiceService.getInvoiceById(id);
+            
+            // Only allow receipt download for paid invoices
+            if (invoice.getStatus() != Invoice.InvoiceStatus.PAID) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            }
+            
+            byte[] pdfBytes = pdfService.generateReceiptPdf(invoice);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("inline", "RECEIPT-" + invoice.getInvoiceNumber() + ".pdf");
+            
+            return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
     
     // Request DTO for payment verification
     static class VerifyPaymentRequest {
@@ -425,6 +486,19 @@ public class InvoiceController {
         
         public void setNotes(String notes) {
             this.notes = notes;
+        }
+    }
+
+    // Request DTO for installment plan
+    static class InstallmentRequest {
+        private int installments;
+
+        public int getInstallments() {
+            return installments;
+        }
+
+        public void setInstallments(int installments) {
+            this.installments = installments;
         }
     }
 }

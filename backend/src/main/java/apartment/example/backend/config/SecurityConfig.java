@@ -59,7 +59,10 @@ public class SecurityConfig {
                         .requestMatchers("/uploads/**").permitAll()
                         
                         // PDF Download endpoints - allow authenticated users
-                        .requestMatchers(HttpMethod.GET, "/leases/*/agreement", "/invoices/*/pdf").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/leases/*/agreement", "/invoices/*/pdf", "/invoices/*/receipt").authenticated()
+                        
+                        // Lease Termination - VILLAGER can terminate their own lease
+                        .requestMatchers(HttpMethod.POST, "/leases/*/terminate").hasAnyRole("VILLAGER", "ADMIN")
                         
                         // Units - Read access for authenticated users, Write access for ADMIN only
                         .requestMatchers(HttpMethod.GET, "/units/**").authenticated()  // Any authenticated user can view
@@ -79,6 +82,8 @@ public class SecurityConfig {
                         // Invoices - Tenants can view their own invoices
                         // IMPORTANT: Specific routes MUST come before catch-all patterns
                         .requestMatchers(HttpMethod.POST, "/invoices/{id}/upload-slip").authenticated()  // User can upload payment slip
+                        .requestMatchers(HttpMethod.POST, "/invoices/{id}/installment").authenticated()  // User can create installment plan
+                        .requestMatchers(HttpMethod.GET, "/invoices/{id}/installments").authenticated()  // User can view installment invoices
                         .requestMatchers(HttpMethod.POST, "/invoices/{id}/verify").hasAnyRole("ADMIN")  // Admin can verify payments
                         .requestMatchers(HttpMethod.GET, "/invoices/waiting-verification").hasAnyRole("ADMIN")  // Admin can view pending verifications
                         .requestMatchers(HttpMethod.GET, "/invoices/tenant/**").authenticated()  // User can view own invoices by email

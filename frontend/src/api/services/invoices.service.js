@@ -122,10 +122,11 @@ export const getInvoicesByTenant = async (tenantEmail) => {
  */
 export const downloadInvoicePdf = async (invoiceId, invoiceNumber) => {
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/invoices/${invoiceId}/pdf`, {
+    const response = await fetch(`/api/invoices/${invoiceId}/pdf`, {
       method: 'GET',
       headers: {
         'Accept': 'application/pdf',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
       },
     });
 
@@ -162,10 +163,11 @@ export const downloadInvoicePdf = async (invoiceId, invoiceNumber) => {
  */
 export const viewInvoicePdf = async (invoiceId) => {
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/invoices/${invoiceId}/pdf`, {
+    const response = await fetch(`/api/invoices/${invoiceId}/pdf`, {
       method: 'GET',
       headers: {
         'Accept': 'application/pdf',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
       },
     });
 
@@ -284,4 +286,79 @@ export const getPaidInvoices = async () => {
  */
 export const deleteInvoice = async (invoiceId) => {
   return await apiClient.delete(`/invoices/${invoiceId}`);
+};
+
+/**
+ * Create installment plan for an invoice
+ * 
+ * @async
+ * @function createInstallmentPlan
+ * @param {number} invoiceId - Invoice ID
+ * @param {number} installments - Number of installments (2, 4, or 6)
+ * @returns {Promise<Array>} Array of created installment invoices
+ * @throws {Error} When creation fails
+ * 
+ * @example
+ * const installmentInvoices = await createInstallmentPlan(1, 4);
+ */
+export const createInstallmentPlan = async (invoiceId, installments) => {
+  return await apiClient.post(`/invoices/${invoiceId}/installment`, { installments });
+};
+
+/**
+ * Get installment invoices for a parent invoice
+ * 
+ * @async
+ * @function getInstallmentInvoices
+ * @param {number} parentInvoiceId - Parent invoice ID
+ * @returns {Promise<Array>} Array of installment invoices
+ * @throws {Error} When fetch fails
+ * 
+ * @example
+ * const installments = await getInstallmentInvoices(1);
+ */
+export const getInstallmentInvoices = async (parentInvoiceId) => {
+  return await apiClient.get(`/invoices/${parentInvoiceId}/installments`);
+};
+
+/**
+ * Downloads Receipt PDF (for paid invoices)
+ * 
+ * @async
+ * @function downloadReceiptPdf
+ * @param {number} invoiceId - Invoice ID
+ * @param {string} invoiceNumber - Invoice number for filename
+ * @returns {Promise<void>} Triggers browser download
+ * @throws {Error} When download fails
+ * 
+ * @example
+ * await downloadReceiptPdf(1, 'INV-20251113-1');
+ */
+export const downloadReceiptPdf = async (invoiceId, invoiceNumber) => {
+  try {
+    const response = await fetch(`/api/invoices/${invoiceId}/receipt`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/pdf',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to download receipt PDF');
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `RECEIPT-${invoiceNumber}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  } catch (error) {
+    console.error('Error downloading receipt PDF:', error);
+    throw error;
+  }
 };

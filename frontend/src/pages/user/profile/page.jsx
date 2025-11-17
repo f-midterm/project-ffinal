@@ -1,9 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../hooks/useAuth';
 import { useBookingStatus } from '../../../hooks/useBookingStatus';
+import { terminateLease } from '../../../api/services/leases.service';
 import { PiBuilding } from "react-icons/pi";
 import SelectedUnitDetail from '../../../components/form/selected_unit_detail';
+import CheckoutModal from '../../../components/modal/checkout_modal';
 
 import ProfilePageSkeleton from '../../../components/skeleton/profile_page_skeleton';
 
@@ -11,7 +13,9 @@ function ProfilePage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, isAdmin, loading: authLoading } = useAuth();
-  const { status, loading: bookingStatusLoading, error } = useBookingStatus();
+  const { status, loading: bookingStatusLoading, error, refetch } = useBookingStatus();
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [leaseInfo, setLeaseInfo] = useState(null);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -20,6 +24,41 @@ function ProfilePage() {
       }
     }
   }, [id, user, isAdmin, authLoading, navigate]);
+
+  useEffect(() => {
+    if (status?.isApproved && status.leaseId) {
+      setLeaseInfo({
+        leaseId: status.leaseId,
+        roomNumber: status.roomNumber,
+        leaseEndDate: status.leaseEndDate
+      });
+    }
+  }, [status]);
+
+  const handleCheckoutClick = (leaseData) => {
+    // If leaseData is provided from button click, use it; otherwise use state
+    const leaseToUse = leaseData || leaseInfo;
+    if (leaseToUse) {
+      setLeaseInfo(leaseToUse);
+      setShowCheckoutModal(true);
+    }
+  };
+
+  const handleConfirmCheckout = async (checkoutDate) => {
+    try {
+      await terminateLease(leaseInfo.leaseId, checkoutDate);
+      alert(`Checkout confirmed! Your lease will end on ${new Date(checkoutDate).toLocaleDateString('th-TH')}. The unit will become available on this date.`);
+      setShowCheckoutModal(false);
+      // Refresh booking status
+      if (refetch) {
+        refetch();
+      } else {
+        window.location.reload();
+      }
+    } catch (err) {
+      throw new Error(err.response?.data?.message || 'Failed to process checkout');
+    }
+  };
 
   if (authLoading || bookingStatusLoading) {
     return <ProfilePageSkeleton />;
@@ -31,7 +70,7 @@ function ProfilePage() {
     }
 
     if (status?.isApproved) {
-      return <SelectedUnitDetail unitId={status.unitId} />;
+      return <SelectedUnitDetail unitId={status.unitId} onCheckout={handleCheckoutClick} />;
     }
 
     if (status?.isPending) {
@@ -100,6 +139,14 @@ function ProfilePage() {
           {renderLeaseDetail()}
         </div>
       </div>
+
+      {/* Checkout Modal */}
+      <CheckoutModal
+        isOpen={showCheckoutModal}
+        onClose={() => setShowCheckoutModal(false)}
+        onConfirm={handleConfirmCheckout}
+        lease={leaseInfo}
+      />
         
     </div>
   )

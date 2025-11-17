@@ -80,4 +80,14 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
            "WHERE i.status = :status " +
            "ORDER BY i.slipUploadedAt DESC")
     List<Invoice> findByStatus(@Param("status") Invoice.InvoiceStatus status);
+
+    /**
+     * Find all installment invoices for a parent invoice
+     */
+    @Query("SELECT DISTINCT i FROM Invoice i " +
+           "LEFT JOIN FETCH i.lease l " +
+           "LEFT JOIN FETCH i.payments p " +
+           "WHERE i.parentInvoiceId = :parentInvoiceId " +
+           "ORDER BY i.installmentNumber ASC")
+    List<Invoice> findByParentInvoiceId(@Param("parentInvoiceId") Long parentInvoiceId);
 }

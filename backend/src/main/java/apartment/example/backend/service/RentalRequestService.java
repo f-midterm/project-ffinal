@@ -342,6 +342,31 @@ public class RentalRequestService {
             statusMessage = "You can submit a new booking request";
         }
         
+        // Get active lease information if user is approved
+        Long leaseId = null;
+        String roomNumber = null;
+        String leaseEndDate = null;
+        
+        if (isApproved || hasActiveLease) {
+            Optional<User> userOpt = userRepository.findById(userId);
+            if (userOpt.isPresent()) {
+                User user = userOpt.get();
+                Optional<Tenant> tenant = tenantRepository.findByEmail(user.getEmail());
+                if (tenant.isPresent()) {
+                    List<Lease> activeLeases = leaseRepository.findByTenantIdAndStatus(
+                        tenant.get().getId(), 
+                        LeaseStatus.ACTIVE
+                    );
+                    if (!activeLeases.isEmpty()) {
+                        Lease activeLease = activeLeases.get(0);
+                        leaseId = activeLease.getId();
+                        roomNumber = activeLease.getUnit() != null ? activeLease.getUnit().getRoomNumber() : null;
+                        leaseEndDate = activeLease.getEndDate() != null ? activeLease.getEndDate().toString() : null;
+                    }
+                }
+            }
+        }
+        
         return apartment.example.backend.dto.MyLatestRequestDto.builder()
             .id(request.getId())
             .userId(request.getUserId())
@@ -351,6 +376,9 @@ public class RentalRequestService {
             .requestDate(request.getRequestDate())
             .rejectionReason(request.getRejectionReason())
             .rejectionAcknowledgedAt(request.getRejectionAcknowledgedAt())
+            .leaseId(leaseId)
+            .roomNumber(roomNumber)
+            .leaseEndDate(leaseEndDate)
             .isPending(isPending)
             .isApproved(isApproved)
             .isRejected(isRejected)

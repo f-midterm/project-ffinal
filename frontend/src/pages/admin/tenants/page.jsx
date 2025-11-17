@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import TenantsTable from '../../../components/table/tenants_table'
 import TenantsPageSkeleton from '../../../components/skeleton/tenants_page_skeleton';
-import { getAllTenants, deleteTenant } from '../../../api/services/tenants.service';
+import EditTenantModal from '../../../components/modal/edit_tenant_modal';
+import { getAllTenants, updateTenant, deleteTenant } from '../../../api/services/tenants.service';
 
 function TenantsPage() {
   const [tenants, setTenants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedTenant, setSelectedTenant] = useState(null);
 
   useEffect(() => {
     fetchTenants();
@@ -26,25 +29,39 @@ function TenantsPage() {
     }
   };
 
-  const handleEdit = (tenant) => {
-    // TODO: Implement edit functionality (open modal or navigate to edit page)
-    console.log('Edit tenant:', tenant);
-    alert(`Edit functionality for ${tenant.firstName} ${tenant.lastName} - Coming soon!`);
+  const handleEdit = async (tenant) => {
+    setSelectedTenant(tenant);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveTenant = async (tenantId, formData) => {
+    try {
+      await updateTenant(tenantId, formData);
+      // Refresh the tenant list
+      await fetchTenants();
+      alert('Tenant updated successfully');
+    } catch (err) {
+      throw new Error(err.message || 'Failed to update tenant');
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsEditModalOpen(false);
+    setSelectedTenant(null);
   };
 
   const handleDelete = async (tenant) => {
-    if (!window.confirm(`Are you sure you want to delete ${tenant.firstName} ${tenant.lastName}?`)) {
+    if (!window.confirm(`Are you sure you want to delete tenant: ${tenant.firstName} ${tenant.lastName}?`)) {
       return;
     }
 
     try {
       await deleteTenant(tenant.id);
-      // Refresh the list after successful deletion
-      await fetchTenants();
       alert('Tenant deleted successfully');
+      // Refresh the tenant list
+      fetchTenants();
     } catch (err) {
-      console.error('Failed to delete tenant:', err);
-      alert('Failed to delete tenant. They may have active leases or payments.');
+      alert(`Failed to delete tenant: ${err.message}`);
     }
   };
 
@@ -86,6 +103,14 @@ function TenantsPage() {
           onDelete={handleDelete}
         />
       </div>
+
+      {/* Edit Tenant Modal */}
+      <EditTenantModal
+        isOpen={isEditModalOpen}
+        onClose={handleCloseModal}
+        tenant={selectedTenant}
+        onSave={handleSaveTenant}
+      />
     </div>
   )
 }

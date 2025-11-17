@@ -43,4 +43,6 @@ public interface LeaseRepository extends JpaRepository<Lease, Long> {
     @Query("SELECT l FROM Lease l WHERE l.status = :status AND l.tenant.email = :email")
     List<Lease> findByStatusAndTenantEmail(@Param("status") LeaseStatus status, 
                                            @Param("email") String email);
+    
+    List<Lease> findByStatusAndEndDateBefore(LeaseStatus status, LocalDate date);
 }

@@ -166,6 +166,25 @@ public class LeaseController {
         }
     }
 
+    @PostMapping("/{id}/terminate")
+    public ResponseEntity<Lease> terminateLeaseWithDate(@PathVariable Long id, @RequestBody Map<String, String> request) {
+        try {
+            String checkoutDateStr = request.get("checkoutDate");
+            if (checkoutDateStr == null || checkoutDateStr.isEmpty()) {
+                return ResponseEntity.badRequest().build();
+            }
+            
+            Lease terminatedLease = leaseService.terminateLeaseWithCheckoutDate(id, checkoutDateStr);
+            return ResponseEntity.ok(terminatedLease);
+        } catch (IllegalArgumentException e) {
+            log.error("Error terminating lease: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        } catch (RuntimeException e) {
+            log.error("Error terminating lease: {}", e.getMessage());
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @PostMapping("/expire-leases")
     public ResponseEntity<String> expireLeases() {
         try {

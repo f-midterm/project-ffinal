@@ -102,6 +102,19 @@ public class Invoice {
     @Column(name = "updated_by_user_id")
     private Long updatedByUserId;
 
+    // Installment fields
+    @Column(name = "parent_invoice_id")
+    private Long parentInvoiceId;
+
+    @Column(name = "installment_number")
+    private Integer installmentNumber;
+
+    @Column(name = "total_installments")
+    private Integer totalInstallments;
+
+    @Column(name = "can_pay")
+    private Boolean canPay = true; // Only current installment can be paid
+
     // Lifecycle callbacks
     @PrePersist
     protected void onCreate() {

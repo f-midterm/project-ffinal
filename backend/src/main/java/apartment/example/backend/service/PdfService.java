@@ -57,6 +57,10 @@ public class PdfService {
             // Set proper margins for A4
             document.setMargins(50, 50, 50, 50);
             
+            // Fetch payments for this invoice (handle lazy loading)
+            List<Payment> payments = paymentRepository.findByInvoiceId(invoice.getId());
+            log.info("Found {} payments for invoice ID: {}", payments.size(), invoice.getId());
+            
             Lease lease = invoice.getLease();
             Tenant tenant = lease.getTenant();
             Unit unit = lease.getUnit();
@@ -131,17 +135,31 @@ public class PdfService {
             itemsTable.addHeaderCell(createHeaderCell("Receipt Number"));
             itemsTable.addHeaderCell(createHeaderCell("Amount"));
             
-            List<Payment> payments = invoice.getPayments();
             BigDecimal total = BigDecimal.ZERO;
             
-            for (Payment payment : payments) {
-                itemsTable.addCell(new Cell().add(new Paragraph(getPaymentDescription(payment.getPaymentType())).setFontSize(10)));
-                itemsTable.addCell(new Cell().add(new Paragraph(payment.getReceiptNumber()).setFontSize(10)));
+            // Use fetched payments list
+            if (payments != null && !payments.isEmpty()) {
+                for (Payment payment : payments) {
+                    itemsTable.addCell(new Cell().add(new Paragraph(getPaymentDescription(payment.getPaymentType())).setFontSize(10)));
+                    String receiptNum = payment.getReceiptNumber() != null ? payment.getReceiptNumber() : "-";
+                    itemsTable.addCell(new Cell().add(new Paragraph(receiptNum).setFontSize(10)));
+                    itemsTable.addCell(new Cell()
+                            .add(new Paragraph(String.format("%.2f Baht", payment.getAmount()))
+                            .setFontSize(10))
+                            .setTextAlignment(TextAlignment.RIGHT));
+                    total = total.add(payment.getAmount());
+                }
+            } else {
+                // If no payments found, use invoice total amount
+                log.warn("No payments found for invoice ID: {}, using invoice notes as description", invoice.getId());
+                String description = invoice.getNotes() != null ? invoice.getNotes() : "Payment";
+                itemsTable.addCell(new Cell().add(new Paragraph(description).setFontSize(10)));
+                itemsTable.addCell(new Cell().add(new Paragraph("-").setFontSize(10)));
                 itemsTable.addCell(new Cell()
-                        .add(new Paragraph(String.format("%.2f Baht", payment.getAmount()))
+                        .add(new Paragraph(String.format("%.2f Baht", invoice.getTotalAmount()))
                         .setFontSize(10))
                         .setTextAlignment(TextAlignment.RIGHT));
-                total = total.add(payment.getAmount());
+                total = invoice.getTotalAmount();
             }
             
             document.add(itemsTable);
@@ -203,6 +221,166 @@ public class PdfService {
         } catch (Exception e) {
             log.error("Error generating Invoice PDF for invoice ID: {}", invoice.getId(), e);
             throw new RuntimeException("Failed to generate Invoice PDF", e);
+        }
+    }
+    
+    /**
+     * Generate Receipt PDF for paid invoices
+     * 
+     * @param invoice Invoice entity (must be PAID status)
+     * @return PDF as byte array
+     */
+    public byte[] generateReceiptPdf(Invoice invoice) {
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            PdfWriter writer = new PdfWriter(baos);
+            PdfDocument pdfDoc = new PdfDocument(writer);
+            
+            pdfDoc.setDefaultPageSize(com.itextpdf.kernel.geom.PageSize.A4);
+            Document document = new Document(pdfDoc);
+            document.setMargins(50, 50, 50, 50);
+            
+            // Fetch payments for this invoice
+            List<Payment> payments = paymentRepository.findByInvoiceId(invoice.getId());
+            
+            Lease lease = invoice.getLease();
+            Tenant tenant = lease.getTenant();
+            Unit unit = lease.getUnit();
+            
+            // ============================================
+            // HEADER - Receipt Title
+            // ============================================
+            Paragraph title = new Paragraph("RECEIPT")
+                    .setFontSize(24)
+                    .setBold()
+                    .setTextAlignment(TextAlignment.CENTER)
+                    .setMarginBottom(5);
+            document.add(title);
+            
+            Paragraph subtitle = new Paragraph("BeLiv Apartment")
+                    .setFontSize(14)
+                    .setTextAlignment(TextAlignment.CENTER)
+                    .setMarginBottom(20);
+            document.add(subtitle);
+            
+            // ============================================
+            // Receipt Information
+            // ============================================
+            Table infoTable = new Table(UnitValue.createPercentArray(new float[]{1, 1}))
+                    .useAllAvailableWidth()
+                    .setMarginBottom(20);
+            
+            infoTable.addCell(new Cell().add(new Paragraph("Receipt Number:").setBold().setFontSize(10)).setBorder(null));
+            infoTable.addCell(new Cell().add(new Paragraph("RECEIPT-" + invoice.getInvoiceNumber()).setFontSize(10)).setBorder(null));
+            
+            infoTable.addCell(new Cell().add(new Paragraph("Invoice Number:").setBold().setFontSize(10)).setBorder(null));
+            infoTable.addCell(new Cell().add(new Paragraph(invoice.getInvoiceNumber()).setFontSize(10)).setBorder(null));
+            
+            infoTable.addCell(new Cell().add(new Paragraph("Payment Date:").setBold().setFontSize(10)).setBorder(null));
+            infoTable.addCell(new Cell().add(new Paragraph(invoice.getVerifiedAt() != null ? 
+                    invoice.getVerifiedAt().format(DateTimeFormatter.ofPattern("MMMM dd, yyyy")) :
+                    LocalDate.now().format(DATE_FORMATTER)).setFontSize(10)).setBorder(null));
+            
+            document.add(infoTable);
+            
+            // ============================================
+            // Received From Section
+            // ============================================
+            document.add(new Paragraph("RECEIVED FROM:").setBold().setFontSize(12).setMarginBottom(5));
+            
+            document.add(new Paragraph(tenant.getFirstName() + " " + tenant.getLastName())
+                    .setFontSize(10)
+                    .setMarginLeft(20)
+                    .setMarginBottom(2));
+            
+            document.add(new Paragraph("Unit: " + unit.getRoomNumber())
+                    .setFontSize(10)
+                    .setMarginLeft(20)
+                    .setMarginBottom(2));
+            
+            document.add(new Paragraph("Phone: " + tenant.getPhone())
+                    .setFontSize(10)
+                    .setMarginLeft(20)
+                    .setMarginBottom(20));
+            
+            // ============================================
+            // Payment Items Table
+            // ============================================
+            Table itemsTable = new Table(UnitValue.createPercentArray(new float[]{3, 2}))
+                    .useAllAvailableWidth()
+                    .setMarginBottom(20);
+            
+            itemsTable.addHeaderCell(createHeaderCell("Description"));
+            itemsTable.addHeaderCell(createHeaderCell("Amount Paid"));
+            
+            BigDecimal total = BigDecimal.ZERO;
+            
+            if (payments != null && !payments.isEmpty()) {
+                for (Payment payment : payments) {
+                    itemsTable.addCell(new Cell().add(new Paragraph(getPaymentDescription(payment.getPaymentType())).setFontSize(10)));
+                    itemsTable.addCell(new Cell()
+                            .add(new Paragraph(String.format("%.2f Baht", payment.getAmount()))
+                            .setFontSize(10))
+                            .setTextAlignment(TextAlignment.RIGHT));
+                    total = total.add(payment.getAmount());
+                }
+            } else {
+                String description = invoice.getNotes() != null ? invoice.getNotes() : "Payment";
+                itemsTable.addCell(new Cell().add(new Paragraph(description).setFontSize(10)));
+                itemsTable.addCell(new Cell()
+                        .add(new Paragraph(String.format("%.2f Baht", invoice.getTotalAmount()))
+                        .setFontSize(10))
+                        .setTextAlignment(TextAlignment.RIGHT));
+                total = invoice.getTotalAmount();
+            }
+            
+            document.add(itemsTable);
+            
+            // ============================================
+            // Total Section
+            // ============================================
+            Table totalTable = new Table(UnitValue.createPercentArray(new float[]{3, 2}))
+                    .useAllAvailableWidth()
+                    .setMarginBottom(30);
+            
+            totalTable.addCell(new Cell()
+                    .add(new Paragraph("TOTAL AMOUNT PAID").setBold().setFontSize(12))
+                    .setTextAlignment(TextAlignment.RIGHT)
+                    .setBorder(null));
+            
+            totalTable.addCell(new Cell()
+                    .add(new Paragraph(String.format("%.2f Baht", total)).setBold().setFontSize(12))
+                    .setTextAlignment(TextAlignment.RIGHT)
+                    .setBorder(null));
+            
+            document.add(totalTable);
+            
+            // ============================================
+            // Payment Status
+            // ============================================
+            document.add(new Paragraph("Payment Status: PAID")
+                    .setBold()
+                    .setFontSize(11)
+                    .setFontColor(new DeviceRgb(34, 139, 34))
+                    .setMarginBottom(20));
+            
+            // ============================================
+            // Footer
+            // ============================================
+            Paragraph footer = new Paragraph("Thank you for your payment. This receipt is proof of payment.")
+                    .setFontSize(8)
+                    .setTextAlignment(TextAlignment.CENTER)
+                    .setMarginTop(30)
+                    .setItalic();
+            document.add(footer);
+            
+            document.close();
+            
+            log.info("Receipt PDF generated successfully for invoice ID: {}", invoice.getId());
+            return baos.toByteArray();
+            
+        } catch (Exception e) {
+            log.error("Error generating Receipt PDF for invoice ID: {}", invoice.getId(), e);
+            throw new RuntimeException("Failed to generate Receipt PDF", e);
         }
     }
     

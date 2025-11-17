@@ -147,3 +147,21 @@ export const downloadLeaseAgreementPdf = async (leaseId) => {
   const response = await apiClient.get(`/leases/${leaseId}/agreement`);
   return response;
 };
+
+/**
+ * Terminates a lease (early checkout)
+ * 
+ * @async
+ * @function terminateLease
+ * @param {number} leaseId - Lease ID to terminate
+ * @param {string} checkoutDate - Checkout date (ISO format: YYYY-MM-DD)
+ * @returns {Promise<{id: number, status: string, actualEndDate: string}>} Terminated lease info
+ * @throws {Error} When termination fails
+ * 
+ * @example
+ * const terminated = await terminateLease(1, '2025-12-01');
+ * console.log('Lease terminated. Unit will be available on:', terminated.actualEndDate);
+ */
+export const terminateLease = async (leaseId, checkoutDate) => {
+  return await apiClient.post(`/leases/${leaseId}/terminate`, { checkoutDate });
+};

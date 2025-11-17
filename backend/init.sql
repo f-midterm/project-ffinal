@@ -137,7 +137,7 @@ CREATE TABLE leases (
     INDEX idx_dates (start_date, end_date),
     INDEX idx_status (status),
     INDEX idx_active_leases (status, end_date),  -- Composite index for active leases
-    CONSTRAINT chk_lease_dates CHECK (end_date > start_date),  -- Date validation
+    CONSTRAINT chk_lease_dates CHECK (end_date >= start_date),  -- Date validation (allow same day for early checkout)
     CONSTRAINT chk_monthly_rent CHECK (monthly_rent > 0),  -- Amount validation
     CONSTRAINT chk_deposit_amount CHECK (deposit_amount >= 0)  -- Amount validation
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -152,7 +152,7 @@ CREATE TABLE invoices (
     invoice_date DATE NOT NULL,
     due_date DATE NOT NULL,
     total_amount DECIMAL(10,2) NOT NULL,
-    invoice_type ENUM('MONTHLY_RENT', 'SECURITY_DEPOSIT', 'CLEANING_FEE', 'MAINTENANCE_FEE', 'CUSTOM') NOT NULL DEFAULT 'MONTHLY_RENT',
+    invoice_type ENUM('MONTHLY_RENT', 'SECURITY_DEPOSIT', 'CLEANING_FEE', 'MAINTENANCE_FEE', 'INSTALLMENT', 'UTILITIES', 'CUSTOM') NOT NULL DEFAULT 'MONTHLY_RENT',
     status ENUM('PENDING', 'WAITING_VERIFICATION', 'PAID', 'OVERDUE', 'PARTIAL', 'REJECTED', 'CANCELLED') NOT NULL DEFAULT 'PENDING',
     notes TEXT,
     slip_url VARCHAR(500),  -- Payment slip image URL
@@ -165,6 +165,10 @@ CREATE TABLE invoices (
     deleted_at DATETIME NULL,
     created_by_user_id BIGINT,
     updated_by_user_id BIGINT,
+    parent_invoice_id BIGINT,  -- For installment invoices
+    installment_number INT,  -- Which installment (1, 2, 3, etc.)
+    total_installments INT,  -- Total number of installments
+    can_pay BOOLEAN DEFAULT TRUE,  -- Whether this installment can be paid now
     FOREIGN KEY (lease_id) REFERENCES leases(id) ON DELETE RESTRICT,
     FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE SET NULL,

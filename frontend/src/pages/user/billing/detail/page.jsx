@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FaHome, FaBolt, FaTint, FaWrench, FaFileInvoice, FaArrowLeft, FaDownload, FaPrint, FaCheckCircle } from 'react-icons/fa';
-import { getInvoiceById, downloadInvoicePdf } from '../../../../api/services/invoices.service';
+import { getInvoiceById, downloadReceiptPdf } from '../../../../api/services/invoices.service';
 
 const PAYMENT_TYPE_CONFIG = {
   RENT: { icon: <FaHome className="inline" />, label: 'Rent', color: 'text-indigo-600' },
@@ -78,10 +78,10 @@ function InvoiceDetailPage() {
   const handleDownloadPdf = async () => {
     try {
       setDownloading(true);
-      await downloadInvoicePdf(invoice.id, invoice.invoiceNumber);
+      await downloadReceiptPdf(invoice.id, invoice.invoiceNumber);
     } catch (err) {
-      console.error('Error downloading PDF:', err);
-      alert('Failed to download invoice PDF. Please try again.');
+      console.error('Error downloading receipt:', err);
+      alert('Failed to download receipt. Please try again.');
     } finally {
       setDownloading(false);
     }
@@ -297,12 +297,12 @@ function InvoiceDetailPage() {
         >
           <FaDownload /> {downloading ? 'Downloading...' : 'Download Receipt'}
         </button>
-        <button
+        {/* <button
           onClick={handlePrint}
           className='px-8 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors shadow-md hover:shadow-lg flex items-center gap-2'
         >
           <FaPrint /> Print Receipt
-        </button>
+        </button> */}
       </div>
 
       {/* Thank You Message */}

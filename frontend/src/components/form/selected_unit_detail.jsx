@@ -3,7 +3,7 @@ import { getUnitDetails } from '../../api/services/units.service';
 import { downloadLeaseAgreementPdf } from '../../api/services/leases.service';
 import { PiBuilding, PiFileText } from "react-icons/pi";
 
-function SelectedUnitDetail({ unitId }) {
+function SelectedUnitDetail({ unitId, onCheckout }) {
   const [details, setDetails] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -195,8 +195,12 @@ function SelectedUnitDetail({ unitId }) {
       {/* Check out Button */}
       <div className='flex justify-end p-4'>
         <button 
-          className='bg-red-400 px-6 py-2 rounded-xl font-medium hover:bg-red-500 text-white shadow-md hover:translate-y-[-1px]'
-          onClick={() => {}}
+          className='bg-red-500 px-8 py-3 rounded-lg font-medium hover:bg-red-600 text-white shadow-md hover:translate-y-[-1px] hover:shadow-lg'
+          onClick={() => onCheckout && onCheckout({
+            leaseId: lease?.id,
+            roomNumber: unit?.roomNumber,
+            leaseEndDate: lease?.endDate
+          })}
         >
           Check Out
         </button>

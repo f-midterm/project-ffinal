@@ -286,6 +286,160 @@ public class InvoiceService {
     }
 
     /**
+     * Create installment plan for an invoice
+     * Separates fixed charges (rent) from utilities
+     * 
+     * @param invoiceId Parent invoice ID
+     * @param installments Number of installments (2, 4, or 6)
+     * @return List of created installment invoices
+     */
+    @Transactional
+    public List<Invoice> createInstallmentPlan(Long invoiceId, int installments) {
+        // Validate installment number
+        if (installments != 2 && installments != 4 && installments != 6) {
+            throw new RuntimeException("Invalid number of installments. Must be 2, 4, or 6");
+        }
+
+        // Get parent invoice
+        Invoice parentInvoice = getInvoiceById(invoiceId);
+        
+        if (parentInvoice.getStatus() != Invoice.InvoiceStatus.PENDING) {
+            throw new RuntimeException("Can only create installment plan for pending invoices");
+        }
+
+        // Separate fixed charges from utilities
+        List<Payment> fixedPayments = parentInvoice.getPayments().stream()
+                .filter(p -> p.getPaymentType() == PaymentType.RENT || 
+                           p.getPaymentType() == PaymentType.SECURITY_DEPOSIT)
+                .toList();
+        
+        List<Payment> utilityPayments = parentInvoice.getPayments().stream()
+                .filter(p -> p.getPaymentType() == PaymentType.ELECTRICITY || 
+                           p.getPaymentType() == PaymentType.WATER)
+                .toList();
+
+        if (fixedPayments.isEmpty()) {
+            throw new RuntimeException("No fixed charges found in invoice to create installment plan");
+        }
+
+        // Calculate fixed total
+        BigDecimal fixedTotal = fixedPayments.stream()
+                .map(Payment::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal installmentAmount = fixedTotal.divide(BigDecimal.valueOf(installments), 2, BigDecimal.ROUND_HALF_UP);
+
+        // Calculate payment dates (1st and 16th of months)
+        LocalDate paymentDate = calculateNextPaymentDate(LocalDate.now());
+        
+        // Create installment invoices
+        List<Invoice> installmentInvoices = new java.util.ArrayList<>();
+        
+        for (int i = 0; i < installments; i++) {
+            LocalDate dueDate = paymentDate.plusDays(3); // 3-day grace period
+            
+            Invoice installmentInvoice = new Invoice();
+            installmentInvoice.setInvoiceNumber(generateInvoiceNumber(paymentDate));
+            installmentInvoice.setLease(parentInvoice.getLease());
+            installmentInvoice.setInvoiceDate(paymentDate);
+            installmentInvoice.setDueDate(dueDate);
+            installmentInvoice.setTotalAmount(installmentAmount);
+            installmentInvoice.setStatus(Invoice.InvoiceStatus.PENDING);
+            installmentInvoice.setInvoiceType(InvoiceType.INSTALLMENT);
+            installmentInvoice.setNotes("Installment " + (i + 1) + "/" + installments + " of Invoice " + parentInvoice.getInvoiceNumber());
+            installmentInvoice.setParentInvoiceId(parentInvoice.getId());
+            installmentInvoice.setInstallmentNumber(i + 1);
+            installmentInvoice.setTotalInstallments(installments);
+            installmentInvoice.setCanPay(i == 0); // Only first installment can be paid initially
+            
+            installmentInvoice = invoiceRepository.save(installmentInvoice);
+            
+            // Create payment line item
+            Payment payment = new Payment();
+            payment.setInvoice(installmentInvoice);
+            payment.setLease(parentInvoice.getLease());
+            payment.setPaymentType(PaymentType.RENT);
+            payment.setAmount(installmentAmount);
+            payment.setDueDate(dueDate);
+            payment.setStatus(PaymentStatus.PENDING);
+            payment.setNotes("Installment payment " + (i + 1) + "/" + installments);
+            paymentRepository.save(payment);
+            
+            installmentInvoices.add(installmentInvoice);
+            
+            // Calculate next payment date
+            paymentDate = calculateNextPaymentDate(paymentDate.plusDays(1));
+        }
+
+        // If there are utilities, create separate utilities invoice
+        if (!utilityPayments.isEmpty()) {
+            BigDecimal utilitiesTotal = utilityPayments.stream()
+                    .map(Payment::getAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            
+            LocalDate utilityDueDate = LocalDate.now().plusDays(7);
+            
+            Invoice utilitiesInvoice = new Invoice();
+            utilitiesInvoice.setInvoiceNumber(generateInvoiceNumber(LocalDate.now()));
+            utilitiesInvoice.setLease(parentInvoice.getLease());
+            utilitiesInvoice.setInvoiceDate(LocalDate.now());
+            utilitiesInvoice.setDueDate(utilityDueDate);
+            utilitiesInvoice.setTotalAmount(utilitiesTotal);
+            utilitiesInvoice.setStatus(Invoice.InvoiceStatus.PENDING);
+            utilitiesInvoice.setInvoiceType(InvoiceType.UTILITIES);
+            utilitiesInvoice.setNotes("Utilities for Invoice " + parentInvoice.getInvoiceNumber() + " - Must be paid in full");
+            utilitiesInvoice.setParentInvoiceId(parentInvoice.getId());
+            
+            utilitiesInvoice = invoiceRepository.save(utilitiesInvoice);
+            
+            // Create utility payment line items
+            for (Payment utilityPayment : utilityPayments) {
+                Payment payment = new Payment();
+                payment.setInvoice(utilitiesInvoice);
+                payment.setLease(parentInvoice.getLease());
+                payment.setPaymentType(utilityPayment.getPaymentType());
+                payment.setAmount(utilityPayment.getAmount());
+                payment.setDueDate(utilityDueDate);
+                payment.setStatus(PaymentStatus.PENDING);
+                payment.setNotes(utilityPayment.getNotes());
+                paymentRepository.save(payment);
+            }
+            
+            installmentInvoices.add(utilitiesInvoice);
+        }
+
+        // Cancel parent invoice
+        parentInvoice.setStatus(Invoice.InvoiceStatus.CANCELLED);
+        parentInvoice.setNotes((parentInvoice.getNotes() != null ? parentInvoice.getNotes() + " | " : "") + 
+                              "Replaced by " + installments + " installment plan");
+        invoiceRepository.save(parentInvoice);
+
+        return installmentInvoices;
+    }
+
+    /**
+     * Calculate next payment date (1st or 16th)
+     */
+    private LocalDate calculateNextPaymentDate(LocalDate fromDate) {
+        int day = fromDate.getDayOfMonth();
+        
+        if (day < 1) {
+            return fromDate.withDayOfMonth(1);
+        } else if (day < 16) {
+            return fromDate.withDayOfMonth(16);
+        } else {
+            return fromDate.plusMonths(1).withDayOfMonth(1);
+        }
+    }
+
+    /**
+     * Get installment invoices for a parent invoice
+     */
+    public List<Invoice> getInstallmentInvoices(Long parentInvoiceId) {
+        return invoiceRepository.findByParentInvoiceId(parentInvoiceId);
+    }
+
+    /**
      * Payment Item DTO
      */
     public static class PaymentItem {

@@ -17,6 +17,7 @@ import {
   getInvoiceById,
   downloadInvoicePdf,
   uploadPaymentSlip,
+  createInstallmentPlan,
 } from "../../../../api/services/invoices.service";
 import { getBackendResourceUrl } from "../../../../api/client/apiClient";
 import { QRCodeCanvas } from "qrcode.react";
@@ -68,6 +69,12 @@ function PaymentPage() {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
 
+  // Installment state
+  const [paymentMethod, setPaymentMethod] = useState("full"); // "full" or "installment"
+  const [selectedInstallments, setSelectedInstallments] = useState(null); // 2, 4, or 6
+  const [installmentSchedule, setInstallmentSchedule] = useState([]);
+  const [creatingInstallment, setCreatingInstallment] = useState(false);
+
   // Calculate late fee
   const [daysLate, setDaysLate] = useState(0);
   const [lateFee, setLateFee] = useState(0);
@@ -79,6 +86,13 @@ function PaymentPage() {
   useEffect(() => {
     fetchInvoice();
   }, [invoiceId]);
+
+  useEffect(() => {
+    // Calculate installment schedule when method and installments are selected
+    if (paymentMethod === "installment" && selectedInstallments && invoice) {
+      calculateInstallmentSchedule();
+    }
+  }, [paymentMethod, selectedInstallments, invoice]);
 
   const fetchInvoice = async () => {
     try {
@@ -216,6 +230,83 @@ function PaymentPage() {
       alert("Failed to upload payment slip. Please try again.");
     } finally {
       setUploading(false);
+    }
+  };
+
+  const calculateInstallmentSchedule = () => {
+    if (!invoice || !selectedInstallments) return;
+
+    // Separate utilities from fixed charges
+    const fixedCharges = invoice.payments?.filter(
+      (p) => p.paymentType === "RENT" || p.paymentType === "SECURITY_DEPOSIT"
+    ) || [];
+    const utilities = invoice.payments?.filter(
+      (p) => p.paymentType === "ELECTRICITY" || p.paymentType === "WATER"
+    ) || [];
+
+    const fixedTotal = fixedCharges.reduce((sum, p) => sum + p.amount, 0);
+    const utilitiesTotal = utilities.reduce((sum, p) => sum + p.amount, 0);
+
+    const installmentAmount = fixedTotal / selectedInstallments;
+    const schedule = [];
+
+    // Start from next payment date (1st or 16th)
+    const today = new Date();
+    let paymentDate = new Date(today);
+
+    // Find next payment date
+    if (today.getDate() < 1) {
+      paymentDate.setDate(1);
+    } else if (today.getDate() < 16) {
+      paymentDate.setDate(16);
+    } else {
+      paymentDate.setMonth(paymentDate.getMonth() + 1);
+      paymentDate.setDate(1);
+    }
+
+    // Generate schedule
+    for (let i = 0; i < selectedInstallments; i++) {
+      const dueDate = new Date(paymentDate);
+      dueDate.setDate(dueDate.getDate() + 3); // 3-day grace period
+
+      schedule.push({
+        installment: i + 1,
+        paymentDate: new Date(paymentDate),
+        dueDate: new Date(dueDate),
+        amount: installmentAmount,
+        canPay: i === 0, // Only first installment can be paid initially
+      });
+
+      // Next payment: 1st or 16th
+      if (paymentDate.getDate() === 1) {
+        paymentDate.setDate(16);
+      } else {
+        paymentDate.setMonth(paymentDate.getMonth() + 1);
+        paymentDate.setDate(1);
+      }
+    }
+
+    setInstallmentSchedule(schedule);
+  };
+
+  const handleCreateInstallmentPlan = async () => {
+    if (!selectedInstallments) {
+      alert("Please select number of installments");
+      return;
+    }
+
+    try {
+      setCreatingInstallment(true);
+      await createInstallmentPlan(invoice.id, selectedInstallments);
+      alert("Installment plan created successfully! Redirecting to billing page...");
+      setTimeout(() => {
+        navigate(`/user/${id}/billing`);
+      }, 1500);
+    } catch (err) {
+      console.error("Error creating installment plan:", err);
+      alert("Failed to create installment plan. Please try again.");
+    } finally {
+      setCreatingInstallment(false);
     }
   };
 
@@ -486,134 +577,253 @@ function PaymentPage() {
           id="qr-code-section"
           className="bg-white rounded-xl shadow-md p-6 mb-6"
         >
-          {/* Payment method */}
-          <div className="text-xl font-medium">Payment Method</div>
-          <div className="flex justify-between items-center mb-6 p-4 border-b border-gray-200 gap-2">
-            <button className="w-full border-2 border-gray-300 p-4 rounded-lg hover:bg-gray-100">Full payment</button>
-            <button className="w-full border-2 border-gray-300 p-4 rounded-lg hover:bg-gray-100">Installment plan</button>
-          </div>
+          {/* Payment Method - Only show for non-installment invoices */}
+          {invoice.invoiceType !== "INSTALLMENT" && invoice.invoiceType !== "UTILITIES" && (
+            <>
+              <h2 className="text-xl font-bold text-gray-800 mb-4">Payment Method</h2>
+              <div className="flex gap-4 mb-6">
+                <button
+                  onClick={() => {
+                    setPaymentMethod("full");
+                    setSelectedInstallments(null);
+                    setInstallmentSchedule([]);
+                  }}
+                  className={`flex-1 border-2 p-4 rounded-lg transition-colors ${
+                    paymentMethod === "full"
+                      ? "border-blue-500 bg-blue-50 text-blue-700 font-medium"
+                      : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  Full Payment
+                </button>
+                <button
+                  onClick={() => setPaymentMethod("installment")}
+                  className={`flex-1 border-2 p-4 rounded-lg transition-colors ${
+                    paymentMethod === "installment"
+                      ? "border-blue-500 bg-blue-50 text-blue-700 font-medium"
+                      : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  Installment Plan
+                </button>
+              </div>
+            </>
+          )}
 
-          {/* If using Installment Plan gonna show this Caution */}
-          <div className="border-l-4 border-amber-500 p-6 bg-amber-100 mb-6">
-            
-          </div>
-
-          <h2 className="text-xl font-bold text-gray-800 mb-4 text-center">
-            Scan to Pay with PromptPay
-          </h2>
-          <div className="flex flex-col items-center gap-4">
-            <div className="bg-white p-6 rounded-lg border-4 border-blue-500">
-              <QRCodeCanvas
-                value={generatePayload(PROMPTPAY_ID, {
-                  amount: parseFloat(totalWithLateFee),
-                })}
-                size={256}
-                level="H"
-                includeMargin={true}
-              />
-            </div>
-            <div className="text-center">
-              <p className="text-gray-600 mb-2">
-                Scan QR Code with your banking app
-              </p>
-              <p
-                className={`text-2xl font-bold ${
-                  daysLate > 0 ? "text-red-600" : "text-blue-600"
-                }`}
-              >
-                ฿{formatCurrency(totalWithLateFee)}
-              </p>
-              {daysLate > 0 && (
-                <p className="text-sm text-red-600 mt-1">
-                  Includes ฿{formatCurrency(lateFee)} late fee ({daysLate} day
-                  {daysLate > 1 ? "s" : ""})
-                </p>
-              )}
-              <p className="text-sm text-gray-500 mt-2">
-                Invoice: {invoice.invoiceNumber}
-              </p>
-            </div>
-          </div>
-
-          {/* Upload Slip Section */}
-          <div className='mt-8 pt-6 border-t flex flex-col items-center gap-4'>
-            <h3 className='text-lg font-semibold text-gray-800 mb-4'>Upload Payment Slip</h3>
-            <div 
-              className={`border-2 border-dashed p-8 lg:min-h-[400px] lg:min-w-[800px] rounded-xl flex flex-col items-center justify-center transition-all ${
-                isDragging 
-                  ? 'border-blue-500 bg-blue-50' 
-                  : 'border-gray-300 bg-white hover:border-gray-400'
-              }`}
-              onDragEnter={handleDragEnter}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              {slipPreview ? (
-                <div className="space-y-4">
-                  <div className="flex justify-center">
-                    <img
-                      src={slipPreview}
-                      alt="Payment Slip Preview"
-                      className="max-w-xs rounded-lg shadow-md"
-                    />
-                  </div>
-                  <div className="flex gap-3 justify-center">
-                    <button
-                      onClick={() => {
-                        setSlipFile(null);
-                        setSlipPreview(null);
-                        if (fileInputRef.current) {
-                          fileInputRef.current.value = "";
-                        }
-                      }}
-                      className='px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors'
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleUploadSlip}
-                      disabled={uploading}
-                      className='px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 flex items-center gap-2 transition-colors'
-                    >
-                      <FaUpload />
-                      {uploading ? "Uploading..." : "Submit Payment"}
-                    </button>
-                  </div>
+          {/* Installment Plan Options */}
+          {invoice.invoiceType !== "INSTALLMENT" && invoice.invoiceType !== "UTILITIES" && paymentMethod === "installment" && (
+            <div className="mb-6">
+              {/* Check if invoice has utilities */}
+              {invoice.payments?.some(p => p.paymentType === "ELECTRICITY" || p.paymentType === "WATER") && (
+                <div className="bg-amber-50 border-l-4 border-amber-500 p-4 mb-4">
+                  <p className="text-sm text-amber-800">
+                    <strong>Note:</strong> Utilities (electricity and water) cannot be included in installment plans due to variable amounts.
+                    Only fixed charges (rent) can be paid in installments. Utilities must be paid in full separately.
+                  </p>
                 </div>
-              ) : (
-                <div className='flex flex-col items-center gap-4 text-center'>
-                  <FaUpload className={`text-5xl transition-colors ${
-                    isDragging ? 'text-blue-500' : 'text-gray-400'
-                  }`} />
-                  <div>
-                    <p className={`text-lg font-medium mb-2 transition-colors ${
-                      isDragging ? 'text-blue-600' : 'text-gray-700'
-                    }`}>
-                      {isDragging ? 'Drop your file here' : 'Drag & drop your payment slip'}
-                    </p>
-                    <p className='text-sm text-gray-500 mb-4'>or</p>
-                  </div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileSelect}
-                    className="hidden"
-                    id="slip-upload"
-                  />
-                  <label
-                    htmlFor="slip-upload"
-                    className='px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 cursor-pointer flex items-center gap-2 transition-colors shadow-md hover:shadow-lg'
+              )}
+
+              <h3 className="text-lg font-medium text-gray-800 mb-3">Select Installment Plan</h3>
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                {[2, 4, 6].map((num) => (
+                  <button
+                    key={num}
+                    onClick={() => setSelectedInstallments(num)}
+                    className={`border-2 p-4 rounded-lg transition-colors ${
+                      selectedInstallments === num
+                        ? "border-blue-500 bg-blue-50 text-blue-700 font-medium"
+                        : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                    }`}
                   >
-                    <FaUpload />
-                    Choose Payment Slip Image
-                  </label>
-                  <p className='text-sm text-gray-500'>Maximum file size: 5MB (JPG, PNG, GIF)</p>
+                    <div className="text-2xl font-bold">{num}</div>
+                    <div className="text-sm">Installments</div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Installment Schedule Preview */}
+              {installmentSchedule.length > 0 && (
+                <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                  <h4 className="font-medium text-gray-800 mb-3">Payment Schedule</h4>
+                  <div className="space-y-2">
+                    {installmentSchedule.map((schedule, idx) => (
+                      <div
+                        key={idx}
+                        className={`flex justify-between items-center p-3 rounded ${
+                          schedule.canPay ? "bg-white border border-gray-200" : "bg-gray-100 text-gray-500"
+                        }`}
+                      >
+                        <div>
+                          <div className="font-medium">
+                            Installment {schedule.installment}/{selectedInstallments}
+                          </div>
+                          <div className="text-sm">
+                            Pay by: {formatDate(schedule.paymentDate)} (Due: {formatDate(schedule.dueDate)})
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-bold text-lg">฿{formatCurrency(schedule.amount)}</div>
+                          {!schedule.canPay && (
+                            <div className="text-xs">Locked</div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Utilities Payment Info */}
+                  {invoice.payments?.some(p => p.paymentType === "ELECTRICITY" || p.paymentType === "WATER") && (
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-medium text-gray-700">Utilities (Pay in Full)</span>
+                        <span className="font-bold text-lg">
+                          ฿{formatCurrency(
+                            invoice.payments
+                              .filter(p => p.paymentType === "ELECTRICITY" || p.paymentType === "WATER")
+                              .reduce((sum, p) => sum + p.amount, 0)
+                          )}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600">Must be paid separately before first installment</p>
+                    </div>
+                  )}
                 </div>
               )}
+
+              {/* Confirm Installment Plan Button */}
+              {selectedInstallments && (
+                <button
+                  onClick={handleCreateInstallmentPlan}
+                  disabled={creatingInstallment}
+                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
+                >
+                  {creatingInstallment ? "Creating Plan..." : "Confirm Installment Plan"}
+                </button>
+              )}
             </div>
-          </div>
+          )}
+
+          {/* QR Code for Full Payment or Installment/Utilities invoices */}
+          {(paymentMethod === "full" || invoice.invoiceType === "INSTALLMENT" || invoice.invoiceType === "UTILITIES") && (
+            <>
+              <h2 className="text-xl font-bold text-gray-800 mb-4 text-center">
+                Scan to Pay with PromptPay
+              </h2>
+              <div className="flex flex-col items-center gap-4">
+                <div className="bg-white p-6 rounded-lg border-4 border-blue-500">
+                  <QRCodeCanvas
+                    value={generatePayload(PROMPTPAY_ID, {
+                      amount: parseFloat(totalWithLateFee),
+                    })}
+                    size={256}
+                    level="H"
+                    includeMargin={true}
+                  />
+                </div>
+                <div className="text-center">
+                  <p className="text-gray-600 mb-2">
+                    Scan QR Code with your banking app
+                  </p>
+                  <p
+                    className={`text-2xl font-bold ${
+                      daysLate > 0 ? "text-red-600" : "text-blue-600"
+                    }`}
+                  >
+                    ฿{formatCurrency(totalWithLateFee)}
+                  </p>
+                  {daysLate > 0 && (
+                    <p className="text-sm text-red-600 mt-1">
+                      Includes ฿{formatCurrency(lateFee)} late fee ({daysLate} day
+                      {daysLate > 1 ? "s" : ""})
+                    </p>
+                  )}
+                  <p className="text-sm text-gray-500 mt-2">
+                    Invoice: {invoice.invoiceNumber}
+                  </p>
+                </div>
+              </div>
+
+              {/* Upload Slip Section */}
+              <div className='mt-8 pt-6 border-t flex flex-col items-center gap-4'>
+                <h3 className='text-lg font-semibold text-gray-800 mb-4'>Upload Payment Slip</h3>
+                <div 
+                  className={`border-2 border-dashed p-8 lg:min-h-[400px] lg:min-w-[800px] rounded-xl flex flex-col items-center justify-center transition-all ${
+                    isDragging 
+                      ? 'border-blue-500 bg-blue-50' 
+                      : 'border-gray-300 bg-white hover:border-gray-400'
+                  }`}
+                  onDragEnter={handleDragEnter}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
+                  {slipPreview ? (
+                    <div className="space-y-4">
+                      <div className="flex justify-center">
+                        <img
+                          src={slipPreview}
+                          alt="Payment Slip Preview"
+                          className="max-w-xs rounded-lg shadow-md"
+                        />
+                      </div>
+                      <div className="flex gap-3 justify-center">
+                        <button
+                          onClick={() => {
+                            setSlipFile(null);
+                            setSlipPreview(null);
+                            if (fileInputRef.current) {
+                              fileInputRef.current.value = "";
+                            }
+                          }}
+                          className='px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors'
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleUploadSlip}
+                          disabled={uploading}
+                          className='px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 flex items-center gap-2 transition-colors'
+                        >
+                          <FaUpload />
+                          {uploading ? "Uploading..." : "Submit Payment"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className='flex flex-col items-center gap-4 text-center'>
+                      <FaUpload className={`text-5xl transition-colors ${
+                        isDragging ? 'text-blue-500' : 'text-gray-400'
+                      }`} />
+                      <div>
+                        <p className={`text-lg font-medium mb-2 transition-colors ${
+                          isDragging ? 'text-blue-600' : 'text-gray-700'
+                        }`}>
+                          {isDragging ? 'Drop your file here' : 'Drag & drop your payment slip'}
+                        </p>
+                        <p className='text-sm text-gray-500 mb-4'>or</p>
+                      </div>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                        id="slip-upload"
+                      />
+                      <label
+                        htmlFor="slip-upload"
+                        className='px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 cursor-pointer flex items-center gap-2 transition-colors shadow-md hover:shadow-lg'
+                      >
+                        <FaUpload />
+                        Choose Payment Slip Image
+                      </label>
+                      <p className='text-sm text-gray-500'>Maximum file size: 5MB (JPG, PNG, GIF)</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
 
