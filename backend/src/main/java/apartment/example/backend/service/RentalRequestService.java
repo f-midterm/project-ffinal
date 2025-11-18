@@ -85,7 +85,7 @@ public class RentalRequestService {
             if (user.getRole() == User.Role.USER) {
                 List<RentalRequest> existingRequests = rentalRequestRepository.findByEmail(rentalRequest.getEmail());
                 
-                // Check for any PENDING or APPROVED requests
+                // Check for any PENDING or APPROVED requests (exclude COMPLETED and REJECTED)
                 boolean hasActiveRequest = existingRequests.stream()
                     .anyMatch(req -> req.getStatus() == RentalRequestStatus.PENDING || 
                                    req.getStatus() == RentalRequestStatus.APPROVED);
@@ -94,12 +94,13 @@ public class RentalRequestService {
                     throw new IllegalArgumentException("You already have an active rental request. Each person can only submit one request at a time. Please wait for admin decision or check your status.");
                 }
                 
-                // Only allow new request if all previous requests were REJECTED
-                boolean hasOnlyRejectedRequests = existingRequests.stream()
-                    .allMatch(req -> req.getStatus() == RentalRequestStatus.REJECTED);
+                // Only allow new request if all previous requests were REJECTED or COMPLETED
+                boolean hasOnlyCompletedOrRejected = existingRequests.stream()
+                    .allMatch(req -> req.getStatus() == RentalRequestStatus.REJECTED || 
+                                   req.getStatus() == RentalRequestStatus.COMPLETED);
                 
-                if (!existingRequests.isEmpty() && !hasOnlyRejectedRequests) {
-                    throw new IllegalArgumentException("You can only submit a new rental request if your previous request was rejected by the admin.");
+                if (!existingRequests.isEmpty() && !hasOnlyCompletedOrRejected) {
+                    throw new IllegalArgumentException("You can only submit a new rental request if your previous request was rejected or completed.");
                 }
             }
         }
@@ -498,7 +499,7 @@ public class RentalRequestService {
                 throw new IllegalArgumentException("You already have a pending rental request. Please wait for admin decision before submitting a new request.");
             }
             
-            // Block if user has APPROVED request
+            // Block if user has APPROVED request (not COMPLETED yet)
             if (existing.getStatus() == RentalRequestStatus.APPROVED) {
                 throw new IllegalArgumentException("You already have an approved booking. Each person can only have one active booking at a time.");
             }
@@ -507,6 +508,8 @@ public class RentalRequestService {
             if (existing.getStatus() == RentalRequestStatus.REJECTED && !existing.isRejectionAcknowledged()) {
                 throw new IllegalArgumentException("Please acknowledge your previous rejection before submitting a new request. Check the booking page for details.");
             }
+            
+            // COMPLETED requests are OK - user can book again!
         }
         
         // Validate email matches user's email

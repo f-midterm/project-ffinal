@@ -38,16 +38,22 @@ PRODUCTION_DEPLOYMENT_ROADMAP.md
 # ENVIRONMENT & SECRETS
 # ===============================
 # CRITICAL: Never commit actual environment files with secrets!
-# .env
+.env
 .env.local
 .env.*.local
 .env.prod
+.env.production
 *.env.prod
-# **/.env
+*.env.production
+**/.env
 **/.env.local
 **/.env.prod
+**/.env.production
 
 # Keep only templates
+!.env.example
+!.env.template
+!**/.env.example
 !.env.example
 !.env.*.example
 !**/.env.example
@@ -310,3 +316,7 @@ build-*/
 
 DESIGN_UNIT_PRICE_HISTORY.md
 POSTMAN_API_ENDPOINTS.md
+k8s/SECRETS_README.md
+README.md
+SECURITY_CHECKLIST.md
+SECURITY_IMPROVEMENTS.md

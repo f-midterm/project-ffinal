@@ -47,9 +47,22 @@ services:
       SPRING_DATASOURCE_PASSWORD: dev_password
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
       SPRING_JPA_SHOW_SQL: true
-      JWT_SECRET: ZGV2and0c2VjcmV0a2V5bm90Zm9ycHJvZHVjdGlvbnVzZTEyMzQ1Njc4OTBhYmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5eg==
-      JWT_EXPIRATION: 86400000
+      # SECURITY: Use environment variable for JWT secret (REQUIRED)
+      JWT_SECRET: ${JWT_SECRET_DEV}
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
       SERVER_PORT: 8080
+      # SECURITY: Set CORS for development
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      # Default System Users (development)
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@apartment.local}
+      VILLAGER_USERNAME: ${VILLAGER_USERNAME:-villager}
+      VILLAGER_PASSWORD: ${VILLAGER_PASSWORD:-villager123}
+      VILLAGER_EMAIL: ${VILLAGER_EMAIL:-villager@apartment.local}
+      TEST_USERNAME: ${TEST_USERNAME:-testuser}
+      TEST_PASSWORD: ${TEST_PASSWORD:-test123}
+      TEST_EMAIL: ${TEST_EMAIL:-testuser@apartment.local}
     ports:
       - "8080:8080"
     depends_on:

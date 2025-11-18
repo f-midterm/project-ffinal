@@ -12,12 +12,12 @@ services:
     container_name: apartment-db-prod
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-secure_root_password_change_me}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-apartment_db}
-      MYSQL_USER: ${MYSQL_USER:-apartment}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-secure_password_change_me}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
-      - "${MYSQL_PORT:-3307}:3306"
+      - "${MYSQL_PORT}:3306"
     volumes:
       - mysql_data_prod:/var/lib/mysql
       - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
@@ -50,18 +50,32 @@ services:
     restart: always
     environment:
       # Spring Boot Configuration
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
-      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${MYSQL_DATABASE:-apartment_db}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-apartment}
-      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-secure_password_change_me}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${MYSQL_DATABASE}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
       
       # JPA Configuration
-      SPRING_JPA_HIBERNATE_DDL_AUTO: ${JPA_DDL_AUTO:-validate}
-      SPRING_JPA_SHOW_SQL: ${JPA_SHOW_SQL:-false}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${JPA_DDL_AUTO}
+      SPRING_JPA_SHOW_SQL: ${JPA_SHOW_SQL}
       
-      # Security
-      JWT_SECRET: ${JWT_SECRET:-your_super_secret_jwt_key_change_in_production}
-      JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
+      # SECURITY: JWT Configuration (MUST be base64-encoded!)
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
+      
+      # SECURITY: CORS Configuration (NEVER use "*" in production!)
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      
+      # Default System Users (created on first startup)
+      ADMIN_USERNAME: ${ADMIN_USERNAME}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      VILLAGER_USERNAME: ${VILLAGER_USERNAME}
+      VILLAGER_PASSWORD: ${VILLAGER_PASSWORD}
+      VILLAGER_EMAIL: ${VILLAGER_EMAIL}
+      TEST_USERNAME: ${TEST_USERNAME}
+      TEST_PASSWORD: ${TEST_PASSWORD}
+      TEST_EMAIL: ${TEST_EMAIL}
       
       # Server Configuration
       SERVER_PORT: 8080
@@ -69,7 +83,7 @@ services:
       # Java Options (overrides Dockerfile defaults if needed)
       JAVA_OPTS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
     ports:
-      - "${BACKEND_PORT:-8080}:8080"
+      - "${BACKEND_PORT}:8080"
     depends_on:
       db:
         condition: service_healthy
@@ -108,7 +122,7 @@ services:
     container_name: apartment-frontend-prod
     restart: always
     ports:
-      - "${FRONTEND_PORT:-80}:80"
+      - "${FRONTEND_PORT}:80"
     depends_on:
       - backend
     networks:

@@ -3,5 +3,6 @@ package apartment.example.backend.entity.enums;
 public enum RentalRequestStatus {
     PENDING,
     APPROVED,
-    REJECTED
+    REJECTED,
+    COMPLETED  // Lease finished/checked out
 }

@@ -72,22 +72,72 @@ spec:
               key: password
         # JPA configuration
         - name: SPRING_JPA_HIBERNATE_DDL_AUTO
-          value: "update"  # Allow Hibernate to auto-update schema in dev/local K8s
+          value: "validate"  # SECURITY: Use 'validate' in production, never 'update'!
         - name: SPRING_JPA_SHOW_SQL
           value: "false"  # Disable SQL logging in production
-        # JWT configuration
+        # SECURITY: JWT configuration from Secret (DO NOT HARDCODE!)
         - name: JWT_SECRET
-          # Base64-encoded secret required by JwtUtil (HS256). Change for production.
-          # Decodes to: this_jwt_secret_key_from_kubernetes
-          value: "dGhpc19qd3Rfc2VjcmV0X2tleV9mcm9tX2t1YmVybmV0ZXM="
+          valueFrom:
+            secretKeyRef:
+              name: jwt-secret  # Create separate secret for JWT
+              key: jwt-secret-key
         - name: JWT_EXPIRATION
           value: "86400000"  # 24 hours
-        # CORS configuration (allow all origins for development)
+        # SECURITY: CORS configuration - MUST specify exact origins in production!
         - name: CORS_ALLOWED_ORIGINS
-          value: "*"  # Allow all origins (change for production security)
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: cors-allowed-origins
         # Server configuration
         - name: SERVER_PORT
           value: "8080"
+        # Default System Users Configuration
+        - name: ADMIN_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: admin-username
+        - name: ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: jwt-secret
+              key: admin-password
+        - name: ADMIN_EMAIL
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: admin-email
+        - name: VILLAGER_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: villager-username
+        - name: VILLAGER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: jwt-secret
+              key: villager-password
+        - name: VILLAGER_EMAIL
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: villager-email
+        - name: TEST_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: test-username
+        - name: TEST_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: jwt-secret
+              key: test-password
+        - name: TEST_EMAIL
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: test-email
         # Java memory settings
         - name: JAVA_OPTS
           value: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Xms512m -Xmx1536m"

@@ -17,7 +17,10 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install ALL dependencies (dev dependencies required for Vite build)
-# Use --include=dev to ensure dev dependencies are installed
+# Skip Cypress binary download to avoid build failures
+# Cypress is not needed in production build, only for testing
+ENV CYPRESS_INSTALL_BINARY=0
+
 RUN npm ci --include=dev && \
     npm cache clean --force
 

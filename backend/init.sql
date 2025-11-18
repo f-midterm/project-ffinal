@@ -236,7 +236,7 @@ CREATE TABLE rental_requests (
     -- REMOVED: monthly_rent (use units.rent_amount instead)
     -- REMOVED: total_amount (calculate in application: units.rent_amount * lease_duration_months)
     request_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    status ENUM('PENDING', 'APPROVED', 'REJECTED') NOT NULL DEFAULT 'PENDING',
+    status ENUM('PENDING', 'APPROVED', 'REJECTED', 'COMPLETED') NOT NULL DEFAULT 'PENDING',
     approved_by_user_id BIGINT,
     approved_date DATETIME,
     rejection_reason TEXT,

@@ -1,13 +1,16 @@
 package apartment.example.backend.service;
 
 import apartment.example.backend.entity.Lease;
+import apartment.example.backend.entity.RentalRequest;
 import apartment.example.backend.entity.Tenant;
 import apartment.example.backend.entity.Unit;
 import apartment.example.backend.entity.User;
 import apartment.example.backend.entity.enums.LeaseStatus;
+import apartment.example.backend.entity.enums.RentalRequestStatus;
 import apartment.example.backend.entity.enums.TenantStatus;
 import apartment.example.backend.entity.enums.UnitStatus;
 import apartment.example.backend.repository.LeaseRepository;
+import apartment.example.backend.repository.RentalRequestRepository;
 import apartment.example.backend.repository.TenantRepository;
 import apartment.example.backend.repository.UnitRepository;
 import apartment.example.backend.repository.UserRepository;
@@ -33,6 +36,7 @@ public class LeaseService {
     private final UnitRepository unitRepository;
     private final UserRepository userRepository;
     private final TenantRepository tenantRepository;
+    private final RentalRequestRepository rentalRequestRepository;
 
     public List<Lease> getAllLeases() {
         return leaseRepository.findAll();
@@ -141,11 +145,12 @@ public class LeaseService {
             .orElseThrow(() -> new RuntimeException("Lease not found with id: " + leaseId));
 
         lease.setStatus(LeaseStatus.TERMINATED);
+        
         Lease savedLease = leaseRepository.save(lease);
         
         log.info("Terminated lease #{} with reason: {}", leaseId, reason);
         
-        // Perform immediate cleanup
+        // Perform immediate cleanup (will handle user downgrade and tenant status)
         performLeaseCleanup(lease, "TERMINATED");
         
         return savedLease;
@@ -182,13 +187,49 @@ public class LeaseService {
         
         log.info("Terminated lease #{} with early checkout date: {}", leaseId, checkoutDate);
         
-        // Schedule cleanup for checkout date (will be handled by daily cron job)
-        // For immediate effect on checkout date, the unit will become available
-        // If checkout date is today, perform cleanup immediately
+        // Get tenant and check for other active leases BEFORE cleanup
+        Tenant tenant = lease.getTenant();
+        long otherActiveLeases = 0;
+        if (tenant != null) {
+            otherActiveLeases = leaseRepository.countByTenantIdAndStatus(tenant.getId(), LeaseStatus.ACTIVE);
+        }
+        
+        // IMPORTANT: If checkout date is today or in the past, perform cleanup IMMEDIATELY
+        // This will: 1) Set unit to AVAILABLE, 2) Downgrade user VILLAGER→USER, 3) Set tenant to INACTIVE
         if (checkoutDate.equals(LocalDate.now()) || checkoutDate.isBefore(LocalDate.now())) {
-            performLeaseCleanup(lease, "EARLY_CHECKOUT");
+            log.info("Checkout date is today or past - performing immediate cleanup");
+            performLeaseCleanup(lease, "IMMEDIATE_CHECKOUT");
         } else {
-            log.info("Unit will become available on checkout date: {}", checkoutDate);
+            // For future checkouts, still update tenant status to INACTIVE immediately
+            // But keep unit OCCUPIED until checkout date
+            if (tenant != null && otherActiveLeases == 0) {
+                tenant.setStatus(TenantStatus.INACTIVE);
+                tenantRepository.save(tenant);
+                
+                // IMPORTANT: Also downgrade user role immediately so they can book again
+                Optional<User> userOptional = userRepository.findByEmail(tenant.getEmail());
+                if (userOptional.isPresent()) {
+                    User user = userOptional.get();
+                    if (user.getRole() == User.Role.VILLAGER) {
+                        user.setRole(User.Role.USER);
+                        userRepository.save(user);
+                        log.info("Downgraded user {} from VILLAGER to USER (can book again after termination)", user.getEmail());
+                    }
+                    
+                    // CRITICAL: Complete the rental request so user can book again
+                    List<RentalRequest> approvedRequests = rentalRequestRepository.findByUserIdAndStatus(
+                        user.getId(), RentalRequestStatus.APPROVED
+                    );
+                    for (RentalRequest request : approvedRequests) {
+                        request.setStatus(RentalRequestStatus.COMPLETED);
+                        rentalRequestRepository.save(request);
+                        log.info("Marked RentalRequest {} as COMPLETED for user {} (future checkout)", request.getId(), user.getEmail());
+                    }
+                }
+                
+                log.info("Updated tenant #{} status to INACTIVE (checkout scheduled for {})", tenant.getId(), checkoutDate);
+            }
+            log.info("Checkout date is in the future ({}) - unit will become available on that date", checkoutDate);
         }
         
         return savedLease;
@@ -229,6 +270,16 @@ public class LeaseService {
                     user.setRole(User.Role.USER);
                     userRepository.save(user);
                     log.info("[{}] Downgraded user {} from VILLAGER to USER (can book again!)", source, user.getEmail());
+                }
+                
+                // Complete the rental request so user can book again
+                List<RentalRequest> approvedRequests = rentalRequestRepository.findByUserIdAndStatus(
+                    user.getId(), RentalRequestStatus.APPROVED
+                );
+                for (RentalRequest request : approvedRequests) {
+                    request.setStatus(RentalRequestStatus.COMPLETED);
+                    rentalRequestRepository.save(request);
+                    log.info("[{}] Marked RentalRequest {} as COMPLETED for user {}", source, request.getId(), user.getEmail());
                 }
             } else {
                 log.warn("[{}] User not found for tenant email: {}", source, tenant.getEmail());

@@ -29,37 +29,52 @@ public class BackendApplication {
             UnitRepository unitRepository) {
 
         return args -> {
-            // --- Delete existing users and create new ones with proper BCrypt encoding ---
-            userRepository.findByUsername("admin").forEach(userRepository::delete);
-            userRepository.findByUsername("testuser").forEach(userRepository::delete);
-            userRepository.findByUsername("villager").forEach(userRepository::delete);
+            // --- Initialize default users from environment variables ---
+            // SECURITY: Credentials are loaded from environment variables for better security
+            
+            String adminUsername = System.getenv().getOrDefault("ADMIN_USERNAME", "admin");
+            String adminPassword = System.getenv().getOrDefault("ADMIN_PASSWORD", "admin123");
+            String adminEmail = System.getenv().getOrDefault("ADMIN_EMAIL", "admin@apartment.com");
+            
+            String villagerUsername = System.getenv().getOrDefault("VILLAGER_USERNAME", "villager");
+            String villagerPassword = System.getenv().getOrDefault("VILLAGER_PASSWORD", "villager123");
+            String villagerEmail = System.getenv().getOrDefault("VILLAGER_EMAIL", "villager@apartment.com");
+            
+            String testUsername = System.getenv().getOrDefault("TEST_USERNAME", "testuser");
+            String testPassword = System.getenv().getOrDefault("TEST_PASSWORD", "test123");
+            String testEmail = System.getenv().getOrDefault("TEST_EMAIL", "testuser@apartment.com");
+            
+            // Delete existing users to avoid duplicates
+            userRepository.findByUsername(adminUsername).forEach(userRepository::delete);
+            userRepository.findByUsername(villagerUsername).forEach(userRepository::delete);
+            userRepository.findByUsername(testUsername).forEach(userRepository::delete);
             
             // Create admin user
             User admin = new User();
-            admin.setUsername("admin");
-            admin.setPassword(passwordEncoder.encode("admin123"));
-            admin.setEmail("admin@apartment.com");
+            admin.setUsername(adminUsername);
+            admin.setPassword(passwordEncoder.encode(adminPassword));
+            admin.setEmail(adminEmail);
             admin.setRole(User.Role.ADMIN);
             userRepository.save(admin);
-            System.out.println(">>> Created admin user (username: admin, password: admin123)");
+            System.out.println(">>> Created ADMIN user: " + adminUsername + " (email: " + adminEmail + ")");
 
             // Create villager user for testing
             User villager = new User();
-            villager.setUsername("villager");
-            villager.setPassword(passwordEncoder.encode("villager123"));
-            villager.setEmail("villager@apartment.com");
+            villager.setUsername(villagerUsername);
+            villager.setPassword(passwordEncoder.encode(villagerPassword));
+            villager.setEmail(villagerEmail);
             villager.setRole(User.Role.VILLAGER);
             userRepository.save(villager);
-            System.out.println(">>> Created villager user (username: villager, password: villager123)");
+            System.out.println(">>> Created VILLAGER user: " + villagerUsername + " (email: " + villagerEmail + ")");
 
             // Create test user (different from 'user' to allow registration testing)
             User testUser = new User();
-            testUser.setUsername("testuser");
-            testUser.setPassword(passwordEncoder.encode("test123"));
-            testUser.setEmail("testuser@apartment.com");
+            testUser.setUsername(testUsername);
+            testUser.setPassword(passwordEncoder.encode(testPassword));
+            testUser.setEmail(testEmail);
             testUser.setRole(User.Role.USER);
             userRepository.save(testUser);
-            System.out.println(">>> Created test user (username: testuser, password: test123)");
+            System.out.println(">>> Created TEST user: " + testUsername + " (email: " + testEmail + ")");
         };
     }
 }
