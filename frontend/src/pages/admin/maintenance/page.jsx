@@ -283,7 +283,7 @@ function MaintenancePage() {
         nextTriggerDate: formData.nextTriggerDate,
         notifyDaysBefore: parseInt(formData.notifyDaysBefore) || 3,
         priority: formData.priority,
-        isActive: formData.isActive !== false // default true
+        isActive: true // Always active
       };
 
       // Add optional fields only if they have values
@@ -411,13 +411,13 @@ function MaintenancePage() {
                     </td>
                     <td className='px-4 py-3 text-sm'>
                       <div className='flex gap-2'>
-                        <button
+                        {/* <button
                           onClick={() => handleViewDetail(schedule)}
                           className='text-indigo-600 hover:text-indigo-800 text-xs font-semibold'
                           title='View schedule details and manage time slots'
                         >
                           Detail
-                        </button>
+                        </button> */}
                         <button
                           onClick={() => handleTriggerSchedule(schedule.id)}
                           className='text-purple-600 hover:text-purple-800 text-xs font-semibold'
@@ -650,6 +650,7 @@ function MaintenancePage() {
                       type='date'
                       value={formData.startDate}
                       onChange={(e) => handleFormChange('startDate', e.target.value)}
+                      min={new Date().toISOString().split('T')[0]}
                       className='w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                       required
                     />
@@ -663,6 +664,7 @@ function MaintenancePage() {
                       type='date'
                       value={formData.endDate || ''}
                       onChange={(e) => handleFormChange('endDate', e.target.value || null)}
+                      min={formData.startDate || new Date().toISOString().split('T')[0]}
                       className='w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                     />
                   </div>
@@ -676,56 +678,52 @@ function MaintenancePage() {
                     type='date'
                     value={formData.nextTriggerDate}
                     onChange={(e) => handleFormChange('nextTriggerDate', e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
                     className='w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                     required
                   />
+                  <p className='text-xs text-gray-500 mt-1'>
+                    Date when maintenance requests will be created for selected units.
+                  </p>
                 </div>
               </div>
 
-              {/* Additional Settings */}
+              {/* Settings */}
               <div className='space-y-4 border-t pt-4'>
-                <h4 className='font-semibold text-gray-700'>Additional Settings</h4>
+                <h4 className='font-semibold text-gray-700'>Settings</h4>
                 
-                <div className='grid grid-cols-2 gap-4'>
-                  <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-1'>
-                      Notify Days Before
-                    </label>
-                    <input
-                      type='number'
-                      value={formData.notifyDaysBefore}
-                      onChange={(e) => handleFormChange('notifyDaysBefore', parseInt(e.target.value))}
-                      className='w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                      min='0'
-                    />
-                  </div>
-
-                  <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-1'>
-                      Estimated Cost (฿)
-                    </label>
-                    <input
-                      type='number'
-                      value={formData.estimatedCost || ''}
-                      onChange={(e) => handleFormChange('estimatedCost', e.target.value ? parseFloat(e.target.value) : null)}
-                      className='w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                      step='0.01'
-                      min='0'
-                    />
-                  </div>
-                </div>
-
-                <div className='flex items-center'>
-                  <input
-                    type='checkbox'
-                    checked={formData.isActive}
-                    onChange={(e) => handleFormChange('isActive', e.target.checked)}
-                    className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
-                  />
-                  <label className='ml-2 block text-sm text-gray-700'>
-                    Active (schedule will run automatically)
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-1'>
+                    Notify Tenants (days before)
                   </label>
+                  <input
+                    type='number'
+                    value={formData.notifyDaysBefore}
+                    onChange={(e) => handleFormChange('notifyDaysBefore', parseInt(e.target.value))}
+                    className='w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                    min='0'
+                    max='30'
+                  />
+                  <p className='text-xs text-gray-500 mt-1'>
+                    Tenants will be notified this many days before maintenance.
+                  </p>
                 </div>
+
+                {/* Commented out: Estimated Cost - Not used yet
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-1'>
+                    Estimated Cost (฿)
+                  </label>
+                  <input
+                    type='number'
+                    value={formData.estimatedCost || ''}
+                    onChange={(e) => handleFormChange('estimatedCost', e.target.value ? parseFloat(e.target.value) : null)}
+                    className='w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                    step='0.01'
+                    min='0'
+                  />
+                </div>
+                */}
               </div>
             </div>
 

@@ -122,4 +122,23 @@ public class UnitService {
     public boolean existsById(Long id) {
         return unitRepository.existsById(id);
     }
+
+    /**
+     * Update unit price (for price change feature)
+     * Note: The database trigger will automatically handle price history and audit logging
+     */
+    public Unit updateUnitPrice(Long id, BigDecimal newPrice, String changeReason) {
+        Unit unit = unitRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Unit not found with id: " + id));
+        
+        BigDecimal oldPrice = unit.getRentAmount();
+        unit.setRentAmount(newPrice);
+        
+        log.info("Updating unit {} price from {} to {}", unit.getRoomNumber(), oldPrice, newPrice);
+        
+        // Note: Session variables for trigger would be set here in a real implementation
+        // @current_user_id, @price_change_reason, @client_ip, @user_agent
+        
+        return unitRepository.save(unit);
+    }
 }

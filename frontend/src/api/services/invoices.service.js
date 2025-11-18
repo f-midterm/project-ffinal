@@ -362,3 +362,41 @@ export const downloadReceiptPdf = async (invoiceId, invoiceNumber) => {
     throw error;
   }
 };
+
+/**
+ * Views Receipt PDF in new tab (for paid invoices)
+ * 
+ * @async
+ * @function viewReceiptPdf
+ * @param {number} invoiceId - Invoice ID
+ * @returns {Promise<void>} Opens PDF in new tab
+ * @throws {Error} When view fails
+ * 
+ * @example
+ * await viewReceiptPdf(1);
+ */
+export const viewReceiptPdf = async (invoiceId) => {
+  try {
+    const response = await fetch(`/api/invoices/${invoiceId}/receipt`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/pdf',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to view receipt PDF');
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    
+    // Clean up after a delay
+    setTimeout(() => window.URL.revokeObjectURL(url), 100);
+  } catch (error) {
+    console.error('Error viewing receipt PDF:', error);
+    throw error;
+  }
+};

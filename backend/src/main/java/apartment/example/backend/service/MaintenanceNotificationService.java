@@ -186,8 +186,11 @@ public class MaintenanceNotificationService {
             message.append(String.format("• Estimated Cost: ฿%.2f\n", request.getEstimatedCost()));
         }
         
-        message.append("\nPlease prepare accordingly and ensure access to your unit on the scheduled date.\n");
-        message.append("If you have any questions or need to reschedule, please contact the management office.\n\n");
+        message.append("\n⏰ ACTION REQUIRED:\n");
+        message.append("Please select your preferred time slot for this maintenance work.\n");
+        message.append("Visit the Maintenance section in your dashboard to choose an available time.\n");
+        message.append("The maintenance will be scheduled based on your selected time slot.\n\n");
+        message.append("If you have any questions, please contact the management office.\n\n");
         message.append("Thank you for your cooperation.\n");
         message.append("Management Team");
         

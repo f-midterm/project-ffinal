@@ -59,11 +59,11 @@ function AdminDashboard() {
       );
       setRentalRequestsCount(pendingRentals.length);
       
-      // Count only user-submitted maintenance requests (not from schedule)
-      const userSubmittedMaintenance = maintenanceRequests.filter(req => 
-        req.status === 'SUBMITTED' && !req.isFromSchedule
+      // Count maintenance requests that need action (SUBMITTED or PENDING_TENANT_CONFIRMATION)
+      const pendingMaintenance = maintenanceRequests.filter(req => 
+        req.status === 'SUBMITTED' || req.status === 'PENDING_TENANT_CONFIRMATION'
       );
-      setMaintenanceRequestsCount(userSubmittedMaintenance.length);
+      setMaintenanceRequestsCount(pendingMaintenance.length);
       
       // Payment requests already filtered (waiting verification)
       setPaymentRequestsCount(waitingVerificationInvoices.length);

@@ -45,6 +45,7 @@ function QuickActionCard() {
             {/* Container */}
             <div className="flex flex-col gap-3">
                 <button 
+                    onClick={() => navigate(`/admin/unit/${unit.id}/lease-agreement`)}
                     className="w-full bg-white border border-gray-300 text-gray-800 font-semibold py-3 px-4 rounded-lg shadow-sm hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
                 >
                     View Lease Agreement
@@ -56,7 +57,7 @@ function QuickActionCard() {
                     Contact Tenant
                 </button>
                 <button 
-                    onClick={() => navigate(`/admin/unit/${unit.id}/payments-history`)}
+                    onClick={() => navigate(`/admin/unit/${unit.id}/payment-history`)}
                     className="w-full bg-white border border-gray-300 text-gray-800 font-semibold py-3 px-4 rounded-lg shadow-sm hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
                 >
                     View Payment History

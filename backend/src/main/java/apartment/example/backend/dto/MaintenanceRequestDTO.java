@@ -22,6 +22,7 @@ public class MaintenanceRequestDTO {
     private String category;
     private String urgency;
     private String preferredTime;
+    private String preferredDate;
     private String status;
     private Long assignedToUserId;
     private BigDecimal estimatedCost;
@@ -36,6 +37,9 @@ public class MaintenanceRequestDTO {
     private String tenantName;
     private String unitType;
     private Boolean isFromSchedule;
+    private Long scheduleId;
+    private String scheduleStartDate;  // Schedule's start date for date range restriction
+    private String scheduleEndDate;    // Schedule's end date for date range restriction
     
     public static MaintenanceRequestDTO fromEntity(MaintenanceRequest request, String roomNumber, String tenantName, String unitType) {
         MaintenanceRequestDTO dto = new MaintenanceRequestDTO();
@@ -47,7 +51,18 @@ public class MaintenanceRequestDTO {
         dto.setPriority(request.getPriority() != null ? request.getPriority().name() : null);
         dto.setCategory(request.getCategory() != null ? request.getCategory().name() : null);
         dto.setUrgency(request.getUrgency() != null ? request.getUrgency().name() : null);
-        dto.setPreferredTime(request.getPreferredTime());
+        
+        // Split preferredTime "2025-11-20 08:00" into date and time
+        String preferredTimeStr = request.getPreferredTime();
+        if (preferredTimeStr != null && preferredTimeStr.contains(" ")) {
+            String[] parts = preferredTimeStr.split(" ", 2);
+            dto.setPreferredDate(parts[0]);  // "2025-11-20"
+            dto.setPreferredTime(parts[1]);  // "08:00"
+        } else {
+            dto.setPreferredTime(preferredTimeStr);
+            dto.setPreferredDate(null);
+        }
+        
         dto.setStatus(request.getStatus() != null ? request.getStatus().name() : null);
         dto.setAssignedToUserId(request.getAssignedToUserId());
     dto.setEstimatedCost(request.getEstimatedCost());
@@ -60,6 +75,7 @@ public class MaintenanceRequestDTO {
         dto.setTenantName(tenantName);
         dto.setUnitType(unitType);
         dto.setIsFromSchedule(request.getIsFromSchedule());
+        dto.setScheduleId(request.getScheduleId());
         return dto;
     }
 }

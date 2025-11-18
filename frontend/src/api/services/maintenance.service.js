@@ -492,3 +492,32 @@ export const getCompletedMaintenanceRequests = async () => {
 export const getMaintenanceRequestsByUnitId = async (unitId) => {
   return await apiClient.get(`/maintenance-requests/unit/${unitId}`);
 };
+
+/**
+ * Get available time slots for a specific date
+ * 
+ * @async
+ * @function getAvailableTimeSlots
+ * @param {string} date - Date in YYYY-MM-DD format
+ * @returns {Promise<Array<{timeSlot: string, startTime: string, endTime: string, bookedCount: number, available: boolean}>>}
+ * @throws {Error} When fetching time slots fails
+ */
+export const getAvailableTimeSlots = async (date) => {
+  return await apiClient.get(`/maintenance-requests/available-slots?date=${date}`);
+};
+
+/**
+ * Select time slot for a maintenance request (Tenant action)
+ * 
+ * @async
+ * @function selectTimeSlot
+ * @param {number} requestId - Maintenance request ID
+ * @param {object} timeSlotData - Time slot selection data
+ * @param {string} timeSlotData.preferredDate - Preferred date (YYYY-MM-DD)
+ * @param {string} timeSlotData.preferredTime - Preferred time (HH:mm)
+ * @returns {Promise<object>} Updated maintenance request
+ * @throws {Error} When selecting time slot fails
+ */
+export const selectTimeSlot = async (requestId, timeSlotData) => {
+  return await apiClient.put(`/maintenance-requests/${requestId}/select-time`, timeSlotData);
+};

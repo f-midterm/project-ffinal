@@ -182,17 +182,29 @@ function MaintenanceRequestsPage() {
       return;
     }
     
-    if (!reportForm.completionDate || !reportForm.completionTime) {
-      alert('Please enter completion date and time');
-      return;
+    // Validate completion date/time only for COMPLETED status
+    if (reportForm.status === 'COMPLETED') {
+      if (!reportForm.completionDate || !reportForm.completionTime) {
+        alert('Please enter completion date and time for completed status');
+        return;
+      }
     }
 
     try {
       setIsProcessing(true);
       
+      // Build notes based on status
+      let notes = reportForm.topic;
+      if (reportForm.status === 'COMPLETED' && reportForm.completionDate && reportForm.completionTime) {
+        notes += `\nCompleted: ${reportForm.completionDate} ${reportForm.completionTime}`;
+      }
+      if (reportForm.notes) {
+        notes += `\n${reportForm.notes}`;
+      }
+      
       await updateRequestStatus(selectedRequest.id, { 
         status: reportForm.status,
-        notes: `${reportForm.topic}\nCompleted: ${reportForm.completionDate} ${reportForm.completionTime}\n${reportForm.notes}`
+        notes: notes
       });
       
       const existingItemStockIds = requestItems.map(item => item.stockId);
@@ -757,27 +769,31 @@ function MaintenanceRequestsPage() {
                 </div>
               </div>
 
-              {/* Date & Time */}
-              <div className='grid grid-cols-2 gap-4'>
-                <div>
-                  <label className='block text-sm font-medium mb-2'>Completion Date *</label>
-                  <input
-                    type='date'
-                    value={reportForm.completionDate}
-                    onChange={(e) => setReportForm({...reportForm, completionDate: e.target.value})}
-                    className='w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
-                  />
+              {/* Date & Time - Only for Completed status */}
+              {reportForm.status === 'COMPLETED' && (
+                <div className='grid grid-cols-2 gap-4'>
+                  <div>
+                    <label className='block text-sm font-medium mb-2'>Completion Date *</label>
+                    <input
+                      type='date'
+                      value={reportForm.completionDate}
+                      onChange={(e) => setReportForm({...reportForm, completionDate: e.target.value})}
+                      className='w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className='block text-sm font-medium mb-2'>Completion Time *</label>
+                    <input
+                      type='time'
+                      value={reportForm.completionTime}
+                      onChange={(e) => setReportForm({...reportForm, completionTime: e.target.value})}
+                      className='w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                      required
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className='block text-sm font-medium mb-2'>Completion Time *</label>
-                  <input
-                    type='time'
-                    value={reportForm.completionTime}
-                    onChange={(e) => setReportForm({...reportForm, completionTime: e.target.value})}
-                    className='w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
-                  />
-                </div>
-              </div>
+              )}
 
               {/* Notes */}
               <div>

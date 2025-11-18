@@ -8,6 +8,7 @@ const navLinks = [
   { name: "Maintenance", path: "/admin/maintenance" },
   { name: "Report", path: "/admin/report" },
   { name: "Stock", path: "/admin/stock" },
+  { name: "Log", path: "/admin/log" },
 ];
 
 const settingsLinks = [

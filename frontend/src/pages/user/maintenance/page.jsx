@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FiUpload, FiX, FiCheckCircle, FiClock, FiTool, FiFile, FiImage, FiSearch, FiFilter } from "react-icons/fi";
+import { FiUpload, FiX, FiCheckCircle, FiClock, FiTool, FiFile, FiImage, FiSearch, FiFilter, FiCalendar } from "react-icons/fi";
 import { SiFormspree } from "react-icons/si";
 import UserMaintenanceSkelleton from '../../../components/skeleton/user_maintenance_skelleton';
-import { createMaintenanceRequest, getMyMaintenanceRequests, getAllMaintenanceRequests } from '../../../api/services/maintenance.service';
+import { createMaintenanceRequest, getMyMaintenanceRequests, getAllMaintenanceRequests, getAvailableTimeSlots, selectTimeSlot } from '../../../api/services/maintenance.service';
 import { useAuth } from '../../../hooks/useAuth';
 import apiClient from '../../../api/client/apiClient';
 import { FcSupport } from "react-icons/fc";
@@ -17,6 +17,18 @@ function UserMaintenancePage() {
   const [bookedTimeSlots, setBookedTimeSlots] = useState({});
   const fileInputRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
+  
+  // Time slot selection state
+  const [showTimeSlotModal, setShowTimeSlotModal] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState('');
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  
+  // View details modal state
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [viewingRequest, setViewingRequest] = useState(null);
   
   // Filter and search state
   const [searchTerm, setSearchTerm] = useState('');
@@ -60,6 +72,7 @@ function UserMaintenancePage() {
     try {
       setIsLoading(true);
       const requests = await getMyMaintenanceRequests();
+      console.log('Fetched my requests:', requests); // Debug log
       setMyRequests(requests);
       setFilteredRequests(requests);
     } catch (error) {
@@ -360,6 +373,76 @@ function UserMaintenancePage() {
     }
   };
 
+  // Time slot selection handlers
+  const handleOpenTimeSlotModal = (request) => {
+    console.log('Opening time slot modal for request:', request);
+    setSelectedRequest(request);
+    setShowTimeSlotModal(true);
+    setSelectedDate('');
+    setSelectedTimeSlot('');
+    setAvailableSlots([]);
+  };
+
+  const handleDateChange = async (date) => {
+    console.log('Date changed to:', date);
+    setSelectedDate(date);
+    setSelectedTimeSlot('');
+    
+    if (!date) {
+      setAvailableSlots([]);
+      return;
+    }
+
+    try {
+      setLoadingSlots(true);
+      console.log('Fetching time slots for date:', date);
+      const slots = await getAvailableTimeSlots(date);
+      console.log('Received slots:', slots);
+      setAvailableSlots(Array.isArray(slots) ? slots : []);
+    } catch (error) {
+      console.error('Error fetching time slots:', error);
+      console.error('Error details:', error.response || error.message);
+      setAvailableSlots([]);
+      alert('Failed to load available time slots');
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
+  const handleConfirmTimeSlot = async () => {
+    if (!selectedDate || !selectedTimeSlot) {
+      alert('Please select both date and time slot');
+      return;
+    }
+
+    try {
+      const timeSlotData = {
+        preferredDate: selectedDate,
+        preferredTime: selectedTimeSlot
+      };
+
+      console.log('Submitting time slot selection:', {
+        requestId: selectedRequest.id,
+        data: timeSlotData
+      });
+
+      const response = await selectTimeSlot(selectedRequest.id, timeSlotData);
+      console.log('Time slot selection response:', response);
+      
+      setShowTimeSlotModal(false);
+      setSuccessMessage('Time slot selected successfully! Your request has been submitted.');
+      
+      // Refresh the requests list to show updated data
+      await fetchMyRequests();
+      
+      setTimeout(() => setSuccessMessage(''), 5000);
+    } catch (error) {
+      console.error('Error selecting time slot:', error);
+      console.error('Error response:', error.response?.data);
+      alert(`Failed to select time slot: ${error.response?.data?.message || error.message}`);
+    }
+  };
+
   const handleCancel = () => {
     setFormData({
       title: '',
@@ -383,6 +466,7 @@ function UserMaintenancePage() {
 
   const getStatusBadge = (status) => {
     const statusConfig = {
+      PENDING_TENANT_CONFIRMATION: { color: 'bg-orange-100 text-orange-800', icon: FiCalendar, text: 'Select Time Slot' },
       SUBMITTED: { color: 'bg-blue-100 text-blue-800', icon: FiClock, text: 'Submitted' },
       WAITING_FOR_REPAIR: { color: 'bg-yellow-100 text-yellow-800', icon: FiClock, text: 'Waiting' },
       APPROVED: { color: 'bg-green-100 text-green-800', icon: FiCheckCircle, text: 'Approved' },
@@ -872,11 +956,314 @@ function UserMaintenancePage() {
                     {request.completionNotes}
                   </div>
                 )}
+                {/* Action Buttons */}
+                <div className='mt-3 pt-3 border-t flex gap-2'>
+                  <button
+                    onClick={() => {
+                      setViewingRequest(request);
+                      setShowDetailsModal(true);
+                    }}
+                    className='flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2'
+                  >
+                    <FiSearch size={16} />
+                    View Details
+                  </button>
+                  {request.status === 'PENDING_TENANT_CONFIRMATION' && (
+                    <button
+                      onClick={() => handleOpenTimeSlotModal(request)}
+                      className='flex-1 bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2'
+                    >
+                      <FiCalendar size={16} />
+                      Select Time Slot
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Time Slot Selection Modal */}
+      {showTimeSlotModal && selectedRequest && (
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
+          <div className='bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto'>
+            <div className='sticky top-0 bg-white border-b px-6 py-4'>
+              <h3 className='text-2xl font-semibold text-gray-800'>Select Preferred Date & Time</h3>
+              <p className='text-sm text-gray-600 mt-1'>
+                {selectedRequest.title || 'Maintenance Request'} - Room {selectedRequest.roomNumber || 'N/A'}
+              </p>
+            </div>
+
+            <div className='p-6 space-y-6'>
+              <h4 className='font-semibold text-gray-700'>Preferred Date & Time</h4>
+              
+              <div className='grid grid-cols-2 gap-4'>
+                {/* Date Selection */}
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    Date <span className='text-red-500'>*</span>
+                  </label>
+                  <input
+                    type='date'
+                    value={selectedDate}
+                    onChange={(e) => handleDateChange(e.target.value)}
+                    min={selectedRequest.scheduleStartDate || new Date().toISOString().split('T')[0]}
+                    max={selectedRequest.scheduleEndDate || undefined}
+                    className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500'
+                  />
+                  <p className='text-xs text-gray-500 mt-1'>
+                    {selectedRequest.scheduleStartDate && selectedRequest.scheduleEndDate
+                      ? `Available: ${new Date(selectedRequest.scheduleStartDate).toLocaleDateString()} - ${new Date(selectedRequest.scheduleEndDate).toLocaleDateString()}`
+                      : 'Select your preferred maintenance date'}
+                  </p>
+                </div>
+
+                {/* Time Selection */}
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    Time <span className='text-red-500'>*</span>
+                  </label>
+                  {!selectedDate ? (
+                    <div className='w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-400 flex items-center'>
+                      Select a date first
+                    </div>
+                  ) : loadingSlots ? (
+                    <div className='w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500'>
+                      Loading times...
+                    </div>
+                  ) : (
+                    <select
+                      value={selectedTimeSlot}
+                      onChange={(e) => setSelectedTimeSlot(e.target.value)}
+                      className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500'
+                    >
+                      <option value=''>Select time</option>
+                      {(Array.isArray(availableSlots) ? availableSlots : []).map((slot) => (
+                        <option 
+                          key={slot.timeSlot} 
+                          value={slot.startTime}
+                          disabled={!slot.available}
+                        >
+                          {slot.timeSlot} {slot.alreadyBooked ? '(Already booked)' : slot.available ? '(Available)' : '(Booked)'}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  <p className='text-xs text-gray-500 mt-1'>
+                    {selectedDate ? 'You can only book one time slot per day' : 'Select a date first to see available time slots'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Info Message */}
+              <div className='bg-blue-50 border border-blue-200 p-4 rounded-lg'>
+                <p className='text-sm text-blue-800'>
+                  <strong>Note:</strong> Please select your preferred date and time for the maintenance work. 
+                  Once confirmed, your request will be submitted and processed by our maintenance team.
+                </p>
+              </div>
+            </div>
+
+            <div className='sticky bottom-0 bg-gray-50 border-t px-6 py-4 flex gap-3 justify-end'>
+              <button
+                onClick={() => setShowTimeSlotModal(false)}
+                className='px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 font-medium'
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmTimeSlot}
+                disabled={!selectedDate || !selectedTimeSlot}
+                className='px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-medium disabled:bg-gray-300 disabled:cursor-not-allowed'
+              >
+                Confirm Time Slot
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Details Modal */}
+      {showDetailsModal && viewingRequest && (
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
+          <div className='bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col'>
+            <div className='bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 flex justify-between items-center'>
+              <h2 className='text-2xl font-bold text-white'>Request Details</h2>
+              <button
+                onClick={() => setShowDetailsModal(false)}
+                className='text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors'
+              >
+                <FiX size={24} />
+              </button>
+            </div>
+
+            <div className='overflow-y-auto flex-1 p-6'>
+              {/* Debug Info */}
+              {/* <div className='mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-xs'>
+                <strong>Debug:</strong> preferredDate={viewingRequest.preferredDate || 'null'}, 
+                preferredTime={viewingRequest.preferredTime || 'null'}
+              </div> */}
+
+              {/* Title and Status */}
+              <div className='mb-6'>
+                <div className='flex items-start justify-between gap-4 mb-3'>
+                  <h3 className='text-2xl font-bold text-gray-900'>{viewingRequest.title}</h3>
+                  <div className='flex flex-col gap-2 items-end'>
+                    {getStatusBadge(viewingRequest.status)}
+                    {getPriorityBadge(viewingRequest.priority)}
+                  </div>
+                </div>
+                <p className='text-gray-600 text-base leading-relaxed'>{viewingRequest.description}</p>
+              </div>
+
+              {/* Basic Information */}
+              <div className='grid grid-cols-2 gap-4 mb-6 bg-gray-50 p-4 rounded-lg'>
+                <div>
+                  <p className='text-xs text-gray-500 uppercase tracking-wide mb-1'>Room Number</p>
+                  <p className='text-sm font-semibold text-gray-900'>{viewingRequest.roomNumber}</p>
+                </div>
+                <div>
+                  <p className='text-xs text-gray-500 uppercase tracking-wide mb-1'>Category</p>
+                  <p className='text-sm font-semibold text-gray-900'>{viewingRequest.category}</p>
+                </div>
+                <div>
+                  <p className='text-xs text-gray-500 uppercase tracking-wide mb-1'>Submitted Date</p>
+                  <p className='text-sm font-semibold text-gray-900'>
+                    {new Date(viewingRequest.submittedDate).toLocaleDateString('en-GB', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric'
+                    })}
+                  </p>
+                </div>
+                {viewingRequest.completedDate && (
+                  <div>
+                    <p className='text-xs text-gray-500 uppercase tracking-wide mb-1'>Completed Date</p>
+                    <p className='text-sm font-semibold text-gray-900'>
+                      {new Date(viewingRequest.completedDate).toLocaleDateString('en-GB', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric'
+                      })}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Preferred Date & Time */}
+              <div className='mb-6'>
+                <p className='text-xs text-gray-500 uppercase tracking-wide mb-3 font-semibold flex items-center gap-2'>
+                  <FiCalendar size={14} />
+                  Scheduled Maintenance Time
+                </p>
+                {viewingRequest.preferredDate ? (
+                  <div className='bg-orange-50 border border-orange-200 p-4 rounded-lg'>
+                    <div className='grid grid-cols-2 gap-4'>
+                      <div>
+                        <p className='text-xs text-gray-600 mb-1'>Date</p>
+                        <p className='text-lg font-bold text-gray-900'>
+                          {new Date(viewingRequest.preferredDate).toLocaleDateString('en-GB', {
+                            weekday: 'long',
+                            day: '2-digit',
+                            month: 'long',
+                            year: 'numeric'
+                          })}
+                        </p>
+                      </div>
+                      <div>
+                        <p className='text-xs text-gray-600 mb-1'>Time Slot</p>
+                        <p className='text-lg font-bold text-gray-900'>{viewingRequest.preferredTime || 'Not specified'}</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className='bg-yellow-50 border border-yellow-200 p-4 rounded-lg'>
+                    <p className='text-sm text-yellow-800'>
+                      {viewingRequest.status === 'PENDING_TENANT_CONFIRMATION' 
+                        ? '⚠️ No time slot selected yet. Please select your preferred date and time below.'
+                        : 'No specific time slot was required for this request.'}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Attachments */}
+              {viewingRequest.attachmentUrls && (
+                <div className='mb-6'>
+                  <p className='text-xs text-gray-500 uppercase tracking-wide mb-3 font-semibold'>Attachments</p>
+                  <div className='grid grid-cols-2 gap-3'>
+                    {viewingRequest.attachmentUrls.split(',').map((url, idx) => (
+                      <a
+                        key={idx}
+                        href={url.trim()}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className='flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors group'
+                      >
+                        <div className='bg-blue-500 p-2 rounded-lg group-hover:bg-blue-600 transition-colors'>
+                          {url.trim().toLowerCase().endsWith('.pdf') ? 
+                            <FiFile size={20} className='text-white' /> : 
+                            <FiImage size={20} className='text-white' />
+                          }
+                        </div>
+                        <div className='flex-1 min-w-0'>
+                          <p className='text-sm font-medium text-blue-900 truncate'>
+                            Attachment {idx + 1}
+                          </p>
+                          <p className='text-xs text-blue-600'>Click to view</p>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Completion Notes */}
+              {viewingRequest.completionNotes && (
+                <div className='mb-6'>
+                  <p className='text-xs text-gray-500 uppercase tracking-wide mb-2 font-semibold'>Completion Notes</p>
+                  <div className='bg-green-50 border border-green-200 p-4 rounded-lg'>
+                    <p className='text-sm text-gray-800 leading-relaxed whitespace-pre-wrap'>
+                      {viewingRequest.completionNotes}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Status Information */}
+              {viewingRequest.status === 'PENDING_TENANT_CONFIRMATION' && (
+                <div className='bg-yellow-50 border border-yellow-200 p-4 rounded-lg'>
+                  <p className='text-sm text-yellow-800'>
+                    <strong>Action Required:</strong> Please select your preferred date and time for the maintenance work.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className='sticky bottom-0 bg-gray-50 border-t px-6 py-4 flex gap-3 justify-end'>
+              <button
+                onClick={() => setShowDetailsModal(false)}
+                className='px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 font-medium'
+              >
+                Close
+              </button>
+              {viewingRequest.status === 'PENDING_TENANT_CONFIRMATION' && (
+                <button
+                  onClick={() => {
+                    setShowDetailsModal(false);
+                    handleOpenTimeSlotModal(viewingRequest);
+                  }}
+                  className='px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-medium flex items-center gap-2'
+                >
+                  <FiCalendar size={16} />
+                  Select Time Slot
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

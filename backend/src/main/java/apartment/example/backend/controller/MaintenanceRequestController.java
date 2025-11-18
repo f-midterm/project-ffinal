@@ -1,6 +1,7 @@
 package apartment.example.backend.controller;
 
 import apartment.example.backend.dto.MaintenanceRequestDTO;
+import apartment.example.backend.dto.MaintenanceScheduleDTO;
 import apartment.example.backend.entity.MaintenanceRequest;
 import apartment.example.backend.entity.MaintenanceRequest.Priority;
 import apartment.example.backend.entity.MaintenanceRequest.Category;
@@ -9,11 +10,15 @@ import apartment.example.backend.entity.MaintenanceRequestItem;
 import apartment.example.backend.entity.Unit;
 import apartment.example.backend.entity.Tenant;
 import apartment.example.backend.entity.User;
+import apartment.example.backend.entity.Lease;
+import apartment.example.backend.entity.enums.LeaseStatus;
 import apartment.example.backend.service.MaintenanceRequestService;
 import apartment.example.backend.service.MaintenanceRequestItemService;
+import apartment.example.backend.service.MaintenanceScheduleService;
 import apartment.example.backend.repository.UnitRepository;
 import apartment.example.backend.repository.TenantRepository;
 import apartment.example.backend.repository.UserRepository;
+import apartment.example.backend.repository.LeaseRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -36,9 +41,11 @@ public class MaintenanceRequestController {
 
     private final MaintenanceRequestService maintenanceRequestService;
     private final MaintenanceRequestItemService itemService;
+    private final MaintenanceScheduleService maintenanceScheduleService;
     private final UnitRepository unitRepository;
     private final TenantRepository tenantRepository;
     private final UserRepository userRepository;
+    private final LeaseRepository leaseRepository;
 
     // Create a new maintenance request
     @PostMapping
@@ -199,7 +206,24 @@ public class MaintenanceRequestController {
                     }
                 }
 
-                return MaintenanceRequestDTO.fromEntity(request, roomNumber, tenantName, unitType);
+                MaintenanceRequestDTO dto = MaintenanceRequestDTO.fromEntity(request, roomNumber, tenantName, unitType);
+                
+                // Add schedule dates if request is from schedule
+                if (request.getScheduleId() != null) {
+                    try {
+                        MaintenanceScheduleDTO schedule = maintenanceScheduleService.getScheduleById(request.getScheduleId());
+                        if (schedule.getStartDate() != null) {
+                            dto.setScheduleStartDate(schedule.getStartDate().toString());
+                        }
+                        if (schedule.getEndDate() != null) {
+                            dto.setScheduleEndDate(schedule.getEndDate().toString());
+                        }
+                    } catch (Exception e) {
+                        log.warn("Could not fetch schedule {} for request {}: {}", request.getScheduleId(), request.getId(), e.getMessage());
+                    }
+                }
+                
+                return dto;
             }).collect(Collectors.toList());
 
             log.info("Found {} maintenance requests for user {}", dtos.size(), username);
@@ -494,6 +518,143 @@ public class MaintenanceRequestController {
         } catch (Exception e) {
             log.error("Error calculating cost: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Tenant selects time slot for maintenance request
+     * PUT /maintenance-requests/{id}/select-time
+     */
+    @PutMapping("/{id}/select-time")
+    public ResponseEntity<?> selectTimeSlot(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> payload,
+            Authentication authentication) {
+        try {
+            String preferredDate = payload.get("preferredDate");
+            String preferredTime = payload.get("preferredTime");
+            
+            if (preferredDate == null || preferredDate.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Preferred date is required"));
+            }
+            
+            if (preferredTime == null || preferredTime.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Preferred time is required"));
+            }
+
+            log.info("Tenant selecting time slot for request {}: {} {}", id, preferredDate, preferredTime);
+            
+            Optional<MaintenanceRequest> optionalRequest = maintenanceRequestService.getMaintenanceRequestById(id);
+            if (optionalRequest.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Maintenance request not found"));
+            }
+
+            MaintenanceRequest request = optionalRequest.get();
+
+            // Verify request is in correct status
+            if (request.getStatus() != RequestStatus.PENDING_TENANT_CONFIRMATION) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "This request is not awaiting time selection"));
+            }
+
+            // Combine date and time into single string: "2025-11-20 08:00"
+            String combinedDateTime = preferredDate + " " + preferredTime;
+            request.setPreferredTime(combinedDateTime);
+            request.setStatus(RequestStatus.SUBMITTED);
+            MaintenanceRequest updated = maintenanceRequestService.updateMaintenanceRequest(id, request);
+
+            log.info("Time slot selected successfully for request {}: {}", id, combinedDateTime);
+            return ResponseEntity.ok(Map.of(
+                "message", "Time slot selected successfully",
+                "requestId", id,
+                "preferredDate", preferredDate,
+                "preferredTime", preferredTime,
+                "status", updated.getStatus().name()
+            ));
+        } catch (Exception e) {
+            log.error("Error selecting time slot: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Failed to select time slot: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Get available time slots for a specific date
+     * GET /maintenance-requests/available-slots?date=2024-03-15
+     * Returns time slots that are not already booked by the requesting user's unit
+     */
+    @GetMapping("/available-slots")
+    public ResponseEntity<?> getAvailableTimeSlots(@RequestParam String date, Authentication authentication) {
+        try {
+            log.info("Getting available time slots for date: {} by user: {}", date, authentication.getName());
+            
+            // Get current user's unit ID
+            Long userUnitId = null;
+            if (authentication != null && authentication.getName() != null) {
+                String username = authentication.getName();
+                List<User> users = userRepository.findByUsername(username);
+                if (!users.isEmpty()) {
+                    User user = users.get(0);
+                    // Get unit from active lease
+                    List<Lease> activeLeases = leaseRepository.findByStatusAndTenantEmail(LeaseStatus.ACTIVE, user.getEmail());
+                    if (!activeLeases.isEmpty()) {
+                        userUnitId = activeLeases.get(0).getUnit().getId();
+                    }
+                }
+            }
+            
+            // Define time slots
+            List<Map<String, Object>> timeSlots = List.of(
+                Map.of("timeSlot", "Morning (8:00 AM - 10:00 AM)", "startTime", "08:00", "endTime", "10:00"),
+                Map.of("timeSlot", "Late Morning (10:00 AM - 12:00 PM)", "startTime", "10:00", "endTime", "12:00"),
+                Map.of("timeSlot", "Afternoon (1:00 PM - 3:00 PM)", "startTime", "13:00", "endTime", "15:00"),
+                Map.of("timeSlot", "Late Afternoon (3:00 PM - 5:00 PM)", "startTime", "15:00", "endTime", "17:00")
+            );
+
+            // Get all requests for this date
+            List<MaintenanceRequest> requestsOnDate = maintenanceRequestService.getAllMaintenanceRequests()
+                .stream()
+                .filter(r -> r.getPreferredTime() != null && r.getPreferredTime().contains(date))
+                .filter(r -> r.getStatus() != MaintenanceRequest.RequestStatus.CANCELLED)
+                .toList();
+
+            final Long finalUserUnitId = userUnitId;
+            List<Map<String, Object>> slotsWithAvailability = timeSlots.stream()
+                .map(slot -> {
+                    String startTime = (String) slot.get("startTime");
+                    
+                    // Check if this unit already has a booking at this time
+                    boolean alreadyBookedByUser = false;
+                    if (finalUserUnitId != null) {
+                        alreadyBookedByUser = requestsOnDate.stream()
+                            .anyMatch(r -> r.getUnitId() != null && 
+                                          r.getUnitId().equals(finalUserUnitId) && 
+                                          r.getPreferredTime().contains(startTime));
+                    }
+                    
+                    // Count total bookings for this slot
+                    long bookedCount = requestsOnDate.stream()
+                        .filter(r -> r.getPreferredTime().contains(startTime))
+                        .count();
+                    
+                    return Map.of(
+                        "timeSlot", slot.get("timeSlot"),
+                        "startTime", startTime,
+                        "endTime", slot.get("endTime"),
+                        "bookedCount", bookedCount,
+                        "available", !alreadyBookedByUser,  // Available if user hasn't booked this slot
+                        "alreadyBooked", alreadyBookedByUser
+                    );
+                })
+                .collect(Collectors.toList());
+
+            log.info("Returning {} time slots for date {} (user unit: {})", slotsWithAvailability.size(), date, finalUserUnitId);
+            return ResponseEntity.ok(slotsWithAvailability);
+        } catch (Exception e) {
+            log.error("Error getting time slots: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Failed to get time slots"));
         }
     }
 }

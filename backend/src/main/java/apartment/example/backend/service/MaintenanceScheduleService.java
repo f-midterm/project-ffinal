@@ -13,6 +13,7 @@ import apartment.example.backend.repository.UnitRepository;
 import apartment.example.backend.repository.UserRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -38,6 +39,7 @@ public class MaintenanceScheduleService {
     private final MaintenanceLogService logService;
     private final MaintenanceNotificationService notificationService;
     private final ObjectMapper objectMapper;
+    private final EntityManager entityManager;
 
     /**
      * Get all active schedules
@@ -94,6 +96,18 @@ public class MaintenanceScheduleService {
             }
         }
 
+        // Auto-trigger if nextTriggerDate is today or in the past
+        if (saved.getNextTriggerDate() != null && 
+            !saved.getNextTriggerDate().isAfter(LocalDate.now()) &&
+            saved.getIsActive() && !saved.getIsPaused()) {
+            log.info("Auto-triggering schedule {} as nextTriggerDate is today or in the past", saved.getId());
+            try {
+                triggerSchedule(saved.getId());
+            } catch (Exception e) {
+                log.error("Failed to auto-trigger schedule {}: {}", saved.getId(), e.getMessage());
+            }
+        }
+
         return convertToDTO(saved);
     }
 
@@ -132,10 +146,17 @@ public class MaintenanceScheduleService {
         MaintenanceSchedule schedule = scheduleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Schedule not found"));
 
+        // Log deletion BEFORE deleting the schedule
         User deleter = userRepository.findById(deletedByUserId).orElse(null);
         logService.logScheduleDeleted(schedule, deleter);
+        
+        // Flush and clear to persist logs and detach entities
+        // This ensures the logs are saved with schedule reference before deletion
+        entityManager.flush();
+        entityManager.clear();
 
-        scheduleRepository.delete(schedule);
+        // Now delete the schedule (foreign key will set logs' schedule_id to NULL)
+        scheduleRepository.deleteById(id);
     }
 
     /**
@@ -249,7 +270,7 @@ public class MaintenanceScheduleService {
         request.setDescription(schedule.getDescription());
         request.setCategory(MaintenanceRequest.Category.valueOf(schedule.getCategory().name()));
         request.setPriority(MaintenanceRequest.Priority.valueOf(schedule.getPriority().name()));
-        request.setStatus(MaintenanceRequest.RequestStatus.IN_PROGRESS); // Admin created = auto IN_PROGRESS
+        request.setStatus(MaintenanceRequest.RequestStatus.PENDING_TENANT_CONFIRMATION); // Wait for tenant to select time
         request.setEstimatedCost(schedule.getEstimatedCost());
         request.setScheduleId(schedule.getId());
         request.setIsFromSchedule(true);

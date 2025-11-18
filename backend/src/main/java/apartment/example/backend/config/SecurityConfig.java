@@ -100,6 +100,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/maintenance-requests/*/upload-attachments").hasAnyRole("VILLAGER", "ADMIN")  // Upload files
                         .requestMatchers(HttpMethod.GET, "/maintenance-requests/my-requests").authenticated()  // View own requests (any authenticated user)
                         .requestMatchers(HttpMethod.GET, "/maintenance-requests/tenant/*").hasAnyRole("VILLAGER", "ADMIN")  // View by tenant ID
+                        .requestMatchers(HttpMethod.GET, "/maintenance-requests/available-slots").authenticated()  // Users can view available time slots
+                        .requestMatchers(HttpMethod.PUT, "/maintenance-requests/*/select-time").authenticated()  // Users can select time slot for their requests
                         .requestMatchers(HttpMethod.GET, "/maintenance-requests").authenticated()  // All authenticated users can view (for checking time slots)
                         .requestMatchers(HttpMethod.GET, "/maintenance-requests/*").hasAnyRole("ADMIN")  // Admin views specific
                         .requestMatchers(HttpMethod.PUT, "/maintenance-requests/**").hasAnyRole("ADMIN")  // Admin updates
@@ -109,10 +111,13 @@ public class SecurityConfig {
                         .requestMatchers("/maintenance/stocks/**", "/maintenance-requests/*/items/**").hasAnyRole("ADMIN")  // Stock and items management
                         
                         // Maintenance Schedules - Admin only
-                        .requestMatchers("/maintenance/schedules/**").hasAnyRole("ADMIN", "OWNER")  // Schedule management
+                        .requestMatchers("/maintenance/schedules/**").hasAnyRole("ADMIN")  // Schedule management
                         
                         // Maintenance Notifications - Authenticated users can view their own
                         .requestMatchers("/maintenance/notifications/**").authenticated()  // Notification access
+                        
+                        // Users API - Admin only
+                        .requestMatchers("/users/**").hasAnyRole("ADMIN")
                         
                         // Admin-only endpoints
                         .requestMatchers("/admin/**", "/leases/**", 

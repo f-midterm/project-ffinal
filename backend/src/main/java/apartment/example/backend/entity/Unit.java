@@ -59,6 +59,18 @@ public class Unit {
     @EqualsAndHashCode.Exclude
     private List<Lease> leases;
 
+    @OneToMany(mappedBy = "unit", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonBackReference("unit-price-history")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private List<UnitPriceHistory> priceHistory;
+
+    @OneToMany(mappedBy = "unit", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonBackReference("unit-audit-log")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private List<UnitAuditLog> auditLogs;
+
     // Temporarily commented out due to JPA entity scanning issue
     // @OneToMany(mappedBy = "unit", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     // @JsonManagedReference("unit-maintenance")

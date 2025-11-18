@@ -270,7 +270,7 @@ CREATE TABLE maintenance_requests (
     category ENUM('PLUMBING', 'ELECTRICAL', 'HVAC', 'APPLIANCE', 'STRUCTURAL', 'CLEANING', 'OTHER') NOT NULL DEFAULT 'OTHER',
     urgency ENUM('LOW', 'MEDIUM', 'HIGH', 'EMERGENCY') NOT NULL DEFAULT 'MEDIUM',
     preferred_time VARCHAR(100),
-    status ENUM('NOT_SUBMITTED', 'SUBMITTED', 'WAITING_FOR_REPAIR', 'APPROVED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED') NOT NULL DEFAULT 'SUBMITTED',
+    status ENUM('NOT_SUBMITTED', 'PENDING_TENANT_CONFIRMATION', 'SUBMITTED', 'WAITING_FOR_REPAIR', 'APPROVED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED') NOT NULL DEFAULT 'SUBMITTED',
     assigned_to_user_id BIGINT,
     estimated_cost DECIMAL(10,2),
     actual_cost DECIMAL(10,2),
@@ -720,6 +720,499 @@ UNION ALL
 SELECT 'maintenance_request_items', COUNT(*) FROM maintenance_request_items;
 
 -- ============================================
+-- UNIT PRICE HISTORY & AUDIT LOG FEATURE
+-- ============================================
+
+-- ============================================
+-- TABLE: unit_price_history
+-- Purpose: Track rent price changes over time
+-- ============================================
+CREATE TABLE unit_price_history (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    
+    -- Foreign key to units
+    unit_id BIGINT NOT NULL,
+    
+    -- Price information
+    rent_amount DECIMAL(10,2) NOT NULL,
+    
+    -- Temporal validity period (effective date range)
+    effective_from DATETIME NOT NULL,
+    effective_to DATETIME NULL,  -- NULL = current price
+    
+    -- Reason and notes
+    change_reason VARCHAR(255),
+    notes TEXT,
+    
+    -- Audit fields
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_by_user_id BIGINT,
+    
+    -- Foreign Keys
+    FOREIGN KEY (unit_id) REFERENCES units(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
+    
+    -- Indexes for performance
+    INDEX idx_unit_effective (unit_id, effective_from, effective_to),
+    INDEX idx_unit_current (unit_id, effective_to),
+    INDEX idx_effective_dates (effective_from, effective_to),
+    
+    -- Constraints
+    CONSTRAINT chk_price_amount CHECK (rent_amount > 0),
+    CONSTRAINT chk_price_dates CHECK (effective_to IS NULL OR effective_to >= effective_from),
+    CONSTRAINT uq_unit_current_price UNIQUE (unit_id, effective_to)  -- Only one current price per unit
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
+-- TABLE: unit_audit_logs
+-- Purpose: Complete audit trail of all unit changes
+-- ============================================
+CREATE TABLE unit_audit_logs (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    
+    -- Foreign key to units (nullable to preserve logs after unit deletion)
+    unit_id BIGINT NULL,
+    
+    -- Store room_number for reference even after unit deletion
+    room_number VARCHAR(20) NULL,
+    
+    -- Action type
+    action_type ENUM(
+        'CREATED',
+        'UPDATED',
+        'PRICE_CHANGED',
+        'STATUS_CHANGED',
+        'DELETED',
+        'RESTORED'
+    ) NOT NULL,
+    
+    -- Before/After data (JSON format)
+    old_values JSON NULL,
+    new_values JSON NULL,
+    
+    -- Additional details
+    description TEXT,
+    ip_address VARCHAR(45),  -- IPv6 support
+    user_agent VARCHAR(500),
+    
+    -- Audit fields
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_by_user_id BIGINT,
+    
+    -- Foreign Keys
+    -- Note: unit_id uses SET NULL instead of CASCADE to preserve audit history even after unit deletion
+    FOREIGN KEY (unit_id) REFERENCES units(id) ON DELETE SET NULL,
+    FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
+    
+    -- Indexes for performance
+    INDEX idx_unit_logs (unit_id, created_at DESC),
+    INDEX idx_action_type (action_type, created_at DESC),
+    INDEX idx_user_actions (created_by_user_id, created_at DESC),
+    INDEX idx_created_at (created_at DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
+-- MIGRATE EXISTING DATA TO PRICE HISTORY
+-- ============================================
+
+-- Create initial price history for existing units
+INSERT INTO unit_price_history (
+    unit_id,
+    rent_amount,
+    effective_from,
+    effective_to,
+    change_reason,
+    created_at,
+    created_by_user_id
+)
+SELECT 
+    id,
+    rent_amount,
+    DATE(created_at) as effective_from,
+    NULL as effective_to,  -- Current price
+    'Initial price (system migration)',
+    created_at,
+    NULL
+FROM units
+WHERE deleted_at IS NULL;
+
+-- Create audit log entries for existing units
+INSERT INTO unit_audit_logs (
+    unit_id,
+    action_type,
+    old_values,
+    new_values,
+    description,
+    created_at,
+    created_by_user_id
+)
+SELECT 
+    id,
+    'CREATED',
+    NULL,
+    JSON_OBJECT(
+        'room_number', room_number,
+        'floor', floor,
+        'type', type,
+        'rent_amount', rent_amount,
+        'status', status,
+        'size_sqm', size_sqm,
+        'description', description
+    ),
+    CONCAT('System migration: Unit ', room_number),
+    created_at,
+    NULL
+FROM units
+WHERE deleted_at IS NULL;
+
+-- ============================================
+-- TRIGGERS FOR AUTOMATED TRACKING
+-- ============================================
+
+DELIMITER $$
+
+-- Trigger: Track new unit creation
+DROP TRIGGER IF EXISTS after_unit_insert$$
+CREATE TRIGGER after_unit_insert
+AFTER INSERT ON units
+FOR EACH ROW
+BEGIN
+    -- Create initial price history record
+    INSERT INTO unit_price_history (
+        unit_id,
+        rent_amount,
+        effective_from,
+        effective_to,
+        change_reason,
+        created_by_user_id
+    ) VALUES (
+        NEW.id,
+        NEW.rent_amount,
+        NOW(),
+        NULL,
+        'Initial price',
+        @current_user_id
+    );
+    
+    -- Create audit log entry
+    INSERT INTO unit_audit_logs (
+        unit_id,
+        room_number,
+        action_type,
+        old_values,
+        new_values,
+        description,
+        created_by_user_id,
+        ip_address,
+        user_agent
+    ) VALUES (
+        NEW.id,
+        NEW.room_number,
+        'CREATED',
+        NULL,
+        JSON_OBJECT(
+            'room_number', NEW.room_number,
+            'floor', NEW.floor,
+            'type', NEW.type,
+            'rent_amount', NEW.rent_amount,
+            'status', NEW.status,
+            'size_sqm', NEW.size_sqm,
+            'description', NEW.description
+        ),
+        CONCAT('Created unit: ', NEW.room_number),
+        @current_user_id,
+        @client_ip,
+        @user_agent
+    );
+END$$
+
+-- Trigger: Track unit updates
+DROP TRIGGER IF EXISTS after_unit_update$$
+CREATE TRIGGER after_unit_update
+AFTER UPDATE ON units
+FOR EACH ROW
+BEGIN
+    DECLARE v_action_type VARCHAR(20);
+    DECLARE v_description TEXT;
+    DECLARE v_old_effective_to DATE;
+    
+    -- Determine action type based on what changed
+    IF OLD.rent_amount != NEW.rent_amount THEN
+        -- Price changed: close old price and create new one
+        -- Always close the current open price record
+        UPDATE unit_price_history
+        SET effective_to = NOW()
+        WHERE unit_id = NEW.id
+          AND effective_to IS NULL;
+        
+        -- Create new price record
+        INSERT INTO unit_price_history (
+            unit_id,
+            rent_amount,
+            effective_from,
+            effective_to,
+            change_reason,
+            created_by_user_id
+        ) VALUES (
+            NEW.id,
+            NEW.rent_amount,
+            NOW(),
+            NULL,
+            COALESCE(@price_change_reason, 'Price updated'),
+            @current_user_id
+        );
+        
+        SET v_action_type = 'PRICE_CHANGED';
+        SET v_description = CONCAT(
+            'Price changed from ',
+            OLD.rent_amount,
+            ' to ',
+            NEW.rent_amount
+        );
+    
+    ELSEIF OLD.status != NEW.status THEN
+        SET v_action_type = 'STATUS_CHANGED';
+        SET v_description = CONCAT(
+            'Status changed from ',
+            OLD.status,
+            ' to ',
+            NEW.status
+        );
+    
+    ELSEIF OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL THEN
+        SET v_action_type = 'DELETED';
+        SET v_description = CONCAT('Soft deleted unit: ', NEW.room_number);
+    
+    ELSEIF OLD.deleted_at IS NOT NULL AND NEW.deleted_at IS NULL THEN
+        SET v_action_type = 'RESTORED';
+        SET v_description = CONCAT('Restored unit: ', NEW.room_number);
+    
+    ELSE
+        SET v_action_type = 'UPDATED';
+        SET v_description = CONCAT('Updated unit: ', NEW.room_number);
+    END IF;
+    
+    -- Create audit log entry
+    INSERT INTO unit_audit_logs (
+        unit_id,
+        room_number,
+        action_type,
+        old_values,
+        new_values,
+        description,
+        created_by_user_id,
+        ip_address,
+        user_agent
+    ) VALUES (
+        NEW.id,
+        NEW.room_number,
+        v_action_type,
+        JSON_OBJECT(
+            'room_number', OLD.room_number,
+            'floor', OLD.floor,
+            'type', OLD.type,
+            'rent_amount', OLD.rent_amount,
+            'status', OLD.status,
+            'size_sqm', OLD.size_sqm,
+            'description', OLD.description,
+            'deleted_at', OLD.deleted_at
+        ),
+        JSON_OBJECT(
+            'room_number', NEW.room_number,
+            'floor', NEW.floor,
+            'type', NEW.type,
+            'rent_amount', NEW.rent_amount,
+            'status', NEW.status,
+            'size_sqm', NEW.size_sqm,
+            'description', NEW.description,
+            'deleted_at', NEW.deleted_at
+        ),
+        v_description,
+        @current_user_id,
+        @client_ip,
+        @user_agent
+    );
+END$$
+
+-- Trigger: Track unit deletion (hard delete)
+DROP TRIGGER IF EXISTS before_unit_delete$$
+CREATE TRIGGER before_unit_delete
+BEFORE DELETE ON units
+FOR EACH ROW
+BEGIN
+    -- Create audit log entry for hard delete
+    INSERT INTO unit_audit_logs (
+        unit_id,
+        room_number,
+        action_type,
+        old_values,
+        new_values,
+        description,
+        created_by_user_id,
+        ip_address,
+        user_agent
+    ) VALUES (
+        OLD.id,
+        OLD.room_number,
+        'DELETED',
+        JSON_OBJECT(
+            'room_number', OLD.room_number,
+            'floor', OLD.floor,
+            'type', OLD.type,
+            'rent_amount', OLD.rent_amount,
+            'status', OLD.status,
+            'size_sqm', OLD.size_sqm,
+            'description', OLD.description,
+            'deleted_at', OLD.deleted_at
+        ),
+        NULL,
+        CONCAT('Hard deleted unit: ', OLD.room_number),
+        @current_user_id,
+        @client_ip,
+        @user_agent
+    );
+END$$
+
+DELIMITER ;
+
+-- ============================================
+-- HELPER FUNCTIONS
+-- ============================================
+
+DELIMITER $$
+
+-- Function: Get unit price at a specific date (Point-in-time pricing)
+DROP FUNCTION IF EXISTS get_unit_price_at_date$$
+CREATE FUNCTION get_unit_price_at_date(
+    p_unit_id BIGINT,
+    p_date DATE
+) RETURNS DECIMAL(10,2)
+READS SQL DATA
+DETERMINISTIC
+BEGIN
+    DECLARE v_price DECIMAL(10,2);
+    
+    SELECT rent_amount INTO v_price
+    FROM unit_price_history
+    WHERE unit_id = p_unit_id
+      AND effective_from <= p_date
+      AND (effective_to IS NULL OR effective_to >= p_date)
+    ORDER BY effective_from DESC
+    LIMIT 1;
+    
+    -- Fallback to units table if not found
+    IF v_price IS NULL THEN
+        SELECT rent_amount INTO v_price
+        FROM units
+        WHERE id = p_unit_id;
+    END IF;
+    
+    RETURN COALESCE(v_price, 0);
+END$$
+
+-- Function: Get current unit price
+DROP FUNCTION IF EXISTS get_current_unit_price$$
+CREATE FUNCTION get_current_unit_price(
+    p_unit_id BIGINT
+) RETURNS DECIMAL(10,2)
+READS SQL DATA
+DETERMINISTIC
+BEGIN
+    DECLARE v_price DECIMAL(10,2);
+    
+    SELECT rent_amount INTO v_price
+    FROM unit_price_history
+    WHERE unit_id = p_unit_id
+      AND effective_to IS NULL
+    LIMIT 1;
+    
+    -- Fallback to units table if not found
+    IF v_price IS NULL THEN
+        SELECT rent_amount INTO v_price
+        FROM units
+        WHERE id = p_unit_id;
+    END IF;
+    
+    RETURN COALESCE(v_price, 0);
+END$$
+
+DELIMITER ;
+
+-- ============================================
+-- VIEWS FOR EASY QUERYING
+-- ============================================
+
+-- View: Units with current price information
+CREATE OR REPLACE VIEW v_units_current_price AS
+SELECT 
+    u.id,
+    u.room_number,
+    u.floor,
+    u.type,
+    u.status,
+    u.size_sqm,
+    u.description,
+    u.rent_amount as listed_price,
+    COALESCE(uph.rent_amount, u.rent_amount) as current_price,
+    uph.effective_from as price_effective_from,
+    uph.created_at as price_last_updated,
+    usr.username as price_last_updated_by,
+    u.created_at,
+    u.updated_at
+FROM units u
+LEFT JOIN unit_price_history uph 
+    ON u.id = uph.unit_id 
+    AND uph.effective_to IS NULL
+LEFT JOIN users usr
+    ON uph.created_by_user_id = usr.id
+WHERE u.deleted_at IS NULL;
+
+-- View: Price history with details
+CREATE OR REPLACE VIEW v_unit_price_history_detail AS
+SELECT 
+    uph.id,
+    u.room_number,
+    u.floor,
+    u.type,
+    uph.rent_amount,
+    uph.effective_from,
+    uph.effective_to,
+    CASE 
+        WHEN uph.effective_to IS NULL THEN 'CURRENT'
+        ELSE 'HISTORICAL'
+    END as price_status,
+    DATEDIFF(
+        COALESCE(uph.effective_to, CURDATE()), 
+        uph.effective_from
+    ) as days_active,
+    uph.change_reason,
+    uph.notes,
+    uph.created_at,
+    usr.username as changed_by
+FROM unit_price_history uph
+INNER JOIN units u ON uph.unit_id = u.id
+LEFT JOIN users usr ON uph.created_by_user_id = usr.id
+ORDER BY u.room_number, uph.effective_from DESC;
+
+-- View: Audit log with details
+CREATE OR REPLACE VIEW v_unit_audit_log_detail AS
+SELECT 
+    ual.id,
+    u.room_number,
+    ual.action_type,
+    ual.description,
+    ual.old_values,
+    ual.new_values,
+    ual.ip_address,
+    ual.user_agent,
+    ual.created_at,
+    usr.username as performed_by
+FROM unit_audit_logs ual
+INNER JOIN units u ON ual.unit_id = u.id
+LEFT JOIN users usr ON ual.created_by_user_id = usr.id
+ORDER BY ual.created_at DESC;
+
+-- ============================================
 -- PRODUCTION READY FEATURES:
 -- ✅ Fixed data redundancy (removed duplicate columns from tenants)
 -- ✅ Removed UNIQUE on leases.unit_id (allows lease history)
@@ -733,4 +1226,7 @@ SELECT 'maintenance_request_items', COUNT(*) FROM maintenance_request_items;
 -- ✅ Added views for backwards compatibility
 -- ✅ Improved VARCHAR sizes (email to 254, emergency_contact to 255)
 -- ✅ Added UNIQUE constraint on receipt_number
+-- ✅ Added unit price history tracking (temporal pricing)
+-- ✅ Added unit audit log (complete change tracking)
 -- ============================================
+

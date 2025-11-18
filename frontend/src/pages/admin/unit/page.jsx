@@ -39,10 +39,8 @@ function UnitPage() {
     fetchData();
   }, [id]);
 
-  const handleEdit = async () => {
-    // For now, you can redirect to an edit page or open a modal
-    // Example: navigate(`/admin/unit/${unit.id}/edit`);
-    alert('Edit unit functionality - You can implement an edit modal or redirect to edit page');
+  const handleEdit = () => {
+    navigate(`/admin/unit/${unit.id}/edit`);
   };
 
   const handleDelete = async () => {
@@ -53,7 +51,7 @@ function UnitPage() {
     try {
       await deleteUnit(unit.id);
       alert('Unit deleted successfully');
-      navigate('/admin/dashboard');
+      navigate('/admin');
     } catch (err) {
       alert(`Failed to delete unit: ${err.message}`);
     }
@@ -71,30 +69,6 @@ function UnitPage() {
     return <div>Unit not found</div>;
   }
 
-  if (!lease) {
-    return (
-      <div>
-        <div className='flex flex-col bg-white rounded-2xl shadow-md justify-center items-center min-h-screen'>
-          <div className='bg-red-300 rounded-full p-6 text-white mb-4'>
-            <FiAlertCircle size={64} />
-          </div>
-
-          <div className='text-4xl font-medium mb-4'>
-            Vacant
-          </div>
-
-          <div className='text-xl mb-4'>
-            Don't have any tenant, Please add the tenant first.
-          </div>
-
-          <button className='bg-blue-400 px-4 py-2 text-white font-medium rounded-lg shadow-md hover:translate-y-[-1px] hover:bg-blue-500'>
-            Add Tenant
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div>
       {/* Room Number */}
@@ -104,15 +78,23 @@ function UnitPage() {
           <div className='lg:text-xl text-lg text-gray-500'>
             Siri apartment, Floor <span>{unit.floor}</span>
           </div>
+          {!lease && (
+            <div className='mt-2 inline-flex items-center gap-2 bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-medium'>
+              <FiAlertCircle size={16} />
+              <span>Vacant - No Tenant</span>
+            </div>
+          )}
         </div>
         {/* Action Button */}
         <div className='flex justify-space gap-4'>
-          <button 
-            onClick={() => navigate(`/admin/unit/${unit.id}/send-invoice`)}
-            className="bg-white text-gray-800 font-medium py-2 px-6 rounded-lg shadow-md hover:translate-y-[-1px] hover:bg-gray-50"
-          >
-            Send Invoice
-          </button>
+          {lease && (
+            <button 
+              onClick={() => navigate(`/admin/unit/${unit.id}/send-invoice`)}
+              className="bg-white text-gray-800 font-medium py-2 px-6 rounded-lg shadow-md hover:translate-y-[-1px] hover:bg-gray-50"
+            >
+              Send Invoice
+            </button>
+          )}
           <button 
             onClick={handleEdit}
             className="bg-blue-500 text-white font-medium py-2 px-6 rounded-lg shadow-md hover:translate-y-[-1px] hover:bg-blue-600"
@@ -127,29 +109,50 @@ function UnitPage() {
           </button>
         </div>
       </div>
+      
+      {!lease && (
+        <div className='mt-6 bg-blue-50 border border-blue-200 rounded-lg p-6'>
+          <div className='flex items-start gap-4'>
+            <div className='bg-blue-100 rounded-full p-3'>
+              <FiAlertCircle className='text-blue-600' size={24} />
+            </div>
+            <div>
+              <h3 className='text-lg font-semibold text-gray-800 mb-2'>This unit is currently vacant</h3>
+              <p className='text-gray-600 mb-4'>
+                You can still edit unit information, but tenant-related features are not available until a tenant is assigned.
+              </p>
+              <button className='bg-blue-500 px-6 py-2 text-white font-medium rounded-lg shadow-md hover:translate-y-[-1px] hover:bg-blue-600'>
+                Add Tenant
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-      <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6'>
-        {/* Left Column */}
-        <div className='lg:col-span-2 flex flex-col gap-6'>
-          {/* Tenant infomation */}
-          <TenantsUnitTable unit={unit} lease={lease} tenant={tenant} />
+      {lease && (
+        <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6'>
+          {/* Left Column */}
+          <div className='lg:col-span-2 flex flex-col gap-6'>
+            {/* Tenant infomation */}
+            <TenantsUnitTable unit={unit} lease={lease} tenant={tenant} />
 
-          {/* Electricity and Water bill graph */}
-          <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-            <ElectricBillChart unitId={unit.id} />
-            <WaterBillChart unitId={unit.id} />
+            {/* Electricity and Water bill graph */}
+            <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+              <ElectricBillChart unitId={unit.id} />
+              <WaterBillChart unitId={unit.id} />
+            </div>
+
+            {/* Maintenance Log Table */}
+            <MaintenanceLogTable unitId={unit.id} />
           </div>
 
-          {/* Maintenance Log Table */}
-          <MaintenanceLogTable unitId={unit.id} />
+          {/* Right Column */}
+          <div className='lg:col-span-1 flex flex-col gap-6'>
+            <QuickActionCard />
+            {/* <UnitFilesCard /> */}
+          </div>
         </div>
-
-        {/* Right Column */}
-        <div className='lg:col-span-1 flex flex-col gap-6'>
-          <QuickActionCard />
-          {/* <UnitFilesCard /> */}
-        </div>
-      </div>
+      )}
     </div>
   );
 }

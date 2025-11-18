@@ -287,29 +287,29 @@ function UserNotificationsPage() {
                                 )} */}
                             </div>
 
-                            {selectedNotification.requestId && (
-                                <div>
-                                    <label className='text-sm font-medium text-gray-700'>Related Maintenance Request</label>
-                                    <p className='mt-1 text-gray-600'>Request ID: #{selectedNotification.requestId}</p>
-                                    {/* <button
-                                        onClick={() => {
-                                            setShowDetailModal(false);
-                                            navigate('/user/maintenance');
-                                        }}
-                                        className='mt-2 text-blue-600 hover:underline text-sm'
-                                    >
-                                        View Maintenance Request →
-                                    </button> */}
+                            {/* {selectedNotification.requestId && ( */}
+                                {/* // <div>
+                                //     <label className='text-sm font-medium text-gray-700'>Related Maintenance Request</label>
+                                //     <p className='mt-1 text-gray-600'>Request ID: #{selectedNotification.requestId}</p> */}
+                                     {/* <button
+                                //         onClick={() => {
+                                //             setShowDetailModal(false);
+                                //             navigate('/user/maintenance');
+                                //         }}
+                                //         className='mt-2 text-blue-600 hover:underline text-sm'
+                                //     >
+                                //         View Maintenance Request →
+                                //     </button> */}
                                 </div>
-                            )}
+                            {/* )} */}
 
-                            {selectedNotification.scheduleId && (
+                            {/* {selectedNotification.scheduleId && (
                                 <div>
                                     <label className='text-sm font-medium text-gray-700'>Related Maintenance Schedule</label>
                                     <p className='mt-1 text-gray-600'>Schedule ID: #{selectedNotification.scheduleId}</p>
                                 </div>
                             )}
-                        </div>
+                        </div> */}
 
                         <div className='mt-6 flex gap-2 justify-end'>
                             {!selectedNotification.isRead && (
