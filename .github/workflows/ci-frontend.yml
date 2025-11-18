@@ -36,21 +36,40 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'frontend/package-lock.json'
       
-      # 3. Install frontend dependencies securely and efficiently
+      # 3. Cache Cypress binary to avoid download issues
+      - name: Cache Cypress binary
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            cypress-${{ runner.os }}-
+      
+      # 4. Install frontend dependencies securely and efficiently
       - name: Install dependencies
         working-directory: ./frontend
+        env:
+          CYPRESS_INSTALL_BINARY: 0
         run: npm ci
+      
+      # 5. Install Cypress binary separately with retry
+      - name: Install Cypress binary
+        working-directory: ./frontend
+        run: |
+          for i in 1 2 3; do
+            npx cypress install && break || sleep 10
+          done
 
-      # 4. Run ESLint for code quality checks. The build fails if linting errors are found.
+      # 6. Run ESLint for code quality checks. The build fails if linting errors are found.
       # - name: Run ESLint
       #   working-directory: ./frontend
       #   run: npm run lint
       
-      # 5. Set up Docker Buildx for advanced image building features
+      # 7. Set up Docker Buildx for advanced image building features
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 6. Execute Cypress E2E tests within a Docker Compose environment
+      # 8. Execute Cypress E2E tests within a Docker Compose environment
       # - name: Run Cypress E2E Tests with Docker Compose
       #   # The working directory is set to the root because docker-compose.yml is there
       #   run: |
@@ -70,12 +89,12 @@ jobs:
       #     npm ci
       #     npm run cy:run
 
-      # 7. Always stop and remove containers after the test run to clean up the runner
+      # 9. Always stop and remove containers after the test run to clean up the runner
       # - name: Stop and Remove Containers
       #   if: always() 
       #   run: docker compose down
 
-      # 8. Log in to Docker Hub. This step only runs on pushes to the 'frontend' branch.
+      # 10. Log in to Docker Hub. This step only runs on pushes to the 'frontend' branch.
       - name: Log in to Docker Hub
         if: github.event_name == 'push' && github.ref == 'refs/heads/frontend'
         uses: docker/login-action@v3
@@ -83,7 +102,7 @@ jobs:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ env.DOCKER_TOKEN }}
 
-      # 9. Build and push the production Docker image to Docker Hub.
+      # 11. Build and push the production Docker image to Docker Hub.
       #    This step also only runs on pushes to the 'frontend' branch.
       - name: Build and push production image
         if: github.event_name == 'push' && github.ref == 'refs/heads/frontend'
