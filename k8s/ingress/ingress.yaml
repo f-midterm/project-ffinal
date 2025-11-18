@@ -12,11 +12,11 @@
 # This Ingress uses nginx annotations for URL rewriting.
 # For Traefik, see ingress-traefik.yaml
 ---
-# Backend Ingress: handles /api with regex rewrite
+# Backend API Ingress: handles /api with regex rewrite
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: apartment-ingress-backend
+  name: apartment-ingress-backend-api
   namespace: superproject-ns
   labels:
     app: apartment-system
@@ -31,6 +31,29 @@ spec:
       paths:
       - path: /api(/|$)(.*)
         pathType: ImplementationSpecific
+        backend:
+          service:
+            name: backend-service
+            port:
+              number: 8080
+
+---
+# Backend Uploads Ingress: handles /uploads without rewrite
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: apartment-ingress-backend-uploads
+  namespace: superproject-ns
+  labels:
+    app: apartment-system
+    component: backend
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      - path: /uploads
+        pathType: Prefix
         backend:
           service:
             name: backend-service

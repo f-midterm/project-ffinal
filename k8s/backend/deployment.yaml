@@ -52,9 +52,6 @@ spec:
           name: http
           protocol: TCP
         env:
-        # Spring Boot profile
-        - name: SPRING_PROFILES_ACTIVE
-          value: "prod"
         # Database connection URL (connects to mysql-service)
         - name: SPRING_DATASOURCE_URL
           value: "jdbc:mysql://mysql-service:3306/apartment_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true"
@@ -70,74 +67,104 @@ spec:
             secretKeyRef:
               name: mysql-secret
               key: password
-        # JPA configuration
+        # JPA configuration from ConfigMap
         - name: SPRING_JPA_HIBERNATE_DDL_AUTO
-          value: "validate"  # SECURITY: Use 'validate' in production, never 'update'!
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: jpa-ddl-auto
         - name: SPRING_JPA_SHOW_SQL
-          value: "false"  # Disable SQL logging in production
-        # SECURITY: JWT configuration from Secret (DO NOT HARDCODE!)
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: jpa-show-sql
+        # JWT configuration from Secret
         - name: JWT_SECRET
           valueFrom:
             secretKeyRef:
-              name: jwt-secret  # Create separate secret for JWT
+              name: jwt-secret
               key: jwt-secret-key
         - name: JWT_EXPIRATION
-          value: "86400000"  # 24 hours
-        # SECURITY: CORS configuration - MUST specify exact origins in production!
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: jwt-expiration
+        # CORS configuration from ConfigMap
         - name: CORS_ALLOWED_ORIGINS
           valueFrom:
             configMapKeyRef:
               name: backend-config
               key: cors-allowed-origins
-        # Server configuration
+        # Server configuration from ConfigMap
         - name: SERVER_PORT
-          value: "8080"
-        # Default System Users Configuration
-        - name: ADMIN_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: server-port
+        # File upload paths from ConfigMap
+        - name: FILE_UPLOAD_DIR
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: file-upload-dir
+        - name: MAINTENANCE_UPLOAD_DIR
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: maintenance-upload-dir
+        # Default user credentials from ConfigMap (usernames)
+        - name: DEFAULT_ADMIN_USERNAME
           valueFrom:
             configMapKeyRef:
               name: backend-config
               key: admin-username
-        - name: ADMIN_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: jwt-secret
-              key: admin-password
-        - name: ADMIN_EMAIL
+        - name: DEFAULT_ADMIN_EMAIL
           valueFrom:
             configMapKeyRef:
               name: backend-config
               key: admin-email
-        - name: VILLAGER_USERNAME
+        - name: DEFAULT_VILLAGER_USERNAME
           valueFrom:
             configMapKeyRef:
               name: backend-config
               key: villager-username
-        - name: VILLAGER_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: jwt-secret
-              key: villager-password
-        - name: VILLAGER_EMAIL
+        - name: DEFAULT_VILLAGER_EMAIL
           valueFrom:
             configMapKeyRef:
               name: backend-config
               key: villager-email
-        - name: TEST_USERNAME
+        - name: DEFAULT_TEST_USERNAME
           valueFrom:
             configMapKeyRef:
               name: backend-config
               key: test-username
-        - name: TEST_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: jwt-secret
-              key: test-password
-        - name: TEST_EMAIL
+        - name: DEFAULT_TEST_EMAIL
           valueFrom:
             configMapKeyRef:
               name: backend-config
               key: test-email
+        # Default user passwords from Secret
+        - name: DEFAULT_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: jwt-secret
+              key: admin-password
+        - name: DEFAULT_VILLAGER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: jwt-secret
+              key: villager-password
+        - name: DEFAULT_TEST_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: jwt-secret
+              key: test-password
+        # Spring profile from ConfigMap
+        - name: SPRING_PROFILES_ACTIVE
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: spring-profiles-active
         # Java memory settings
         - name: JAVA_OPTS
           value: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Xms512m -Xmx1536m"
@@ -165,3 +192,12 @@ spec:
           limits:
             memory: "2Gi"
             cpu: "2000m"
+        # Volume mounts for file uploads
+        volumeMounts:
+        - name: uploads
+          mountPath: /app/uploads
+      # Volumes
+      volumes:
+      - name: uploads
+        persistentVolumeClaim:
+          claimName: backend-uploads-pvc
