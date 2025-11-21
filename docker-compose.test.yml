@@ -53,21 +53,26 @@ services:
       - test-network
 
   frontend:
-    image: ${DOCKER_USERNAME}/apartment-frontend:latest
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
     container_name: apartment-test-frontend
     depends_on:
       backend:
         condition: service_healthy
     environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:8080}
+      VITE_API_BASE_URL: http://localhost:8080
     ports:
-      - "5173:80"
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      test: ["CMD", "curl", "-f", "http://localhost:5173/"]
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 20s
+      start_period: 30s
     networks:
       - test-network
 
