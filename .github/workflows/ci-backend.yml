@@ -53,16 +53,6 @@ jobs:
         working-directory: ./backend
         run: ./gradlew test --info
 
-      # 5.1. Generate test summary
-      - name: Publish Test Report
-        uses: dorny/test-reporter@v1
-        if: always()
-        with:
-          name: Backend Unit Test Results
-          path: backend/build/test-results/test/*.xml
-          reporter: java-junit
-          fail-on-error: true
-
       # 6. Upload test results
       - name: Upload Test Results
         if: always()
@@ -112,9 +102,6 @@ jobs:
           echo "✅ Unit tests executed and passed"
           echo "✅ JAR file built successfully"
           echo "✅ Docker image built and pushed"
-          echo ""
-          echo "📊 Test Results:"
-          echo "See detailed test report in the Actions summary above"
           echo ""
           echo "📦 Docker Images:"
           echo "- ${{ env.DOCKER_USERNAME }}/apartment-backend:latest"
