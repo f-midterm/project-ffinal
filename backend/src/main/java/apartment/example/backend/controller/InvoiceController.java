@@ -468,7 +468,7 @@ public class InvoiceController {
     }
     
     // Request DTO for payment verification
-    static class VerifyPaymentRequest {
+    public static class VerifyPaymentRequest {
         private boolean approved;
         private String notes;
         
