@@ -76,11 +76,23 @@ jobs:
           echo "Starting services with Docker Compose..."
           docker compose -f docker-compose.test.yml up -d
           
+          echo "Checking container status..."
+          docker compose -f docker-compose.test.yml ps
+          
           echo "Waiting for MySQL to be ready..."
           timeout 120s bash -c 'until docker compose -f docker-compose.test.yml exec -T mysql mysqladmin ping -h localhost --silent; do echo "Waiting for MySQL..."; sleep 5; done'
           echo "✅ MySQL is ready"
           
           echo "Waiting for Backend to be ready..."
+          sleep 15  # Give backend time to start
+          
+          # Check if backend is still running
+          if ! docker compose -f docker-compose.test.yml ps backend | grep -q "Up"; then
+            echo "❌ Backend container is not running. Showing logs:"
+            docker compose -f docker-compose.test.yml logs backend
+            exit 1
+          fi
+          
           timeout 120s bash -c 'until curl -f http://localhost:8080/actuator/health 2>/dev/null; do echo "Waiting for Backend..."; sleep 5; done'
           echo "✅ Backend is ready"
           
