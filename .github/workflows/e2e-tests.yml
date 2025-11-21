@@ -13,9 +13,6 @@ on:
     types: [ opened, synchronize, reopened ]
   workflow_dispatch:  # Manual trigger for testing
 
-env:
-  DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-
 jobs:
   cypress-e2e:
     runs-on: ubuntu-latest
@@ -41,27 +38,29 @@ jobs:
           npm ci
           npm install -D cypress-mochawesome-reporter mochawesome mochawesome-merge mochawesome-report-generator
 
-      # 4. Log in to Docker Hub to pull images
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ env.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      # 5. Pull latest Docker images
-      - name: Pull Docker Images
+      # 4. Build Test Images
+      - name: Build Backend Test Image
         run: |
-          echo "Pulling latest images from Docker Hub..."
-          docker pull ${{ env.DOCKER_USERNAME }}/apartment-backend:latest
-          docker pull ${{ env.DOCKER_USERNAME }}/apartment-frontend:latest
-          docker pull mysql:8.0
-          echo "✅ All images pulled successfully"
+          echo "🔨 Building backend test image..."
+          docker build -t apartment-backend:test -f backend/Dockerfile.prod backend/
+          echo "✅ Backend image built successfully"
 
-      # 6. Create test environment file
+      - name: Build Frontend Test Image
+        run: |
+          echo "🔨 Building frontend test image..."
+          docker build -t apartment-frontend:test -f frontend/Dockerfile.prod frontend/
+          echo "✅ Frontend image built successfully"
+
+      - name: Pull MySQL Image
+        run: |
+          echo "📥 Pulling MySQL image..."
+          docker pull mysql:8.0
+          echo "✅ MySQL image pulled successfully"
+
+      # 5. Create test environment file
       - name: Create .env file for testing
         run: |
           cat > .env << EOF
-          DOCKER_USERNAME=${{ env.DOCKER_USERNAME }}
           MYSQL_ROOT_PASSWORD=root123
           MYSQL_DATABASE=apartment_db
           SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/apartment_db
@@ -73,7 +72,7 @@ jobs:
           VITE_API_URL=http://localhost:8080
           EOF
 
-      # 7. Start Application Stack with Docker Compose
+      # 6. Start Application Stack with Docker Compose
       - name: Start Application Stack
         run: |
           echo "Starting services with Docker Compose..."
@@ -97,12 +96,12 @@ jobs:
           
           echo "🎉 All services are up and running!"
 
-      # 8. Display running containers for debugging
+      # 7. Display running containers for debugging
       - name: Show running containers
         if: always()
         run: docker compose -f docker-compose.test.yml ps
 
-      # 9. Run Cypress E2E tests
+      # 8. Run Cypress E2E tests
       - name: Run Cypress Tests
         working-directory: ./frontend
         env:
@@ -111,7 +110,7 @@ jobs:
           echo "🧪 Running Cypress E2E tests..."
           npx cypress run --browser chrome --config video=true
 
-      # 10. Generate combined test report
+      # 9. Generate combined test report
       - name: Generate Combined Test Report
         if: always()
         working-directory: ./frontend
@@ -131,7 +130,7 @@ jobs:
             echo '{"stats":{"tests":0,"passes":0,"failures":0,"pending":0,"duration":0}}' > combined-report.json
           fi
 
-      # 11. Upload test videos
+      # 10. Upload test videos
       - name: Upload Cypress Videos
         if: always()
         uses: actions/upload-artifact@v4
@@ -140,7 +139,7 @@ jobs:
           path: frontend/cypress/videos/
           retention-days: 30
 
-      # 12. Upload test screenshots (failures only)
+      # 11. Upload test screenshots (failures only)
       - name: Upload Cypress Screenshots
         if: failure()
         uses: actions/upload-artifact@v4
@@ -150,7 +149,7 @@ jobs:
           retention-days: 30
           if-no-files-found: ignore
 
-      # 13. Upload HTML test report
+      # 12. Upload HTML test report
       - name: Upload HTML Test Report
         if: always()
         uses: actions/upload-artifact@v4
@@ -160,7 +159,7 @@ jobs:
           retention-days: 30
           if-no-files-found: warn
 
-      # 14. Upload JSON test results
+      # 13. Upload JSON test results
       - name: Upload JSON Test Results
         if: always()
         uses: actions/upload-artifact@v4
@@ -170,7 +169,7 @@ jobs:
           retention-days: 30
           if-no-files-found: warn
 
-      # 15. Comment test results on PR
+      # 14. Comment test results on PR
       - name: Comment Test Results on PR
         if: github.event_name == 'pull_request' && always()
         uses: actions/github-script@v7
@@ -231,7 +230,7 @@ jobs:
               body: body
             });
 
-      # 16. Display test summary
+      # 15. Display test summary
       - name: E2E Test Summary
         if: always()
         run: |
@@ -254,7 +253,7 @@ jobs:
           echo ""
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-      # 17. Show container logs on failure
+      # 16. Show container logs on failure
       - name: Show Backend Logs
         if: failure()
         run: docker compose -f docker-compose.test.yml logs backend
@@ -263,7 +262,7 @@ jobs:
         if: failure()
         run: docker compose -f docker-compose.test.yml logs frontend
 
-      # 18. Cleanup - Teardown environment
+      # 17. Cleanup - Teardown environment
       - name: Teardown Environment
         if: always()
         run: |
