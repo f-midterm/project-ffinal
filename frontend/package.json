@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run",
+    "cypress:ci": "cypress run --browser chrome --headless",
+    "test:e2e": "npm run cypress:run"
   },
   "dependencies": {
     "framer-motion": "^12.23.22",

@@ -102,24 +102,47 @@ jobs:
         if: always()
         run: docker compose -f docker-compose.test.yml ps
 
-      # 9. Use pre-generated test report (skip actual test execution)
-      - name: Use Existing Test Report
+      # 9. Run Cypress E2E Tests
+      - name: Run Cypress E2E Tests
         working-directory: ./frontend
         run: |
-          echo "📊 Using pre-generated test report from local development..."
-          echo "ℹ️ Skipping actual Cypress test execution to save CI time"
-          echo "✅ Test reports are already available in the repository"
-          
-          # Create mock combined-report.json for PR comments
-          echo '{"stats":{"tests":3,"passes":3,"failures":0,"pending":0,"duration":45000}}' > combined-report.json
-          
-          echo "✅ Report setup complete"
+          echo "🧪 Running Cypress E2E Tests..."
+          npm run cypress:ci
+          echo "✅ Cypress tests completed"
 
-      # 10. Upload test videos (skipped - using pre-generated report)
-      # Videos are not generated when using existing reports
+      # 10. Generate combined test report
+      - name: Generate Combined Report
+        if: always()
+        working-directory: ./frontend
+        run: |
+          if [ -f cypress/results/index.json ]; then
+            echo "📊 Generating combined test report..."
+            cp cypress/results/index.json combined-report.json
+            echo "✅ Combined report generated"
+          else
+            echo "⚠️ No test results found, creating empty report"
+            echo '{"stats":{"tests":0,"passes":0,"failures":0,"pending":0,"duration":0}}' > combined-report.json
+          fi
+
+      # 11. Upload test videos
+      - name: Upload Test Videos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-videos
+          path: frontend/cypress/videos/
+          retention-days: 7
+          if-no-files-found: ignore
       
-      # 11. Upload test screenshots (skipped - using pre-generated report)
-      # Screenshots are not generated when using existing reports
+      # 12. Upload test screenshots (for failed tests)
+      - name: Upload Test Screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-screenshots
+          path: frontend/cypress/screenshots/
+          retention-days: 7
+          if-no-files-found: ignore
 
       # 12. Upload HTML test report (from repository)
       - name: Upload HTML Test Report
@@ -225,8 +248,18 @@ jobs:
           echo ""
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-      # 16. Show container logs on failure (skipped - using pre-generated report)
-      # Logs are not needed when using existing test reports
+      # 16. Show container logs on failure
+      - name: Show Container Logs on Failure
+        if: failure()
+        run: |
+          echo "📋 Backend Logs:"
+          docker compose -f docker-compose.test.yml logs backend --tail=100
+          echo ""
+          echo "📋 Frontend Logs:"
+          docker compose -f docker-compose.test.yml logs frontend --tail=100
+          echo ""
+          echo "📋 MySQL Logs:"
+          docker compose -f docker-compose.test.yml logs mysql --tail=50
       
       # 17. Cleanup - Teardown environment
       - name: Teardown Environment

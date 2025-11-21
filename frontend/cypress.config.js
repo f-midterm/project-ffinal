@@ -33,13 +33,14 @@ export default defineConfig({
   reporter: 'cypress-mochawesome-reporter',
   reporterOptions: {
     reportDir: 'cypress/results',
-    overwrite: false,
+    overwrite: true,
     html: true,
     json: true,
     charts: true,
     reportPageTitle: 'Apartment App E2E Tests',
     embeddedScreenshots: true,
     inlineAssets: true,
-    saveAllAttempts: false
+    saveAllAttempts: false,
+    reportFilename: 'index'
   }
 });
