@@ -88,6 +88,10 @@ jobs:
           timeout 60s bash -c 'until curl -f http://localhost:5173 2>/dev/null; do echo "Waiting for Frontend..."; sleep 3; done'
           echo "✅ Frontend is ready"
           
+          # Additional wait for app stabilization
+          echo "Waiting 10 seconds for app to stabilize..."
+          sleep 10
+          
           echo "🎉 All services are up and running!"
 
       # 8. Display running containers for debugging
@@ -98,9 +102,11 @@ jobs:
       # 9. Run Cypress E2E tests
       - name: Run Cypress Tests
         working-directory: ./frontend
+        env:
+          CYPRESS_baseUrl: http://localhost:5173
         run: |
           echo "🧪 Running Cypress E2E tests..."
-          npx cypress run --browser chrome
+          npx cypress run --browser chrome --config video=true
 
       # 10. Generate combined test report
       - name: Generate Combined Test Report

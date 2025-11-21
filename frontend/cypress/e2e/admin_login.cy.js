@@ -6,6 +6,7 @@ describe('Admin full flow', () => {
     // 🔵 LOGIN
     // ============================================
     cy.visit('/login');
+    cy.wait(1000); // Wait for page to fully load
 
     cy.get('#username').should('be.visible').type('apartment_admin');
     cy.get('#password').should('be.visible').type('Admin@2024!Secure');
@@ -19,9 +20,9 @@ describe('Admin full flow', () => {
 
     cy.get('button[type="submit"]').click();
 
-    cy.wait('@loginRequest');
-    cy.wait('@me');
-    cy.wait('@units');
+    cy.wait('@loginRequest', { timeout: 20000 });
+    cy.wait('@me', { timeout: 20000 });
+    cy.wait('@units', { timeout: 20000 });
 
 
     // ============================================

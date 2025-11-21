@@ -10,9 +10,11 @@ export default defineConfig({
     viewportWidth: 1280,
     viewportHeight: 720,
     
-    // Timeouts
-    defaultCommandTimeout: 10000,
-    pageLoadTimeout: 30000,
+    // Timeouts (increased for CI)
+    defaultCommandTimeout: 15000,
+    pageLoadTimeout: 60000,
+    requestTimeout: 15000,
+    responseTimeout: 30000,
     
     // Retry failed tests
     retries: {
