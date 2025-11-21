@@ -4,12 +4,12 @@ name: Frontend CI - Build, Test & Push
 
 on:
   push:
-    branches: [ "feature/**", "develop/**" ] # Triggers on pushes to the 'frontend' branch
+    branches: [ "feature/**", "develop/**", "release/**" ] # Triggers on pushes to the 'frontend' branch
     paths: 
       - 'frontend/**'
       - '.github/workflows/ci-frontend.yml'
   pull_request:
-    branches: [ "main", "develop", "feature/**" ] # Triggers on pull requests targeting 'main' or 'develop'
+    branches: [ "main", "develop", "feature/**", "release/**" ] # Triggers on pull requests targeting 'main' or 'develop'
     paths:
       - 'frontend/**'
 

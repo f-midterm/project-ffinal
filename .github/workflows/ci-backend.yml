@@ -2,13 +2,13 @@ name: Backend CI - Build, Test & Push
 
 on:
   push:
-    branches: [ "feature/backend/**", "develop/**" ] 
+    branches: [ "feature/backend/**", "develop/**", "release/**" ] 
      # Triggers on pushes to the 'backend' branch
     paths: 
       - 'backend/**'
       - '.github/workflows/ci-backend.yml'
   pull_request:
-    branches: [ "main", "develop",  "feature/**" ]
+    branches: [ "main", "develop",  "feature/**", "release/**" ]
     paths:
       - 'backend/**'
 
