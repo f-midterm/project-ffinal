@@ -41,58 +41,62 @@ jobs:
           npm ci
           npm install -D cypress-mochawesome-reporter mochawesome mochawesome-merge mochawesome-report-generator
 
-      # 4. Log in to Docker Hub to pull images
+      # 4. Log in to Docker Hub (for pulling backend image)
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 5. Build Frontend Development Image
-      - name: Build Frontend Development Image
-        run: |
-          echo "🏗️ Building frontend development image..."
-          cd frontend
-          docker build -f Dockerfile.dev -t apartment-frontend:test .
-          cd ..
-          echo "✅ Frontend image built successfully"
-
-      # 6. Pull Backend Docker Image
+      # 5. Pull Backend Docker Image
       - name: Pull Backend Docker Image
         run: |
           echo "Pulling backend image from Docker Hub..."
           docker pull ${{ env.DOCKER_USERNAME }}/apartment-backend:latest
           echo "✅ Backend image pulled successfully"
 
+      # 6. Tag backend image for dev compose
+      - name: Tag Backend Image for Dev Compose
+        run: |
+          echo "Tagging backend image for development..."
+          docker tag ${{ env.DOCKER_USERNAME }}/apartment-backend:latest apartment-backend:dev
+          echo "✅ Backend image tagged"
+
       # 7. Create test environment file
       - name: Create .env file for testing
         run: |
           cat > .env << EOF
           DOCKER_USERNAME=${{ env.DOCKER_USERNAME }}
-          MYSQL_ROOT_PASSWORD=root123
+          MYSQL_ROOT_PASSWORD=dev_root_password
           MYSQL_DATABASE=apartment_db
-          SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/apartment_db
-          SPRING_DATASOURCE_USERNAME=root
-          SPRING_DATASOURCE_PASSWORD=root123
-          JWT_SECRET=dGVzdC1zZWNyZXQta2V5LWZvci1qd3QtdG9rZW4tZ2VuZXJhdGlvbi1pbi10ZXN0LWVudmlyb25tZW50
+          MYSQL_USER=apartment
+          MYSQL_PASSWORD=dev_password
+          JWT_SECRET_DEV=dGVzdC1zZWNyZXQta2V5LWZvci1qd3QtdG9rZW4tZ2VuZXJhdGlvbi1pbi10ZXN0LWVudmlyb25tZW50
           JWT_EXPIRATION=86400000
           CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:80,http://localhost:8080
-          VITE_API_BASE_URL=http://localhost:8080
-          VITE_BACKEND_URL=http://localhost:8080
+          ADMIN_USERNAME=apartment_admin
+          ADMIN_PASSWORD=Admin@2024!Secure
+          ADMIN_EMAIL=admin@apartment.local
+          VILLAGER_USERNAME=villager
+          VILLAGER_PASSWORD=villager123
+          VILLAGER_EMAIL=villager@apartment.local
+          TEST_USERNAME=testuser
+          TEST_PASSWORD=test123
+          TEST_EMAIL=testuser@apartment.local
           EOF
 
-      # 8. Start Application Stack with Docker Compose
+      # 8. Start Application Stack with Docker Compose (Dev Mode)
       - name: Start Application Stack
         run: |
-          echo "Starting services with Docker Compose..."
-          docker compose -f docker-compose.test.yml up -d
+          echo "Starting services with Docker Compose (Dev Mode)..."
+          docker compose -f docker-compose.dev.yml up --build -d
           
           echo "Waiting for MySQL to be ready..."
-          timeout 120s bash -c 'until docker compose -f docker-compose.test.yml exec -T mysql mysqladmin ping -h localhost --silent; do echo "Waiting for MySQL..."; sleep 5; done'
+          timeout 120s bash -c 'until docker compose -f docker-compose.dev.yml exec -T db mysqladmin ping -h localhost --silent; do echo "Waiting for MySQL..."; sleep 5; done'
           echo "✅ MySQL is ready"
           
           echo "Waiting for Backend to be ready..."
-          timeout 120s bash -c 'until curl -f http://localhost:8080/actuator/health 2>/dev/null; do echo "Waiting for Backend..."; sleep 5; done'
+          timeout 120s bash -c 'until curl -f http://localhost:8080/health 2>/dev/null; do echo "Waiting for Backend..."; sleep 5; done'
           echo "✅ Backend is ready"
           
           echo "Waiting for Frontend to be ready..."
@@ -108,7 +112,7 @@ jobs:
       # 9. Display running containers for debugging
       - name: Show running containers
         if: always()
-        run: docker compose -f docker-compose.test.yml ps
+        run: docker compose -f docker-compose.dev.yml ps
 
       # 10. Run Cypress E2E Tests
       - name: Run Cypress E2E Tests
@@ -261,18 +265,18 @@ jobs:
         if: failure()
         run: |
           echo "📋 Backend Logs:"
-          docker compose -f docker-compose.test.yml logs backend --tail=100
+          docker compose -f docker-compose.dev.yml logs backend --tail=100
           echo ""
           echo "📋 Frontend Logs:"
-          docker compose -f docker-compose.test.yml logs frontend --tail=100
+          docker compose -f docker-compose.dev.yml logs frontend --tail=100
           echo ""
           echo "📋 MySQL Logs:"
-          docker compose -f docker-compose.test.yml logs mysql --tail=50
+          docker compose -f docker-compose.dev.yml logs db --tail=50
       
       # 19. Cleanup - Teardown environment
       - name: Teardown Environment
         if: always()
         run: |
           echo "🧹 Cleaning up test environment..."
-          docker compose -f docker-compose.test.yml down -v
+          docker compose -f docker-compose.dev.yml down -v
           echo "✅ Cleanup complete"
