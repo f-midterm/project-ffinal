@@ -2,14 +2,14 @@ name: E2E Tests with Cypress
 
 on:
   push:
-    branches: [ "feature/**", "develop/**" ]
+    branches: [ "feature/**", "develop/**", "release/**" ]
     paths:
-      - 'frontend/**'
+      - 'frontend/**'   
       - 'backend/**'
       - 'docker-compose.test.yml'
       - '.github/workflows/e2e-tests.yml'
   pull_request:
-    branches: [ main, develop, feature/** ]
+    branches: [ main, develop, feature/**, release/** ]
     types: [ opened, synchronize, reopened ]
   workflow_dispatch:  # Manual trigger for testing
 
