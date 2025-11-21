@@ -24,7 +24,7 @@ services:
       - test-network
 
   backend:
-    image: apartment-backend:test
+    image: ${DOCKER_USERNAME}/apartment-backend:latest
     container_name: apartment-test-backend
     depends_on:
       mysql:
@@ -53,7 +53,7 @@ services:
       - test-network
 
   frontend:
-    image: apartment-frontend:test
+    image: ${DOCKER_USERNAME}/apartment-frontend:latest
     container_name: apartment-test-frontend
     depends_on:
       backend:
