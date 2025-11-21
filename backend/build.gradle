@@ -55,6 +55,6 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
-    reports.html.required = false
-    reports.junitXml.required = false
+    reports.html.required = true
+    reports.junitXml.required = true
 }
