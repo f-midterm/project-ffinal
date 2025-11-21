@@ -14,14 +14,13 @@ services:
       - "3306:3306"
     volumes:
       - mysql-test-data:/var/lib/mysql
+    network_mode: "host"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "--silent"]
       interval: 5s
       timeout: 3s
       retries: 20
       start_period: 30s
-    networks:
-      - test-network
 
   backend:
     image: ${DOCKER_USERNAME}/apartment-backend:latest
@@ -30,7 +29,7 @@ services:
       mysql:
         condition: service_healthy
     environment:
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:mysql://mysql:3306/apartment_db}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:mysql://localhost:3306/apartment_db}
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-root}
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-root123}
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
@@ -43,14 +42,13 @@ services:
       MAINTENANCE_UPLOAD_DIR: /app/uploads/maintenance-attachments
     ports:
       - "8080:8080"
+    network_mode: "host"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 10s
       timeout: 5s
       retries: 15
       start_period: 60s
-    networks:
-      - test-network
 
   frontend:
     build:
@@ -62,24 +60,20 @@ services:
         condition: service_healthy
     environment:
       VITE_API_BASE_URL: http://localhost:8080
+      VITE_BACKEND_URL: http://localhost:8080
     ports:
       - "5173:5173"
     volumes:
       - ./frontend:/app
       - /app/node_modules
+    network_mode: "host"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5173/"]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 30s
-    networks:
-      - test-network
 
 volumes:
   mysql-test-data:
     driver: local
-
-networks:
-  test-network:
-    driver: bridge

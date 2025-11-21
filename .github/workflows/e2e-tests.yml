@@ -71,13 +71,14 @@ jobs:
           DOCKER_USERNAME=${{ env.DOCKER_USERNAME }}
           MYSQL_ROOT_PASSWORD=root123
           MYSQL_DATABASE=apartment_db
-          SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/apartment_db
+          SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/apartment_db
           SPRING_DATASOURCE_USERNAME=root
           SPRING_DATASOURCE_PASSWORD=root123
           JWT_SECRET=dGVzdC1zZWNyZXQta2V5LWZvci1qd3QtdG9rZW4tZ2VuZXJhdGlvbi1pbi10ZXN0LWVudmlyb25tZW50
           JWT_EXPIRATION=86400000
           CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:80,http://localhost:8080
           VITE_API_BASE_URL=http://localhost:8080
+          VITE_BACKEND_URL=http://localhost:8080
           EOF
 
       # 8. Start Application Stack with Docker Compose

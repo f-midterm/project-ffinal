@@ -15,15 +15,16 @@ export default defineConfig({
     port: 5173, // The port Vite will run on inside the container.
     
     // Proxy API requests to backend (development only)
+    // Use environment variable or default to Docker service name
     proxy: {
       '/api': {
-        target: 'http://backend:8080',
+        target: process.env.VITE_BACKEND_URL || 'http://backend:8080',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
       },
       // Proxy uploaded files (payment slips, etc.)
       '/uploads': {
-        target: 'http://backend:8080',
+        target: process.env.VITE_BACKEND_URL || 'http://backend:8080',
         changeOrigin: true
       }
     },
