@@ -51,19 +51,43 @@ jobs:
       # 5. Run backend unit tests
       - name: Run Unit Tests
         working-directory: ./backend
-        run: ./gradlew test --info
+        run: |
+          echo "🧪 Running backend unit tests..."
+          ./gradlew test --info
+          
+          # Extract test summary from Gradle output
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📊 Backend Unit Test Summary"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          
+          # Parse test results from build/test-results/test directory
+          if [ -d "build/test-results/test" ]; then
+            TOTAL_TESTS=$(find build/test-results/test -name "*.xml" -exec grep -o 'tests="[0-9]*"' {} \; | grep -o '[0-9]*' | awk '{s+=$1} END {print s}')
+            FAILED_TESTS=$(find build/test-results/test -name "*.xml" -exec grep -o 'failures="[0-9]*"' {} \; | grep -o '[0-9]*' | awk '{s+=$1} END {print s}')
+            SKIPPED_TESTS=$(find build/test-results/test -name "*.xml" -exec grep -o 'skipped="[0-9]*"' {} \; | grep -o '[0-9]*' | awk '{s+=$1} END {print s}')
+            PASSED_TESTS=$((TOTAL_TESTS - FAILED_TESTS - SKIPPED_TESTS))
+            
+            echo "Total Tests:   $TOTAL_TESTS"
+            echo "✅ Passed:     $PASSED_TESTS"
+            echo "❌ Failed:     $FAILED_TESTS"
+            echo "⏭️  Skipped:    $SKIPPED_TESTS"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            
+            # Export for later steps
+            echo "TOTAL_TESTS=$TOTAL_TESTS" >> $GITHUB_ENV
+            echo "PASSED_TESTS=$PASSED_TESTS" >> $GITHUB_ENV
+            echo "FAILED_TESTS=$FAILED_TESTS" >> $GITHUB_ENV
+            echo "SKIPPED_TESTS=$SKIPPED_TESTS" >> $GITHUB_ENV
+          else
+            echo "⚠️  No test results found"
+            echo "TOTAL_TESTS=0" >> $GITHUB_ENV
+            echo "PASSED_TESTS=0" >> $GITHUB_ENV
+            echo "FAILED_TESTS=0" >> $GITHUB_ENV
+            echo "SKIPPED_TESTS=0" >> $GITHUB_ENV
+          fi
 
-      # 5.1. Generate test summary
-      - name: Publish Test Report
-        uses: dorny/test-reporter@v1
-        if: always()
-        with:
-          name: Backend Unit Test Results
-          path: backend/build/test-results/test/*.xml
-          reporter: java-junit
-          fail-on-error: true
-
-      # 6. Upload test results
+      # 6. Upload test results (HTML report)
       - name: Upload Test Results
         if: always()
         uses: actions/upload-artifact@v4
@@ -71,24 +95,25 @@ jobs:
           name: backend-test-results
           path: backend/build/reports/tests/test/
           retention-days: 30
+          if-no-files-found: warn
 
       # 7. Build backend JAR (skip tests - already ran above)
       - name: Build backend application
         working-directory: ./backend
         run: ./gradlew clean build -x test
 
-      # 7. Set up Docker Buildx
+      # 8. Set up Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 8. Log in to Docker Hub
+      # 9. Log in to Docker Hub
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ env.DOCKER_TOKEN }}
 
-      # 6. Build and push backend Docker image
+      # 10. Build and push backend Docker image
       - name: Build and push backend image
         uses: docker/build-push-action@v5
         with:
@@ -103,21 +128,27 @@ jobs:
           # Add this to prevent provenance issues
           provenance: false
 
-      # 10. Test deployment readiness
+      # 11. Backend CI Summary
       - name: Backend CI Summary
         run: |
-          echo "🎉 Backend CI Pipeline Completed Successfully!"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🎉 Backend CI Pipeline Completed!"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
           echo "✅ Java 21 & Gradle setup"
           echo "✅ Unit tests executed and passed"
           echo "✅ JAR file built successfully"
           echo "✅ Docker image built and pushed"
           echo ""
-          echo "📊 Test Results:"
-          echo "See detailed test report in the Actions summary above"
+          echo "📊 Test Results Summary:"
+          echo "   Total Tests:  ${{ env.TOTAL_TESTS }}"
+          echo "   ✅ Passed:    ${{ env.PASSED_TESTS }}"
+          echo "   ❌ Failed:    ${{ env.FAILED_TESTS }}"
+          echo "   ⏭️  Skipped:   ${{ env.SKIPPED_TESTS }}"
           echo ""
           echo "📦 Docker Images:"
-          echo "- ${{ env.DOCKER_USERNAME }}/apartment-backend:latest"
-          echo "- ${{ env.DOCKER_USERNAME }}/apartment-backend:${{ github.sha }}"
+          echo "   - ${{ env.DOCKER_USERNAME }}/apartment-backend:latest"
+          echo "   - ${{ env.DOCKER_USERNAME }}/apartment-backend:${{ github.sha }}"
           echo ""
           echo "🔗 Ready for deployment!"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
