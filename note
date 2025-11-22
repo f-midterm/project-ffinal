@@ -1,0 +1,27 @@
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.9.4/deploy/static/provider/cloud/deploy.yaml
+
+
+kubectl get pods -n ingress-nginx
+kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=120s
+
+
+
+cd k8s
+.\deploy.ps1 up
+cd ..\monitor
+.\deploy-monitoring.ps1
+
+kubectl apply -n superproject-ns -f .\backend\servicemonitor.yaml
+
+Grafana
+admin
+SuperSecure2024!
+
+
+cd monitor
+.\deploy-monitoring.ps1    # ติดตั้ง CRDs ก่อน
+cd ..\k8s
+.\deploy.ps1 up            # จะ apply ServiceMonitor เองอัตโนมัติ
+
+
+kubectl config get-contexts
