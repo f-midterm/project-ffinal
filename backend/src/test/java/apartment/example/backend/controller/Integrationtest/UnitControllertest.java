@@ -44,12 +44,8 @@ public class UnitControllertest {
     static void jwtProperties(DynamicPropertyRegistry registry) {
         registry.add("jwt.secret", () -> "dGVzdHNlY3JldA==");
         registry.add("jwt.expiration", () -> "3600000");
-
-        // --- เพิ่มบรรทัดนี้ครับ ---
-        // กำหนดค่า dummy url หรือ * สำหรับการเทส
-        registry.add("cors.allowed-origins", () -> "http://localhost:3000");
-        // หรือถ้าใน application.properties คุณใช้ชื่อตัวแปรว่า CORS_ALLOWED_ORIGINS โดยตรง ให้ใช้บรรทัดล่างแทน
-        // registry.add("CORS_ALLOWED_ORIGINS", () -> "http://localhost:3000");
+        
+        registry.add("spring.jpa.show-sql", () -> "true");
     }
 
     @BeforeEach
